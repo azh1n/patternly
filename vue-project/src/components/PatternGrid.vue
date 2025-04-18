@@ -133,6 +133,9 @@ watch(searchQuery, () => {
 <style scoped>
 .patterns-section {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .controls-section {
@@ -259,6 +262,9 @@ watch(searchQuery, () => {
   width: calc(100vw - 4rem);
   max-width: var(--max-content-width, 1200px);
   margin: 0 auto;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .empty-icon {

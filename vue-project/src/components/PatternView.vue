@@ -420,7 +420,7 @@ onMounted(() => {
   width: 100%;
   max-width: var(--max-content-width, 1200px);
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1rem 1rem 2rem;
 }
 
 .pattern-header {
@@ -692,7 +692,7 @@ onMounted(() => {
 
 @media (min-width: 1024px) {
   .pattern-view {
-    padding: 3rem 2rem;
+    padding: 1.5rem 2rem 3rem;
   }
 
   .header-content h1 {
