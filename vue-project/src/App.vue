@@ -2,6 +2,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { db } from './firebase'
 import { collection, addDoc, getDocs, query, orderBy, updateDoc, doc } from 'firebase/firestore'
+import PatternCard from './components/PatternCard.vue'
+import PatternGrid from './components/PatternGrid.vue'
+import SearchBar from './components/SearchBar.vue'
+import AddPatternModal from './components/AddPatternModal.vue'
 
 const showModal = ref(false)
 const text = ref('')
@@ -336,6 +340,13 @@ const previousPage = () => {
 watch(searchQuery, () => {
   currentPage.value = 1
 })
+
+const selectPattern = (pattern) => {
+  currentTextIndex.value = savedTexts.value.indexOf(pattern)
+  showPatternView.value = true
+  currentRowIndex.value = 0
+  currentStitchIndex.value = 0
+}
 </script>
 
 <template>
@@ -352,15 +363,7 @@ watch(searchQuery, () => {
     <div class="app-container">
       <div v-if="!showPatternView" class="home-page">
         <div class="controls-section">
-          <div class="search-bar">
-            <input 
-              type="text" 
-              v-model="searchQuery"
-              placeholder="Search your patterns..."
-              class="search-input"
-            />
-            <span class="search-icon">🔍</span>
-          </div>
+          <SearchBar v-model="searchQuery" />
           <button @click="openModal" class="add-button">
             <span class="plus-icon">+</span>
             Add Pattern
@@ -523,48 +526,11 @@ watch(searchQuery, () => {
     </div>
 
     <!-- Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h2>Add New Pattern</h2>
-          <button @click="closeModal" class="close-button">×</button>
-        </div>
-        <div class="modal-content">
-          <div class="form-group">
-            <label for="patternName">Pattern Name</label>
-            <input
-              type="text"
-              id="patternName"
-              v-model="patternName"
-              placeholder="Give your pattern a name..."
-              class="pattern-name-input"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="text">Pattern Instructions</label>
-            <textarea
-              v-model="text"
-              @input="handleInput"
-              :maxlength="MAX_CHARS"
-              placeholder="Paste your pattern instructions here..."
-              class="text-area"
-            ></textarea>
-          </div>
-
-          <div class="modal-actions">
-            <button @click="closeModal" class="cancel-button">Cancel</button>
-            <button 
-              @click="saveText" 
-              :disabled="isLoading || !text || !patternName"
-              class="save-button"
-            >
-              {{ isLoading ? 'Saving...' : 'Save Pattern' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AddPatternModal
+      v-model="showModal"
+      :is-loading="isLoading"
+      @save="saveText"
+    />
   </div>
 </template>
 
@@ -576,15 +542,146 @@ watch(searchQuery, () => {
   color: #fff;
   display: flex;
   flex-direction: column;
-  margin: 0 auto;
-  max-width: 400px; /* Mobile width */
+  align-items: center;
 }
 
-/* Desktop Styles */
+.header {
+  width: 100%;
+  background-color: #2a2a2a;
+  padding: 1.5rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 400px;
+  padding: 0 1rem;
+}
+
+.header-content {
+  width: 100%;
+  max-width: 400px;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  background: linear-gradient(45deg, #4CAF50, #81C784);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.controls-section {
+  width: 100%;
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.search-bar {
+  width: 100%;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  border: 2px solid #333;
+  border-radius: 12px;
+  background-color: #2a2a2a;
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  background-color: #333;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-button:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+.plus-icon {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.patterns-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.patterns-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pattern-count {
+  font-size: 1rem;
+  color: #666;
+  font-weight: normal;
+}
+
+.pattern-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 @media (min-width: 1024px) {
-  .container {
-    max-width: 100%;
+  .app-container {
+    max-width: 1400px;
     padding: 0 4rem;
+  }
+
+  .header-content {
+    max-width: 1400px;
+    padding: 0 4rem;
+  }
+
+  .header h1 {
+    font-size: 2.5rem;
   }
 
   .patterns-section {
@@ -610,17 +707,6 @@ watch(searchQuery, () => {
     cursor: pointer;
     transition: all 0.3s ease;
     border: 1px solid #333;
-  }
-
-  .header-content {
-    max-width: 1400px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 0;
-  }
-
-  .header h1 {
-    font-size: 2.5rem;
   }
 
   .controls-section {
@@ -757,255 +843,6 @@ watch(searchQuery, () => {
     height: 50px;
     font-size: 1.1rem;
   }
-}
-
-.app-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.header {
-  width: 100%;
-  background-color: #2a2a2a;
-  padding: 1.5rem 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-content {
-  width: 100%;
-  padding: 0 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 1.8rem;
-  background: linear-gradient(45deg, #4CAF50, #81C784);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.controls-section {
-  width: 100%;
-  margin: 2rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.search-bar {
-  width: 100%;
-  position: relative;
-}
-
-.search-input {
-  width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
-  border: 2px solid #333;
-  border-radius: 12px;
-  background-color: #2a2a2a;
-  color: #fff;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #4CAF50;
-  background-color: #333;
-}
-
-.search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-}
-
-.add-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 1.5rem;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.add-button:hover {
-  background-color: #45a049;
-  transform: translateY(-1px);
-}
-
-.plus-icon {
-  font-size: 1.2rem;
-  font-weight: bold;
-}
-
-.patterns-section {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-.patterns-section h2 {
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.pattern-count {
-  font-size: 1rem;
-  color: #666;
-  font-weight: normal;
-}
-
-.pattern-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-@media (min-width: 1024px) {
-  .patterns-section {
-    padding: 0 2rem;
-  }
-  
-  .pattern-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 2rem;
-  }
-}
-
-.pattern-card {
-  background-color: #2a2a2a;
-  border-radius: 16px;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #333;
-  width: 100%;
-}
-
-.pattern-card:hover {
-  transform: translateY(-4px);
-  background-color: #333;
-  border-color: #4CAF50;
-}
-
-.pattern-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.pattern-header h3 {
-  margin: 0;
-  color: #4CAF50;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.pattern-date {
-  font-size: 0.8rem;
-  color: #666;
-  white-space: nowrap;
-}
-
-.pattern-preview {
-  color: #aaa;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  flex: 1;
-}
-
-.pattern-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #333;
-}
-
-.view-pattern {
-  color: #4CAF50;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin: 2rem 0;
-  padding: 1rem;
-}
-
-.pagination-button {
-  padding: 0.8rem 1.5rem;
-  background-color: #2a2a2a;
-  color: white;
-  border: 1px solid #333;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.pagination-button:hover:not(:disabled) {
-  background-color: #333;
-  border-color: #4CAF50;
-}
-
-.pagination-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-numbers {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.page-number {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: 1px solid #333;
-  background-color: #2a2a2a;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.page-number.active {
-  background-color: #4CAF50;
-  border-color: #4CAF50;
-}
-
-.page-number:hover:not(.active) {
-  background-color: #333;
-  border-color: #4CAF50;
 }
 
 .empty-state {
