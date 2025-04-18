@@ -1,5 +1,5 @@
 <template>
-  <div class="pattern-card" @click="$emit('select', pattern)">
+  <div class="pattern-card" @click="handleClick">
     <div class="pattern-header">
       <h3>{{ pattern.name }}</h3>
       <span class="pattern-date">
@@ -28,6 +28,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   pattern: {
@@ -35,6 +36,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const router = useRouter()
 
 const totalRows = computed(() => {
   return props.pattern.content.split('\n')
@@ -47,9 +50,14 @@ const completedRowsCount = computed(() => {
 })
 
 const completionPercentage = computed(() => {
-  if (totalRows.value === 0) return 0
-  return Math.round((completedRowsCount.value / totalRows.value) * 100)
+  const totalRows = Object.keys(props.pattern.completedRows || {}).length
+  const completedRows = Object.values(props.pattern.completedRows || {}).filter(Boolean).length
+  return totalRows ? Math.round((completedRows / totalRows) * 100) : 0
 })
+
+const handleClick = () => {
+  router.push(`/pattern/${props.pattern.id}`)
+}
 </script>
 
 <style scoped>

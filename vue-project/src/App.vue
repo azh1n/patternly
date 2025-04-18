@@ -4,7 +4,7 @@
       <div class="header-content">
         <h1 
           :class="{ clickable: selectedPattern }"
-          @click="selectedPattern && (selectedPattern = null)"
+          @click="selectedPattern && router.push('/')"
         >
           Pattern Tracker
         </h1>
@@ -39,13 +39,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore'
 import { db } from './firebase'
 import PatternView from './components/PatternView.vue'
 import PatternGrid from './components/PatternGrid.vue'
 import AddPatternModal from './components/AddPatternModal.vue'
 
+const route = useRoute()
+const router = useRouter()
 const savedTexts = ref([])
 const isLoading = ref(false)
 const currentTextIndex = ref(0)
@@ -56,10 +59,29 @@ onMounted(async () => {
   try {
     isLoading.value = true
     await fetchSavedTexts()
+    // Check if we have a pattern ID in the URL
+    if (route.params.id) {
+      const pattern = savedTexts.value.find(p => p.id === route.params.id)
+      if (pattern) {
+        selectPattern(pattern, savedTexts.value.indexOf(pattern))
+      }
+    }
   } catch (error) {
     console.error('Error fetching patterns:', error)
   } finally {
     isLoading.value = false
+  }
+})
+
+// Watch for route changes
+watch(() => route.params.id, async (newId) => {
+  if (newId) {
+    const pattern = savedTexts.value.find(p => p.id === newId)
+    if (pattern) {
+      selectPattern(pattern, savedTexts.value.indexOf(pattern))
+    }
+  } else {
+    selectedPattern.value = null
   }
 })
 
@@ -79,6 +101,7 @@ const fetchSavedTexts = async () => {
 const selectPattern = (pattern, index) => {
   selectedPattern.value = pattern
   currentTextIndex.value = index
+  router.push(`/pattern/${pattern.id}`)
 }
 
 const handlePatternAdded = async (newPattern) => {
@@ -91,6 +114,8 @@ const handlePatternAdded = async (newPattern) => {
     })
     await fetchSavedTexts()
     showAddPattern.value = false
+    // Navigate to the new pattern
+    selectPattern({ id: docRef.id, ...newPattern }, 0)
   } catch (error) {
     console.error('Error adding pattern:', error)
   } finally {
