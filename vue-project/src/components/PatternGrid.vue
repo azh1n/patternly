@@ -1,69 +1,122 @@
 <template>
   <div class="patterns-section">
-    <h2>Your Patterns <span class="pattern-count">({{ patterns.length }} total)</span></h2>
-    <div class="pattern-cards">
-      <PatternCard
-        v-for="pattern in paginatedPatterns"
-        :key="pattern.id"
-        :pattern="pattern"
-        @select="$emit('select', pattern)"
-      />
+    <div class="controls-section">
+      <div class="search-bar">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search patterns..."
+          class="search-input"
+        />
+        <span class="search-icon">🔍</span>
+      </div>
+      <button @click="$emit('add-pattern')" class="add-button">
+        <span class="plus-icon">+</span>
+        Add Pattern
+      </button>
     </div>
 
-    <div v-if="totalPages > 1" class="pagination">
-      <button 
-        @click="previousPage"
-        :disabled="currentPage === 1"
-        class="pagination-button"
-      >
-        ← Previous
-      </button>
-      <div class="page-numbers">
+    <div v-if="isLoading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading your patterns...</p>
+    </div>
+
+    <div v-else>
+      <div class="patterns-header">
+        <h2>Your Patterns <span class="pattern-count">({{ filteredPatterns.length }} total)</span></h2>
+      </div>
+
+      <div v-if="filteredPatterns.length === 0" class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No Patterns Found</h3>
+        <p>{{ searchQuery ? 'Try adjusting your search terms.' : 'Start by adding your first pattern!' }}</p>
+      </div>
+
+      <div v-else class="pattern-grid">
+        <PatternCard
+          v-for="(pattern, index) in paginatedPatterns"
+          :key="pattern.id"
+          :pattern="pattern"
+          @select="$emit('select-pattern', pattern, index + (currentPage - 1) * patternsPerPage)"
+        />
+      </div>
+
+      <div v-if="totalPages > 1" class="pagination">
         <button 
-          v-for="page in totalPages"
-          :key="page"
-          @click="currentPage = page"
-          :class="['page-number', { active: currentPage === page }]"
+          @click="previousPage" 
+          :disabled="currentPage === 1"
+          class="pagination-button"
         >
-          {{ page }}
+          ← Previous
+        </button>
+        <div class="page-numbers">
+          <button 
+            v-for="page in totalPages" 
+            :key="page"
+            @click="currentPage = page"
+            :class="['page-number', { active: currentPage === page }]"
+          >
+            {{ page }}
+          </button>
+        </div>
+        <button 
+          @click="nextPage" 
+          :disabled="currentPage === totalPages"
+          class="pagination-button"
+        >
+          Next →
         </button>
       </div>
-      <button 
-        @click="nextPage"
-        :disabled="currentPage === totalPages"
-        class="pagination-button"
-      >
-        Next →
-      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import PatternCard from './PatternCard.vue'
 
 const props = defineProps({
   patterns: {
     type: Array,
     required: true
+  },
+  isLoading: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['select'])
+defineEmits(['select-pattern', 'add-pattern'])
 
-const PATTERNS_PER_PAGE = 6
+const searchQuery = ref('')
 const currentPage = ref(1)
+const patternsPerPage = 6
+
+// Filter patterns based on search query
+const filteredPatterns = computed(() => {
+  if (!searchQuery.value) return props.patterns
+  const query = searchQuery.value.toLowerCase()
+  return props.patterns.filter(pattern => 
+    pattern.name.toLowerCase().includes(query) ||
+    pattern.content.toLowerCase().includes(query)
+  )
+})
 
 const totalPages = computed(() => {
-  return Math.ceil(props.patterns.length / PATTERNS_PER_PAGE)
+  return Math.ceil(filteredPatterns.value.length / patternsPerPage)
 })
 
 const paginatedPatterns = computed(() => {
-  const start = (currentPage.value - 1) * PATTERNS_PER_PAGE
-  const end = start + PATTERNS_PER_PAGE
-  return props.patterns.slice(start, end)
+  const start = (currentPage.value - 1) * patternsPerPage
+  const end = start + patternsPerPage
+  return filteredPatterns.value.slice(start, end)
 })
+
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+  }
+}
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
@@ -71,11 +124,10 @@ const nextPage = () => {
   }
 }
 
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
-}
+// Reset to first page when search changes
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
 </script>
 
 <style scoped>
@@ -83,22 +135,101 @@ const previousPage = () => {
   width: 100%;
 }
 
-.pattern-cards {
+.controls-section {
+  width: 100%;
+  margin-bottom: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-@media (min-width: 1024px) {
-  .patterns-section {
-    padding: 0 2rem;
-  }
-  
-  .pattern-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 2rem;
-  }
+.search-bar {
+  width: 100%;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  border: 2px solid #333;
+  border-radius: 12px;
+  background-color: #2a2a2a;
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  background-color: #333;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: center;
+}
+
+.add-button:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+.plus-icon {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  border: 3px solid #333;
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.patterns-header {
+  margin-bottom: 2rem;
+}
+
+.patterns-header h2 {
+  font-size: 1.5rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .pattern-count {
@@ -107,24 +238,55 @@ const previousPage = () => {
   font-weight: normal;
 }
 
+.pattern-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  background-color: #2a2a2a;
+  border-radius: 16px;
+  border: 1px solid #333;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  color: #888;
+  margin: 0;
+  font-size: 1rem;
+}
+
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin: 2rem 0;
-  padding: 1rem;
+  margin-top: 2rem;
 }
 
 .pagination-button {
   padding: 0.8rem 1.5rem;
   background-color: #2a2a2a;
-  color: white;
+  color: #fff;
   border: 1px solid #333;
-  border-radius: 12px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .pagination-button:hover:not(:disabled) {
@@ -148,12 +310,18 @@ const previousPage = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  border: 1px solid #333;
   background-color: #2a2a2a;
   color: #fff;
+  border: 1px solid #333;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.page-number:hover:not(.active) {
+  background-color: #333;
+  border-color: #4CAF50;
 }
 
 .page-number.active {
@@ -161,8 +329,72 @@ const previousPage = () => {
   border-color: #4CAF50;
 }
 
-.page-number:hover:not(.active) {
-  background-color: #333;
-  border-color: #4CAF50;
+@media (min-width: 640px) {
+  .pattern-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .controls-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 2rem;
+    margin: 3rem 0;
+  }
+
+  .search-bar {
+    flex: 1;
+  }
+
+  .add-button {
+    width: auto;
+    min-width: 200px;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+  }
+
+  .search-input {
+    font-size: 1.1rem;
+    padding: 1.2rem 1.2rem 1.2rem 3.5rem;
+  }
+
+  .search-icon {
+    font-size: 1.3rem;
+    left: 1.2rem;
+  }
+
+  .patterns-header h2 {
+    font-size: 1.8rem;
+  }
+
+  .pattern-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .pagination-button {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
+
+  .page-number {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  .empty-state {
+    padding: 6rem 2rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.8rem;
+  }
+
+  .empty-state p {
+    font-size: 1.1rem;
+  }
 }
 </style> 
