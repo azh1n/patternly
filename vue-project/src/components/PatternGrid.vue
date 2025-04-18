@@ -26,19 +26,22 @@
         <h2>Your Patterns <span class="pattern-count">({{ filteredPatterns.length }} total)</span></h2>
       </div>
 
-      <div v-if="filteredPatterns.length === 0" class="empty-state">
-        <div class="empty-icon">📋</div>
-        <h3>No Patterns Found</h3>
-        <p>{{ searchQuery ? 'Try adjusting your search terms.' : 'Start by adding your first pattern!' }}</p>
-      </div>
-
-      <div v-else class="pattern-grid">
-        <PatternCard
-          v-for="(pattern, index) in paginatedPatterns"
-          :key="pattern.id"
-          :pattern="pattern"
-          @select="$emit('select-pattern', pattern, index + (currentPage - 1) * patternsPerPage)"
-        />
+      <div class="pattern-grid">
+        <template v-if="patterns.length === 0">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <h3>No Patterns Found</h3>
+            <p>{{ searchQuery ? 'Try adjusting your search terms.' : 'Start by adding your first pattern!' }}</p>
+          </div>
+        </template>
+        <template v-else>
+          <PatternCard
+            v-for="(pattern, index) in paginatedPatterns"
+            :key="pattern.id"
+            :pattern="pattern"
+            @select="$emit('select-pattern', pattern, index + (currentPage - 1) * patternsPerPage)"
+          />
+        </template>
       </div>
 
       <div v-if="totalPages > 1" class="pagination">
@@ -238,11 +241,16 @@ watch(searchQuery, () => {
   font-weight: normal;
 }
 
+.pattern-grid, .empty-state {
+  width: 100%;
+  max-width: var(--max-content-width, 1200px);
+  margin: 0 auto;
+}
+
 .pattern-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 2rem;
 }
 
 .empty-state {
@@ -251,6 +259,9 @@ watch(searchQuery, () => {
   background-color: #2a2a2a;
   border-radius: 16px;
   border: 1px solid #333;
+  width: calc(100vw - 4rem);
+  max-width: var(--max-content-width, 1200px);
+  margin: 0 auto;
 }
 
 .empty-icon {
@@ -386,7 +397,7 @@ watch(searchQuery, () => {
   }
 
   .empty-state {
-    padding: 6rem 2rem;
+    width: calc(100vw - 8rem);
   }
 
   .empty-state h3 {

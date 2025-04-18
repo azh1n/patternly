@@ -27,6 +27,7 @@
         :patterns="savedTexts"
         :current-text-index="currentTextIndex"
         @update:current-text-index="currentTextIndex = $event"
+        @pattern-deleted="handlePatternDeleted"
       />
     </main>
 
@@ -121,6 +122,12 @@ const handlePatternAdded = async (newPattern) => {
   } finally {
     isLoading.value = false
   }
+}
+
+const handlePatternDeleted = async () => {
+  await fetchSavedTexts()
+  selectedPattern.value = null
+  currentTextIndex.value = 0
 }
 </script>
 

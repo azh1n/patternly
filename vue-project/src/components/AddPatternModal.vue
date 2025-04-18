@@ -57,7 +57,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'save'])
+const emit = defineEmits(['update:modelValue', 'pattern-added'])
 
 const MAX_CHARS = 100000
 const patternName = ref('')
@@ -70,7 +70,7 @@ const handleInput = (event) => {
 }
 
 const savePattern = () => {
-  emit('save', {
+  emit('pattern-added', {
     name: patternName.value,
     content: patternText.value
   })

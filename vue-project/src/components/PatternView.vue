@@ -9,14 +9,30 @@
         @touchend="handleTouchEnd"
       >
         <div class="text-card" :class="{ 'completed': isRowComplete }">
+          <div class="pattern-header">
+            <h1>{{ pattern.name }}</h1>
+            <div class="pattern-controls">
+              <button 
+                @click="confirmDelete"
+                class="delete-button"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
           <div class="text-header">
             <div class="row-info">
               <h2>Row {{ currentRow?.rowNum }} {{ currentRow?.color }}</h2>
-              <span class="pattern-count">Pattern {{ currentTextIndex + 1 }}/{{ patterns.length }}</span>
-              <span class="completion-status">
-                {{ isRowComplete ? 'Completed' : 'In Progress' }}
-              </span>
+              <button 
+                @click="toggleRowComplete"
+                :class="['complete-button', { 'completed': isRowComplete }]"
+              >
+                {{ isRowComplete ? 'Mark Incomplete' : 'Mark Complete' }}
+              </button>
             </div>
+          </div>
+
+          <div class="stitch-control-wrapper">
             <div class="stitch-control">
               <label for="stitchesPerView">Stitches per view:</label>
               <input 
@@ -28,12 +44,6 @@
                 class="number-input"
               />
             </div>
-            <button 
-              @click="toggleRowComplete"
-              :class="['complete-button', { 'completed': isRowComplete }]"
-            >
-              {{ isRowComplete ? 'Mark Incomplete' : 'Mark Complete' }}
-            </button>
           </div>
 
           <div class="stitch-navigation">
@@ -73,13 +83,6 @@
               :disabled="currentRowIndex === parsedRows.length - 1"
             >Next Row</button>
           </div>
-
-          <div class="progress-bar">
-            <div 
-              class="progress"
-              :style="{ width: `${((currentRowIndex + 1) / parsedRows.length) * 100}%` }"
-            ></div>
-          </div>
         </div>
       </div>
     </div>
@@ -87,8 +90,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { updateDoc, doc } from 'firebase/firestore'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
 const props = defineProps({
@@ -106,7 +110,8 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:currentTextIndex'])
+const emit = defineEmits(['update:currentTextIndex', 'pattern-deleted'])
+const router = useRouter()
 
 const stitchesPerView = ref(5)
 const currentStitchIndex = ref(0)
@@ -294,6 +299,35 @@ const handleTouchEnd = () => {
   startX.value = 0
   currentX.value = 0
 }
+
+const confirmDelete = () => {
+  if (confirm('Are you sure you want to delete this pattern? This action cannot be undone.')) {
+    deletePattern()
+  }
+}
+
+const deletePattern = async () => {
+  try {
+    await deleteDoc(doc(db, 'texts', props.pattern.id))
+    emit('pattern-deleted')
+    router.push('/')
+  } catch (error) {
+    console.error('Error deleting pattern:', error)
+    alert('Failed to delete pattern. Please try again.')
+  }
+}
+
+onMounted(() => {
+  // Find the first incomplete row
+  const firstIncompleteRowIndex = parsedRows.value.findIndex(row => {
+    return !props.pattern?.completedRows?.[`row${row.rowNum}`]
+  })
+  
+  // If an incomplete row is found, navigate to it
+  if (firstIncompleteRowIndex !== -1) {
+    currentRowIndex.value = firstIncompleteRowIndex
+  }
+})
 </script>
 
 <style scoped>
@@ -328,18 +362,17 @@ const handleTouchEnd = () => {
 
 .text-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .row-info {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
 }
 
 .row-info h2 {
@@ -389,21 +422,6 @@ const handleTouchEnd = () => {
   cursor: not-allowed;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background-color: #444;
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 1rem;
-}
-
-.progress {
-  height: 100%;
-  background-color: #4CAF50;
-  transition: width 0.3s ease;
-}
-
 .stitch-navigation {
   display: flex;
   align-items: center;
@@ -419,14 +437,68 @@ const handleTouchEnd = () => {
   gap: 1rem;
 }
 
-.complete-button {
-  padding: 0.5rem 1rem;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
+.pattern-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.stitch-control-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.stitch-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  padding: 0.3rem 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.number-input {
+  padding: 0.3rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #fff;
+  width: 60px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.delete-button {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  background-color: #f44336;
+  color: white;
+}
+
+.complete-button {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  background-color: #4CAF50;
+  color: white;
 }
 
 .complete-button.completed {
@@ -435,31 +507,33 @@ const handleTouchEnd = () => {
 
 .complete-button:hover {
   opacity: 0.9;
-}
-
-.stitch-control {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  color: #fff;
-  padding: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-}
-
-.number-input {
-  padding: 0.5rem;
-  border: 1px solid #444;
-  border-radius: 4px;
-  background: #2a2a2a;
-  color: #fff;
-  width: 80px;
-  text-align: center;
+  transform: translateY(-1px);
 }
 
 .completed-stitch {
   color: #4CAF50;
   font-weight: 500;
+}
+
+.pattern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
+}
+
+.pattern-header h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  color: #fff;
+  font-weight: 500;
+}
+
+.pattern-controls {
+  display: flex;
+  gap: 1rem;
 }
 
 @media (min-width: 1024px) {
@@ -497,14 +571,30 @@ const handleTouchEnd = () => {
   }
 
   .stitch-control {
-    padding: 1rem;
-    font-size: 1.1rem;
+    padding: 0.5rem;
+    font-size: 1rem;
   }
 
   .number-input {
-    padding: 0.8rem;
-    width: 100px;
-    font-size: 1.1rem;
+    padding: 0.5rem;
+    width: 70px;
+    font-size: 1rem;
+  }
+
+  .delete-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    height: 36px;
+  }
+  
+  .pattern-header h1 {
+    font-size: 2.2rem;
+  }
+
+  .complete-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    height: 36px;
   }
 }
 </style> 
