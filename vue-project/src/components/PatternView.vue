@@ -1,89 +1,140 @@
 <template>
   <div class="pattern-view">
-    <div class="swipe-container">
-      <div 
-        class="swipe-content"
-        :style="{ transform: transformStyle }"
-        @touchstart="handleTouchStart"
-        @touchmove="handleTouchMove"
-        @touchend="handleTouchEnd"
-      >
-        <div class="text-card" :class="{ 'completed': isRowComplete }">
-          <div class="pattern-header">
-            <h1>{{ pattern.name }}</h1>
-            <div class="pattern-controls">
-              <button 
-                @click="confirmDelete"
-                class="delete-button"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-          <div class="text-header">
-            <div class="row-info">
-              <h2>Row {{ currentRow?.rowNum }} {{ currentRow?.color }}</h2>
-              <button 
-                @click="toggleRowComplete"
-                :class="['complete-button', { 'completed': isRowComplete }]"
-              >
-                {{ isRowComplete ? 'Mark Incomplete' : 'Mark Complete' }}
-              </button>
-            </div>
-          </div>
+    <div class="pattern-header">
+      <div class="header-content">
+        <h1>{{ pattern.name }}</h1>
+        <div class="pattern-controls">
+          <button @click="confirmDelete" class="delete-button">
+            <font-awesome-icon icon="trash" />
+            Delete Pattern
+          </button>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-track">
+          <div 
+            class="progress-fill"
+            :style="{ width: `${completionPercentage}%` }"
+          ></div>
+        </div>
+        <span class="progress-text">{{ completedRows }} of {{ totalRows }} rows completed</span>
+      </div>
+    </div>
 
-          <div class="stitch-control-wrapper">
-            <div class="stitch-control">
-              <label for="stitchesPerView">Stitches per view:</label>
-              <input 
-                type="number" 
-                id="stitchesPerView" 
-                v-model="stitchesPerView" 
-                min="1"
-                :max="totalStitches"
-                class="number-input"
-              />
-            </div>
+    <div class="pattern-content">
+      <div class="row-header">
+        <div class="row-info">
+          <div class="row-title">
+            <h2>Row {{ currentRow?.rowNum }}</h2>
+            <span class="row-color">{{ currentRow?.color }}</span>
           </div>
-
-          <div class="stitch-navigation">
+          <button 
+            @click="toggleRowComplete"
+            :class="['complete-button', { 'completed': isRowComplete }]"
+          >
+            <font-awesome-icon :icon="isRowComplete ? 'check-circle' : 'circle'" />
+            {{ isRowComplete ? 'Completed' : 'Mark Complete' }}
+          </button>
+        </div>
+        
+        <div class="stitch-control">
+          <label for="stitchesPerView">Stitches per view:</label>
+          <div class="number-control">
             <button 
-              @click="previousStitches" 
-              class="nav-button"
-              :disabled="currentStitchIndex === 0"
-            >←</button>
-            <div class="stitch-content">
-              <p class="pattern-text">{{ visibleStitches }}</p>
-              <p class="full-row">Full Row: 
-                <span 
-                  v-for="(item, index) in getCompletedCodes" 
-                  :key="index"
-                  :class="{ 'completed-stitch': item.isCompleted }"
-                >
-                  {{ item.code }}{{ index < getCompletedCodes.length - 1 ? ' ' : '' }}
-                </span>
-              </p>
-            </div>
+              @click="decreaseStitches" 
+              class="control-button"
+              :disabled="stitchesPerView <= 1"
+            >
+              −
+            </button>
+            <input 
+              type="number" 
+              id="stitchesPerView" 
+              v-model="stitchesPerView" 
+              min="1"
+              :max="totalStitches"
+              class="number-input"
+            />
             <button 
-              @click="nextStitches" 
-              class="nav-button"
-              :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
-            >→</button>
-          </div>
-
-          <div class="row-navigation">
-            <button 
-              @click="previousRow" 
-              class="nav-button"
-              :disabled="currentRowIndex === 0"
-            >Previous Row</button>
-            <button 
-              @click="nextRow" 
-              class="nav-button"
-              :disabled="currentRowIndex === parsedRows.length - 1"
-            >Next Row</button>
+              @click="increaseStitches" 
+              class="control-button"
+              :disabled="stitchesPerView >= totalStitches"
+            >
+              +
+            </button>
           </div>
         </div>
+      </div>
+
+      <div class="pattern-card">
+        <div class="stitch-navigation">
+          <button 
+            @click="previousStitches" 
+            class="nav-button"
+            :disabled="currentStitchIndex === 0"
+          >
+            <font-awesome-icon icon="chevron-left" />
+          </button>
+          
+          <div class="stitch-content">
+            <div class="current-stitches">
+              <span 
+                v-for="(stitch, index) in currentStitches" 
+                :key="index"
+                :class="{ 'completed-stitch': stitch.isCompleted }"
+              >
+                {{ stitch.code }}
+              </span>
+            </div>
+            <div class="stitch-progress">
+              <span class="progress-indicator">
+                {{ currentStitchIndex + 1 }}-{{ Math.min(currentStitchIndex + stitchesPerView, totalStitches) }} 
+                of {{ totalStitches }} stitches
+              </span>
+            </div>
+          </div>
+          
+          <button 
+            @click="nextStitches" 
+            class="nav-button"
+            :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
+          >
+            <font-awesome-icon icon="chevron-right" />
+          </button>
+        </div>
+
+        <div class="full-row-preview">
+          <h3>Full Row Preview</h3>
+          <div class="preview-content">
+            <span 
+              v-for="(item, index) in getCompletedCodes" 
+              :key="index"
+              :class="{ 'completed-stitch': item.isCompleted }"
+            >
+              {{ item.code }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-navigation">
+        <button 
+          @click="previousRow" 
+          class="nav-button large"
+          :disabled="currentRowIndex === 0"
+        >
+          <font-awesome-icon icon="arrow-left" />
+          Previous Row
+        </button>
+        <span class="row-counter">{{ currentRowIndex + 1 }} / {{ parsedRows.length }}</span>
+        <button 
+          @click="nextRow" 
+          class="nav-button large"
+          :disabled="currentRowIndex === parsedRows.length - 1"
+        >
+          Next Row
+          <font-awesome-icon icon="arrow-right" />
+        </button>
       </div>
     </div>
   </div>
@@ -317,6 +368,40 @@ const deletePattern = async () => {
   }
 }
 
+const completedRows = computed(() => {
+  if (!props.pattern?.completedRows) return 0
+  return Object.values(props.pattern.completedRows).filter(Boolean).length
+})
+
+const totalRows = computed(() => parsedRows.value.length)
+
+const completionPercentage = computed(() => {
+  if (totalRows.value === 0) return 0
+  return Math.round((completedRows.value / totalRows.value) * 100)
+})
+
+const currentStitches = computed(() => {
+  if (!currentRow.value) return []
+  const start = currentStitchIndex.value
+  const end = start + stitchesPerView.value
+  return currentRow.value.codes.slice(start, end).map((code, index) => ({
+    code,
+    isCompleted: index < stitchesPerView.value
+  }))
+})
+
+const decreaseStitches = () => {
+  if (stitchesPerView.value > 1) {
+    stitchesPerView.value--
+  }
+}
+
+const increaseStitches = () => {
+  if (stitchesPerView.value < totalStitches.value) {
+    stitchesPerView.value++
+  }
+}
+
 onMounted(() => {
   // Find the first incomplete row
   const firstIncompleteRowIndex = parsedRows.value.findIndex(row => {
@@ -333,268 +418,293 @@ onMounted(() => {
 <style scoped>
 .pattern-view {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  max-width: var(--max-content-width, 1200px);
+  margin: 0 auto;
+  padding: 2rem 1rem;
 }
 
-.swipe-container {
+.pattern-header {
+  margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.header-content h1 {
+  font-size: 2rem;
+  margin: 0;
+  color: #fff;
+}
+
+.progress-bar {
+  margin-top: 1rem;
+}
+
+.progress-track {
   width: 100%;
-  position: relative;
-  min-height: 40vh;
+  height: 8px;
+  background-color: #2a2a2a;
+  border-radius: 4px;
   overflow: hidden;
 }
 
-.text-card {
-  width: 100%;
-  max-width: none;
-  margin: 1rem 0;
-  padding: 2rem;
+.progress-fill {
+  height: 100%;
+  background-color: #4CAF50;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  display: block;
+  margin-top: 0.5rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.pattern-content {
   background-color: #2a2a2a;
-  border-radius: 12px;
+  border-radius: 16px;
   border: 1px solid #333;
+  overflow: hidden;
 }
 
-.text-card.completed {
-  background-color: #1e392a;
-  border: 1px solid #4CAF50;
-}
-
-.text-header {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+.row-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .row-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  text-align: left;
-}
-
-.row-info h2 {
-  margin: 0;
-  font-size: clamp(1.2rem, 3vw, 1.6rem);
-}
-
-.pattern-text {
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  color: #fff;
-  font-family: monospace;
-}
-
-.full-row {
-  font-size: 0.9rem;
-  color: #888;
-  font-family: monospace;
-  margin-top: 1rem;
-  word-break: break-word;
-  line-height: 1.6;
-}
-
-.row-navigation {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.nav-button {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-}
-
-.nav-button:hover:not(:disabled) {
-  opacity: 1;
-}
-
-.nav-button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.stitch-navigation {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  margin: 2rem 0;
-}
-
-.stitch-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.pattern-controls {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.stitch-control-wrapper {
-  display: flex;
-  justify-content: center;
   margin-bottom: 1rem;
+}
+
+.row-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.row-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.row-color {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.complete-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid #4CAF50;
+  border-radius: 8px;
+  background: transparent;
+  color: #4CAF50;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.complete-button:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.complete-button.completed {
+  background-color: #4CAF50;
+  color: white;
 }
 
 .stitch-control {
   display: flex;
   align-items: center;
+  gap: 1rem;
+}
+
+.number-control {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
+}
+
+.control-button {
+  padding: 0.5rem;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #1a1a1a;
   color: #fff;
-  padding: 0.3rem 0.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-button:hover:not(:disabled) {
+  background: #333;
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .number-input {
-  padding: 0.3rem;
+  width: 60px;
+  padding: 0.5rem;
   border: 1px solid #444;
   border-radius: 4px;
-  background: #2a2a2a;
+  background: #1a1a1a;
   color: #fff;
-  width: 60px;
   text-align: center;
+  font-size: 1rem;
+  -moz-appearance: textfield;
+}
+
+.number-input::-webkit-outer-spin-button,
+.number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pattern-card {
+  padding: 2rem;
+}
+
+.stitch-navigation {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.nav-button {
+  padding: 0.8rem;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-button:hover:not(:disabled) {
+  background: #333;
+  border-color: #4CAF50;
+}
+
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nav-button.large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+}
+
+.stitch-content {
+  flex: 1;
+  text-align: center;
+}
+
+.current-stitches {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.stitch-progress {
+  color: #888;
   font-size: 0.9rem;
 }
 
-.delete-button {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
+.full-row-preview {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #333;
+}
+
+.full-row-preview h3 {
+  margin: 0 0 1rem 0;
+  color: #888;
+  font-size: 1rem;
+  font-weight: normal;
+}
+
+.preview-content {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  background-color: #f44336;
-  color: white;
-}
-
-.complete-button {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  background-color: #4CAF50;
-  color: white;
-}
-
-.complete-button.completed {
-  background-color: #f44336;
-}
-
-.complete-button:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-family: monospace;
+  line-height: 1.6;
 }
 
 .completed-stitch {
   color: #4CAF50;
-  font-weight: 500;
 }
 
-.pattern-header {
+.row-navigation {
+  padding: 1.5rem;
+  border-top: 1px solid #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #333;
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
-.pattern-header h1 {
-  margin: 0;
-  font-size: clamp(1.4rem, 3vw, 1.8rem);
-  color: #fff;
-  font-weight: 500;
+.row-counter {
+  color: #888;
 }
 
-.pattern-controls {
+.delete-button {
+  padding: 0.8rem 1.5rem;
+  border: 1px solid #ff4444;
+  border-radius: 8px;
+  background: transparent;
+  color: #ff4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.delete-button:hover {
+  background-color: rgba(255, 68, 68, 0.1);
 }
 
 @media (min-width: 1024px) {
   .pattern-view {
-    max-width: 80%;
-    margin: 0 auto;
+    padding: 3rem 2rem;
   }
 
-  .text-card {
+  .header-content h1 {
+    font-size: 2.5rem;
+  }
+
+  .current-stitches {
+    font-size: 2.2rem;
+  }
+
+  .pattern-card {
     padding: 3rem;
-    border-radius: 20px;
-  }
-
-  .row-info h2 {
-    font-size: 2rem;
-  }
-
-  .pattern-text {
-    font-size: 2.2rem;
-  }
-
-  .full-row {
-    font-size: 1.1rem;
-    margin-top: 1.5rem;
-  }
-
-  .stitch-navigation {
-    gap: 3rem;
-    margin: 3rem 0;
-  }
-
-  .nav-button {
-    font-size: 2rem;
-    padding: 1rem;
-  }
-
-  .stitch-control {
-    padding: 0.5rem;
-    font-size: 1rem;
-  }
-
-  .number-input {
-    padding: 0.5rem;
-    width: 70px;
-    font-size: 1rem;
-  }
-
-  .delete-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    height: 36px;
-  }
-  
-  .pattern-header h1 {
-    font-size: 2.2rem;
-  }
-
-  .complete-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    height: 36px;
   }
 }
 </style> 

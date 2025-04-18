@@ -8,10 +8,10 @@
           placeholder="Search patterns..."
           class="search-input"
         />
-        <span class="search-icon">🔍</span>
+        <font-awesome-icon icon="search" class="search-icon" />
       </div>
       <button @click="$emit('add-pattern')" class="add-button">
-        <span class="plus-icon">+</span>
+        <font-awesome-icon icon="plus" class="plus-icon" />
         Add Pattern
       </button>
     </div>
@@ -26,22 +26,19 @@
         <h2>Your Patterns <span class="pattern-count">({{ filteredPatterns.length }} total)</span></h2>
       </div>
 
-      <div class="pattern-grid">
-        <template v-if="patterns.length === 0">
-          <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <h3>No Patterns Found</h3>
-            <p>{{ searchQuery ? 'Try adjusting your search terms.' : 'Start by adding your first pattern!' }}</p>
-          </div>
-        </template>
-        <template v-else>
-          <PatternCard
-            v-for="(pattern, index) in paginatedPatterns"
-            :key="pattern.id"
-            :pattern="pattern"
-            @select="$emit('select-pattern', pattern, index + (currentPage - 1) * patternsPerPage)"
-          />
-        </template>
+      <div v-if="filteredPatterns.length === 0" class="empty-state">
+        <font-awesome-icon icon="clipboard" class="empty-icon" />
+        <h3>No Patterns Found</h3>
+        <p>{{ searchQuery ? 'Try adjusting your search terms.' : 'Start by adding your first pattern!' }}</p>
+      </div>
+
+      <div v-else class="pattern-grid">
+        <PatternCard
+          v-for="(pattern, index) in paginatedPatterns"
+          :key="pattern.id"
+          :pattern="pattern"
+          @select="$emit('select-pattern', pattern, index + (currentPage - 1) * patternsPerPage)"
+        />
       </div>
 
       <div v-if="totalPages > 1" class="pagination">
@@ -50,7 +47,7 @@
           :disabled="currentPage === 1"
           class="pagination-button"
         >
-          ← Previous
+          <font-awesome-icon icon="chevron-left" /> Previous
         </button>
         <div class="page-numbers">
           <button 
@@ -67,7 +64,7 @@
           :disabled="currentPage === totalPages"
           class="pagination-button"
         >
-          Next →
+          Next <font-awesome-icon icon="chevron-right" />
         </button>
       </div>
     </div>
@@ -174,6 +171,7 @@ watch(searchQuery, () => {
   top: 50%;
   transform: translateY(-50%);
   color: #666;
+  font-size: 1.2rem;
 }
 
 .add-button {
@@ -201,7 +199,6 @@ watch(searchQuery, () => {
 
 .plus-icon {
   font-size: 1.2rem;
-  font-weight: bold;
 }
 
 .loading-state {
@@ -266,7 +263,8 @@ watch(searchQuery, () => {
 
 .empty-icon {
   font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  color: #4CAF50;
 }
 
 .empty-state h3 {
