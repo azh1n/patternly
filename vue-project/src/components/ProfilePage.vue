@@ -142,6 +142,7 @@ async function handleLogout() {
   align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid var(--border-color);
+  position: relative;
 }
 
 .header h1 {
@@ -151,15 +152,18 @@ async function handleLogout() {
   background: linear-gradient(45deg, var(--accent-color), #81C784);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  transition: all 0.2s;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .header h1.clickable {
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .header h1.clickable:hover {
-  transform: translateY(-1px);
+  transform: translateX(-50%) translateY(-1px);
   text-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
 }
 

@@ -158,18 +158,18 @@ const handleResetPassword = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
   background-color: var(--main-bg);
+  padding: 2rem;
 }
 
 .form-container {
   background-color: var(--header-bg);
-  padding: 2rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 3rem 4rem;
   width: 100%;
-  max-width: var(--max-content-width);
-  margin: 0 auto;
+  min-width: 800px;
+  max-width: 1200px;
+  border: 1px solid var(--border-color);
 }
 
 h1 {
@@ -186,7 +186,8 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-width: 500px;
+  width: 80%;
+  max-width: 600px;
   margin: 0 auto;
 }
 
@@ -285,12 +286,10 @@ button:disabled {
 }
 
 @media (min-width: 768px) {
-  .login-page {
-    padding: 4rem;
-  }
-
   .form-container {
     padding: 3rem;
+    width: 85%;
+    max-width: 1000px;
   }
 
   h1 {
@@ -303,6 +302,14 @@ button:disabled {
 
   .button-group button {
     flex: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-container {
+    padding: 4rem;
+    width: 80%;
+    max-width: 1200px;
   }
 }
 </style> 

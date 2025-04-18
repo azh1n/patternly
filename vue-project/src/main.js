@@ -10,11 +10,27 @@ import {
   faPlus, 
   faClipboard,
   faChevronLeft,
-  faChevronRight
+  faChevronRight,
+  faTrash,
+  faCheckCircle,
+  faCircle,
+  faArrowLeft,
+  faArrowRight
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
-library.add(faSearch, faPlus, faClipboard, faChevronLeft, faChevronRight)
+library.add(
+  faSearch, 
+  faPlus, 
+  faClipboard, 
+  faChevronLeft, 
+  faChevronRight,
+  faTrash,
+  faCheckCircle,
+  faCircle,
+  faArrowLeft,
+  faArrowRight
+)
 
 const app = createApp(App)
 

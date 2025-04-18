@@ -126,7 +126,22 @@
           <font-awesome-icon icon="arrow-left" />
           Previous Row
         </button>
-        <span class="row-counter">{{ currentRowIndex + 1 }} / {{ parsedRows.length }}</span>
+        <div class="row-selector">
+          <span class="row-counter">Row</span>
+          <select 
+            v-model="currentRowIndex" 
+            class="row-select"
+          >
+            <option 
+              v-for="(row, index) in parsedRows" 
+              :key="index" 
+              :value="index"
+            >
+              {{ row.rowNum }} ({{ row.color }})
+            </option>
+          </select>
+          <span class="row-counter">of {{ parsedRows.length }}</span>
+        </div>
         <button 
           @click="nextRow" 
           class="nav-button large"
@@ -315,7 +330,7 @@ const toggleRowComplete = async () => {
     const completionData = props.pattern.completedRows || {}
     completionData[`row${currentRow.value.rowNum}`] = !completionData[`row${currentRow.value.rowNum}`]
     
-    await updateDoc(doc(db, 'texts', textId), {
+    await updateDoc(doc(db, 'patterns', textId), {
       completedRows: completionData
     })
   } catch (error) {
@@ -359,7 +374,7 @@ const confirmDelete = () => {
 
 const deletePattern = async () => {
   try {
-    await deleteDoc(doc(db, 'texts', props.pattern.id))
+    await deleteDoc(doc(db, 'patterns', props.pattern.id))
     emit('pattern-deleted')
     router.push('/')
   } catch (error) {
@@ -667,6 +682,34 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   background-color: rgba(0, 0, 0, 0.2);
+}
+
+.row-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.row-select {
+  background: #1a1a1a;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.row-select:hover {
+  border-color: #4CAF50;
+  background: #333;
+}
+
+.row-select:focus {
+  outline: none;
+  border-color: #4CAF50;
 }
 
 .row-counter {

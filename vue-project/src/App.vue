@@ -29,4 +29,25 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.header h1 {
+  font-size: 2rem;
+  background: linear-gradient(45deg, #3b82f6, #06b6d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0;
+  transition: all 0.2s ease;
+}
+
+.header h1.clickable {
+  cursor: pointer;
+}
+
+.header h1.clickable:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--accent-color);
+}
 </style>

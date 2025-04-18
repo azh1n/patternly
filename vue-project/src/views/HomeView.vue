@@ -43,7 +43,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, orderBy, where, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useAuth } from '@/services/auth'
 import PatternView from '@/components/PatternView.vue'
@@ -63,16 +63,20 @@ const showAddPattern = ref(false)
 onMounted(async () => {
   try {
     isLoading.value = true
+    console.log('Component mounted, fetching patterns')
     await fetchSavedTexts()
+    
     // Check if we have a pattern ID in the URL
     if (route.params.id) {
+      console.log('Found pattern ID in URL:', route.params.id)
       const pattern = savedTexts.value.find(p => p.id === route.params.id)
       if (pattern) {
+        console.log('Selecting pattern:', pattern)
         selectPattern(pattern, savedTexts.value.indexOf(pattern))
       }
     }
   } catch (error) {
-    console.error('Error fetching patterns:', error)
+    console.error('Error in onMounted:', error)
   } finally {
     isLoading.value = false
   }
@@ -91,15 +95,41 @@ watch(() => route.params.id, async (newId) => {
 })
 
 const fetchSavedTexts = async () => {
+  if (!user.value?.uid) {
+    console.log('No user logged in')
+    return
+  }
+  
   try {
-    const q = query(collection(db, 'texts'), orderBy('timestamp', 'desc'))
+    console.log('Fetching patterns for user:', user.value.uid)
+    const patternsRef = collection(db, 'patterns')
+    console.log('Using collection:', patternsRef.path)
+    
+    const q = query(
+      patternsRef,
+      where('userId', '==', user.value.uid),
+      orderBy('timestamp', 'desc')
+    )
+    
     const querySnapshot = await getDocs(q)
-    savedTexts.value = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    console.log('Query snapshot size:', querySnapshot.size)
+    console.log('Query snapshot empty:', querySnapshot.empty)
+    
+    savedTexts.value = querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      console.log('Pattern document:', doc.id, data)
+      return {
+        id: doc.id,
+        ...data
+      }
+    })
+    
+    console.log('Total patterns loaded:', savedTexts.value.length)
   } catch (error) {
     console.error('Error fetching documents:', error)
+    if (error.code === 'permission-denied') {
+      console.error('Permission denied. Check security rules.')
+    }
   }
 }
 
@@ -110,19 +140,50 @@ const selectPattern = (pattern, index) => {
 }
 
 const handlePatternAdded = async (newPattern) => {
+  if (!user.value?.uid) {
+    console.log('No user logged in')
+    return
+  }
+  
   try {
     isLoading.value = true
-    const docRef = await addDoc(collection(db, 'texts'), {
+    const patternData = {
       ...newPattern,
+      userId: user.value.uid,
       timestamp: new Date(),
       completedRows: {}
-    })
-    await fetchSavedTexts()
+    }
+    console.log('Adding pattern with data:', patternData)
+    
+    const patternsRef = collection(db, 'patterns')
+    console.log('Using collection for add:', patternsRef.path)
+    
+    const docRef = await addDoc(patternsRef, patternData)
+    console.log('Successfully added pattern with ID:', docRef.id)
+    
+    // Verify the pattern was added by fetching it
+    const addedDoc = await getDoc(docRef)
+    if (addedDoc.exists()) {
+      console.log('Verified pattern exists:', addedDoc.data())
+    } else {
+      console.error('Pattern was not saved successfully')
+    }
+    
+    // Update local state
+    const newPatternWithId = { 
+      id: docRef.id, 
+      ...patternData 
+    }
+    savedTexts.value = [newPatternWithId, ...savedTexts.value]
+    
     showAddPattern.value = false
-    // Navigate to the new pattern
-    selectPattern({ id: docRef.id, ...newPattern }, 0)
+    selectPattern(newPatternWithId, 0)
   } catch (error) {
     console.error('Error adding pattern:', error)
+    if (error.code === 'permission-denied') {
+      console.error('Permission denied. Check security rules.')
+    }
+    alert('Failed to add pattern. Please try again.')
   } finally {
     isLoading.value = false
   }
@@ -133,6 +194,17 @@ const handlePatternDeleted = async () => {
   selectedPattern.value = null
   currentTextIndex.value = 0
 }
+
+// Watch for user auth state changes
+watch(() => user.value?.uid, (newUserId) => {
+  console.log('User ID changed:', newUserId)
+  if (newUserId) {
+    fetchSavedTexts()
+  } else {
+    savedTexts.value = []
+    selectedPattern.value = null
+  }
+})
 </script>
 
 <style scoped>
@@ -153,6 +225,7 @@ const handlePatternDeleted = async () => {
   align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid var(--border-color);
+  position: relative;
 }
 
 .header h1 {
@@ -162,9 +235,14 @@ const handlePatternDeleted = async () => {
   background: linear-gradient(45deg, var(--accent-color), #81C784);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  transition: all 0.2s ease;
-  position: relative;
-  padding: 0.5rem;
+  transition: all 0.2s;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.header nav {
+  margin-left: auto;
 }
 
 .header h1.clickable {
@@ -172,7 +250,7 @@ const handlePatternDeleted = async () => {
 }
 
 .header h1.clickable:hover {
-  transform: translateY(-1px);
+  transform: translateX(-50%) translateY(-1px);
   text-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
 }
 
