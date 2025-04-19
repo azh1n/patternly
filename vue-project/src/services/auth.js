@@ -20,6 +20,8 @@ const { setInitialPreferences } = useTheme()
 onAuthStateChanged(auth, (firebaseUser) => {
   user.value = firebaseUser
   loading.value = false
+}, (error) => {
+  loading.value = false
 })
 
 // Password validation
@@ -55,8 +57,6 @@ function checkRateLimit(email) {
 }
 
 function getErrorMessage(error) {
-  console.error('Auth error:', error.code, error.message) // Log for debugging, but don't expose details
-  
   const code = error.code || ''
   switch (code) {
     case 'auth/configuration-not-found':
@@ -134,9 +134,11 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      await signOut(auth)
-      // Clear any sensitive data from memory
+      // Clear any sensitive data from memory first
       loginAttempts.clear()
+      
+      // Sign out from Firebase Auth
+      await signOut(auth)
     } catch (error) {
       throw new Error(getErrorMessage(error))
     }

@@ -79,6 +79,14 @@
           {{ error }}
         </div>
 
+        <!-- Google Sign In Button -->
+        <div class="google-signin-container">
+          <button @click="signInWithGoogle" class="google-signin-button">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="google-logo">
+            Continue with Google
+          </button>
+        </div>
+
         <!-- Action buttons group -->
         <div class="button-group">
           <!-- Primary action button (Login/Register) -->
@@ -125,6 +133,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/services/auth'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth'
 
 // Router and authentication service initialization
 const router = useRouter()
@@ -224,6 +233,66 @@ const handleResetPassword = async () => {
     submitting.value = false
   }
 }
+
+// Google authentication setup
+const googleProvider = new GoogleAuthProvider()
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+})
+
+// Google sign-in method
+const signInWithGoogle = async () => {
+  try {
+    error.value = ''
+    submitting.value = true
+    
+    const result = await signInWithPopup(getAuth(), googleProvider)
+    
+    // Get the redirect path before clearing it
+    const redirectPath = localStorage.getItem('redirectAfterAuth')
+    localStorage.removeItem('redirectAfterAuth')
+    
+    // Small delay to ensure auth state is updated
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Navigate to the appropriate page
+    if (redirectPath && redirectPath !== '/login') {
+      router.push(redirectPath)
+    } else {
+      router.push('/')
+    }
+  } catch (error) {
+    if (error.code === 'auth/popup-closed-by-user') {
+      error.value = 'Sign in was cancelled'
+    } else if (error.code === 'auth/popup-blocked') {
+      error.value = 'Popup was blocked. Please allow popups for this site.'
+    } else {
+      error.value = error.message || 'An error occurred during sign in'
+    }
+  } finally {
+    submitting.value = false
+  }
+}
+
+// Handle redirect result on component mount
+onMounted(async () => {
+  try {
+    const result = await getRedirectResult(getAuth())
+    if (result) {
+      console.log('Redirect result:', result)
+      const redirectPath = localStorage.getItem('redirectAfterAuth')
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterAuth')
+        router.push(redirectPath)
+      } else {
+        router.push('/')
+      }
+    }
+  } catch (error) {
+    console.error('Redirect result error:', error)
+    error.value = error.message
+  }
+})
 
 // Lifecycle hooks for managing body class
 onMounted(() => {
@@ -497,6 +566,10 @@ button:disabled {
 @media (max-width: 840px) {
   .login-page {
     padding: 1rem;
+    min-height: calc(100vh - 100px); /* Reduce height to account for ads */
+    justify-content: flex-start; /* Align to top instead of center */
+    padding-top: 2rem; /* Add some top padding */
+    padding-bottom: 100px; /* Add space for ads */
   }
 
   .form-container {
@@ -504,6 +577,7 @@ button:disabled {
     width: 100%;
     padding: 1.5rem;
     border-radius: 12px;
+    margin-top: 1rem; /* Add some top margin */
   }
 
   .auth-form {
@@ -593,5 +667,35 @@ button:disabled {
 
 .requirement-met {
   color: #4CAF50;
+}
+
+.google-signin-container {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.google-signin-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.google-signin-button:hover {
+  background-color: #f5f5f5;
+}
+
+.google-logo {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
 }
 </style> 

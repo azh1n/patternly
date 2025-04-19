@@ -47,3 +47,30 @@ body:not(.login-page) #app {
   background-color: var(--main-bg);
 }
 </style>
+
+<script setup>
+import { onAuthStateChanged } from 'firebase/auth'
+import { useRouter } from 'vue-router'
+import { auth } from './firebase'
+
+const router = useRouter()
+
+// Handle auth state changes
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // User is signed in
+    const redirectPath = localStorage.getItem('redirectAfterAuth')
+    if (redirectPath) {
+      localStorage.removeItem('redirectAfterAuth')
+      router.push(redirectPath)
+    } else {
+      router.push('/')
+    }
+  } else {
+    // User is signed out
+    if (router.currentRoute.value.meta.requiresAuth) {
+      router.push('/login')
+    }
+  }
+})
+</script>

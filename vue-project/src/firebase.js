@@ -20,4 +20,11 @@ const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const auth = getAuth(app)
 
+// Set the redirect URL for authentication
+auth.settings = {
+  ...auth.settings,
+  appVerificationDisabledForTesting: false,
+  redirectUrl: window.location.origin + '/auth/callback'
+}
+
 export { db, auth } 

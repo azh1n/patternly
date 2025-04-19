@@ -4,6 +4,7 @@ import { useAuth } from '@/services/auth'
 import HomeView from '../views/HomeView.vue'
 import LoginPage from '../components/LoginPage.vue'
 import ProfilePage from '../components/ProfilePage.vue'
+import GoogleAuthCallback from '../components/GoogleAuthCallback.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -32,6 +33,12 @@ const router = createRouter({
       name: 'profile',
       component: ProfilePage,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: GoogleAuthCallback,
+      meta: { requiresGuest: true }
     }
   ]
 })
@@ -56,8 +63,9 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth && !user.value) {
     // Redirect to login if trying to access a protected route while not authenticated
     next({ name: 'login', query: { redirect: to.fullPath } })
-  } else if (to.meta.requiresGuest && user.value) {
+  } else if (to.meta.requiresGuest && user.value && to.name !== 'auth-callback') {
     // Redirect to home if trying to access guest routes while authenticated
+    // But allow the auth callback to proceed
     next({ name: 'home' })
   } else {
     next()
