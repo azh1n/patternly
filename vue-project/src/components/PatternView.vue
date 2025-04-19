@@ -88,16 +88,17 @@
           <div class="stitch-content">
             <div class="current-stitches">
               <span 
-                v-for="(stitch, index) in visibleStitches.split(' ')" 
+                v-for="(stitch, index) in currentStitches" 
                 :key="index"
-                :class="{ 'completed-stitch': index < currentStitchIndex }"
+                :class="{ 'completed-stitch': stitch.isCompleted }"
               >
-                {{ stitch }}
+                {{ stitch.code }}
               </span>
             </div>
             <div class="stitch-progress">
-              {{ currentStitchIndex + 1 }}-{{ Math.min(currentStitchIndex + stitchesPerView, totalStitches) }} 
-              of {{ totalStitches }} stitches
+              <span class="progress-indicator">
+                {{ stitchProgress }}
+              </span>
             </div>
           </div>
           
@@ -116,31 +117,31 @@
           <div class="preview-content">
             <template v-if="windowWidth < 768">
               <span 
-                v-for="(stitch, index) in mobilePreviewStitches" 
+                v-for="(item, index) in mobilePreviewStitches" 
                 :key="index"
                 :class="[
                   'preview-stitch',
-                  {
-                    'completed-stitch': stitch.status === 'completed',
-                    'current-stitch': stitch.status === 'current',
-                    'next-stitch': stitch.status === 'next'
-                  }
+                  { 'completed-stitch': item.status === 'completed' },
+                  { 'current-stitch': item.status === 'current' },
+                  { 'next-stitch': item.status === 'next' },
+                  { 'border-stitch': item.code.endsWith('bs') }
                 ]"
               >
-                {{ stitch.code }}
+                {{ item.code }}
               </span>
             </template>
             <template v-else>
               <span 
-                v-for="(item, index) in currentRow.codes" 
+                v-for="(item, index) in getCompletedCodes" 
                 :key="index"
                 :class="[
                   'preview-stitch',
-                  { 'completed-stitch': index < currentStitchIndex },
-                  { 'current-stitch': index >= currentStitchIndex && index < currentStitchIndex + stitchesPerView }
+                  { 'completed-stitch': item.isCompleted },
+                  { 'current-stitch': index >= currentStitchIndex && index < currentStitchIndex + stitchesPerView },
+                  { 'border-stitch': item.code.endsWith('bs') }
                 ]"
               >
-                {{ item }}
+                {{ item.code }}
               </span>
             </template>
           </div>
@@ -154,10 +155,11 @@
           class="nav-button large"
           :disabled="currentRowIndex === 0"
         >
-          <font-awesome-icon icon="chevron-left" />
-          <span class="button-text">Previous</span>
+          <font-awesome-icon icon="arrow-left" />
+          <span>Previous Row</span>
         </button>
         <div class="row-selector">
+          <span class="row-counter">Row</span>
           <select 
             v-model="currentRowIndex" 
             class="row-select"
@@ -167,17 +169,18 @@
               :key="index" 
               :value="index"
             >
-              Row {{ row.rowNum }}
+              {{ row.rowNum }} ({{ row.color }})
             </option>
           </select>
+          <span class="row-counter">of {{ parsedRows.length }}</span>
         </div>
         <button 
           @click="nextRow" 
           class="nav-button large"
           :disabled="currentRowIndex === parsedRows.length - 1"
         >
-          <span class="button-text">Next</span>
-          <font-awesome-icon icon="chevron-right" />
+          <font-awesome-icon icon="arrow-right" />
+          <span>Next Row</span>
         </button>
       </div>
     </div>
@@ -185,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -217,7 +220,7 @@ const currentRowIndex = ref(0)  // Current row index in the pattern
 const isSwiping = ref(false)  // Touch swipe state
 const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
-const windowWidth = ref(window.innerWidth)
+const windowWidth = ref(window.innerWidth)  // Current window width
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
@@ -294,24 +297,14 @@ const currentRow = computed(() => {
 const visibleStitches = computed(() => {
   if (!currentRow.value) return ''
   const start = currentStitchIndex.value
-  const end = start + stitchesPerView.value
+  const end = Math.min(start + stitchesPerView.value, currentRow.value.codes.length)
   return currentRow.value.codes.slice(start, end).join(' ')
 })
 
 // Calculate total stitches in current row
 const totalStitches = computed(() => {
   if (!currentRow.value) return 0
-  return currentRow.value.codes.reduce((total, code) => {
-    if (code.includes('x')) {
-      const match = code.match(/\(([^)]+)\)x(\d+)/)
-      if (match) {
-        const [, group, repeat] = match
-        const stitchCount = group.split(',').length
-        return total + (stitchCount * parseInt(repeat))
-      }
-    }
-    return total + 1
-  }, 0)
+  return currentRow.value.codes.length
 })
 
 // Get completed codes for full row preview
@@ -339,68 +332,56 @@ const transformStyle = computed(() => {
 
 // Navigation methods
 const nextStitches = () => {
-  if (currentStitchIndex.value + stitchesPerView.value < totalStitches.value) {
-    currentStitchIndex.value += stitchesPerView.value
+  if (!currentRow.value) return
+  let currentTotal = 0
+  let targetIndex = currentStitchIndex.value
+
+  // Calculate the total stitches up to the current index
+  for (let i = 0; i < currentStitchIndex.value; i++) {
+    const code = currentRow.value.codes[i]
+    const count = parseInt(code.match(/\d+/)[0], 10)
+    currentTotal += count
+  }
+
+  // Find the next index that would add approximately stitchesPerView.value stitches
+  while (targetIndex < currentRow.value.codes.length) {
+    const code = currentRow.value.codes[targetIndex]
+    const count = parseInt(code.match(/\d+/)[0], 10)
+    if (currentTotal + count > stitchesPerView.value) break
+    currentTotal += count
+    targetIndex++
+  }
+
+  if (targetIndex > currentStitchIndex.value) {
+    currentStitchIndex.value = targetIndex
     updateScrollPosition()
   }
 }
 
 const previousStitches = () => {
-  if (currentStitchIndex.value > 0) {
-    currentStitchIndex.value = Math.max(0, currentStitchIndex.value - stitchesPerView.value)
-    updateScrollPosition()
+  if (!currentRow.value || currentStitchIndex.value === 0) return
+  let currentTotal = 0
+  let targetIndex = currentStitchIndex.value - 1
+
+  // Calculate backwards until we find the right starting point
+  while (targetIndex > 0) {
+    const code = currentRow.value.codes[targetIndex]
+    const count = parseInt(code.match(/\d+/)[0], 10)
+    if (currentTotal + count > stitchesPerView.value) break
+    currentTotal += count
+    targetIndex--
   }
+
+  currentStitchIndex.value = targetIndex
+  updateScrollPosition()
 }
 
-// Separate function for scroll position update
-const updateScrollPosition = () => {
-  // Wait for DOM to update
-  setTimeout(() => {
-    const previewContent = document.querySelector('.preview-content')
-    if (!previewContent || !currentRow.value) return
-
-    if (windowWidth.value < 768) {
-      // For mobile view, ensure we show at least one upcoming stitch
-      const currentStitches = previewContent.querySelectorAll('.current-stitch')
-      const nextStitches = previewContent.querySelectorAll('.next-stitch')
-      
-      if (currentStitches.length > 0) {
-        const lastCurrentStitch = currentStitches[currentStitches.length - 1]
-        const containerWidth = previewContent.offsetWidth
-        
-        // Calculate scroll position to show last current stitch and ensure space for next stitch
-        const targetPosition = Math.max(0, lastCurrentStitch.offsetLeft - (containerWidth * 0.7))
-        
-        previewContent.scrollTo({
-          left: targetPosition,
-          behavior: 'smooth'
-        })
-      }
-    } else {
-      // Desktop view - center the current stitches
-      const currentStitches = previewContent.querySelectorAll('.current-stitch')
-      if (currentStitches.length === 0) return
-
-      const firstCurrentStitch = currentStitches[0]
-      const containerWidth = previewContent.offsetWidth
-      const scrollPosition = firstCurrentStitch.offsetLeft - (containerWidth / 2) + (firstCurrentStitch.offsetWidth * stitchesPerView.value / 2)
-      
-      previewContent.scrollTo({
-        left: Math.max(0, scrollPosition),
-        behavior: 'smooth'
-      })
-    }
-  }, 0)
-}
-
-// Watch for changes that should trigger scroll position update
-watch([currentStitchIndex, stitchesPerView], () => {
-  updateScrollPosition()
-})
-
-// Update scroll position when window is resized
-watch(windowWidth, () => {
-  updateScrollPosition()
+// Update stitch progress display
+const stitchProgress = computed(() => {
+  if (!currentRow.value) return ''
+  const start = currentStitchIndex.value + 1
+  const end = Math.min(currentStitchIndex.value + stitchesPerView.value, totalStitches.value)
+  return `${start}-${end} of ${totalStitches.value} stitches`
 })
 
 // Row navigation with completion tracking
@@ -511,6 +492,17 @@ const completionPercentage = computed(() => {
   return Math.round((completedRows.value / totalRows.value) * 100)
 })
 
+// Current stitches display
+const currentStitches = computed(() => {
+  if (!currentRow.value) return []
+  const start = currentStitchIndex.value
+  const end = start + stitchesPerView.value
+  return currentRow.value.codes.slice(start, end).map((code, index) => ({
+    code,
+    isCompleted: index < stitchesPerView.value
+  }))
+})
+
 // Stitch view controls
 const decreaseStitches = () => {
   if (stitchesPerView.value > 1) {
@@ -524,26 +516,31 @@ const increaseStitches = () => {
   }
 }
 
-// Component initialization
+// Separate function for scroll position update
+const updateScrollPosition = () => {
+  // Wait for DOM to update
+  setTimeout(() => {
+    const previewContent = document.querySelector('.preview-content')
+    if (!previewContent || !currentRow.value) return
+
+    // Center the current stitches
+    const currentStitches = previewContent.querySelectorAll('.current-stitch')
+    if (currentStitches.length === 0) return
+
+    const firstCurrentStitch = currentStitches[0]
+    const containerWidth = previewContent.offsetWidth
+    const scrollPosition = firstCurrentStitch.offsetLeft - (containerWidth / 2) + (firstCurrentStitch.offsetWidth * stitchesPerView.value / 2)
+    
+    previewContent.scrollTo({
+      left: Math.max(0, scrollPosition),
+      behavior: 'smooth'
+    })
+  }, 0)
+}
+
+// Watch for window resize
 onMounted(() => {
   window.addEventListener('resize', () => {
-    windowWidth.value = window.innerWidth
-  })
-  
-  // Find the first incomplete row
-  const firstIncompleteRowIndex = parsedRows.value.findIndex(row => {
-    return !props.pattern?.completedRows?.[`row${row.rowNum}`]
-  })
-  
-  // If an incomplete row is found, navigate to it
-  if (firstIncompleteRowIndex !== -1) {
-    currentRowIndex.value = firstIncompleteRowIndex
-  }
-})
-
-// Clean up event listener
-onUnmounted(() => {
-  window.removeEventListener('resize', () => {
     windowWidth.value = window.innerWidth
   })
 })
@@ -576,12 +573,25 @@ const mobilePreviewStitches = computed(() => {
   
   return result
 })
+
+// Component initialization
+onMounted(() => {
+  // Find the first incomplete row
+  const firstIncompleteRowIndex = parsedRows.value.findIndex(row => {
+    return !props.pattern?.completedRows?.[`row${row.rowNum}`]
+  })
+  
+  // If an incomplete row is found, navigate to it
+  if (firstIncompleteRowIndex !== -1) {
+    currentRowIndex.value = firstIncompleteRowIndex
+  }
+})
 </script>
 
 <style scoped>
-/* Mobile-first styles */
+/* Main container styles */
 .pattern-view {
-  padding: 0.5rem;
+  padding: 1rem;
   color: var(--text-primary);
 }
 
@@ -657,27 +667,26 @@ const mobilePreviewStitches = computed(() => {
 
 /* Row header styles */
 .row-header {
-  padding: 0.75rem;
+  padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .row-info {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
 }
 
 .row-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.1rem;
+  gap: 1rem;
 }
 
 .row-title h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
+  color: var(--text-primary);
 }
 
 .row-color {
@@ -689,27 +698,33 @@ const mobilePreviewStitches = computed(() => {
 .complete-button {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.8rem;
-  border: 1.5px solid var(--accent-color);
-  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--accent-color);
+  border-radius: 8px;
   background: transparent;
   color: var(--accent-color);
-  font-size: 0.9rem;
   font-weight: 500;
-  width: auto;
-  min-width: 120px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.complete-button:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.complete-button.completed {
+  background-color: var(--accent-color);
+  color: white;
 }
 
 /* Stitch control styles */
 .stitch-control {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: var(--text-primary);
 }
 
 .number-control {
@@ -772,111 +787,90 @@ const mobilePreviewStitches = computed(() => {
 
 /* Pattern card styles */
 .pattern-card {
-  padding: 0.75rem;
+  padding: 2rem;
   background-color: var(--card-bg);
 }
 
 /* Stitch navigation styles */
 .stitch-navigation {
-  display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Navigation button styles */
+.nav-button {
+  padding: 0.8rem;
+  border: 1px solid var(--button-border);
+  border-radius: 8px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
 }
 
-.nav-button {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.nav-button:hover:not(:disabled) {
+  background: var(--button-hover-bg);
+  border-color: var(--accent-color);
 }
 
-/* Current stitches display */
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nav-button.large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+}
+
+/* Stitch content styles */
 .stitch-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  text-align: center;
 }
 
 .current-stitches {
-  font-size: 1.4rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  min-height: 50px;
-  align-items: center;
-  width: 100%;
-  text-align: center;
-}
-
-.current-stitches span {
+  gap: 1rem;
   color: var(--accent-color);
-  display: inline-flex;
-  align-items: center;
-  letter-spacing: 0.1rem;
-}
-
-.current-stitches span.completed-stitch {
-  color: var(--text-secondary);
 }
 
 .stitch-progress {
-  font-size: 0.8rem;
-  text-align: center;
   color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 /* Full row preview styles */
 .full-row-preview {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
   border-top: 1px solid var(--border-color);
-}
-
-.full-row-preview h3 {
-  font-size: 0.85rem;
-  margin: 0 0 0.5rem 0;
-  color: var(--text-secondary);
-  text-align: center;
 }
 
 .preview-content {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 0.15rem;
-  padding: 0.25rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
   overflow-x: auto;
-  justify-content: flex-start;
+  padding-bottom: 1rem;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  position: relative;
-  min-width: 100%;
-}
-
-.preview-content::-webkit-scrollbar {
-  display: none;
 }
 
 .preview-stitch {
-  font-size: 0.7rem;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  padding: 0.15rem 0.2rem;
-  border-radius: 3px;
+  font-size: 1rem;
+  color: var(--text-primary);
   position: relative;
-  letter-spacing: 0.05rem;
-  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
 }
 
 .preview-stitch.completed-stitch {
@@ -884,73 +878,176 @@ const mobilePreviewStitches = computed(() => {
 }
 
 .preview-stitch.current-stitch {
+  font-weight: bold;
   color: var(--text-primary);
-  font-weight: 500;
   background-color: rgba(76, 175, 80, 0.1);
-}
-
-.preview-stitch.current-stitch::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: var(--accent-color);
 }
 
 .preview-stitch.next-stitch {
   color: var(--text-secondary);
-  opacity: 0.6;
-  font-style: italic;
+}
+
+.preview-stitch.border-stitch {
+  color: var(--accent-color);
+  font-weight: 600;
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid var(--accent-color);
+}
+
+@media (max-width: 767px) {
+  .pattern-view {
+    padding: 0.5rem;
+  }
+
+  .pattern-header {
+    margin-bottom: 1rem;
+  }
+
+  .header-content {
+    margin-bottom: 0.5rem;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .row-title h2 {
+    font-size: 1.2rem;
+  }
+
+  .row-color {
+    font-size: 1rem;
+  }
+
+  .row-header {
+    padding: 0.75rem;
+  }
+
+  .complete-button {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.9rem;
+    gap: 0.35rem;
+  }
+
+  .stitch-control {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .number-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .number-input {
+    width: 80px;
+  }
+
+  .pattern-card {
+    padding: 0.75rem;
+  }
+
+  .stitch-navigation {
+    margin-bottom: 1rem;
+  }
+
+  .nav-button {
+    padding: 0.5rem;
+  }
+
+  .nav-button.large {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .nav-button.large span {
+    display: none;
+  }
+
+  .current-stitches {
+    font-size: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .full-row-preview {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .preview-content {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding: 1rem;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  
+  .preview-stitch {
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .row-navigation {
+    padding: 0.75rem;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .row-selector {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .row-select {
+    max-width: none;
+    width: 120px;
+  }
+
+  .stitch-progress {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+  }
 }
 
 /* Row navigation styles */
 .row-navigation {
-  padding: 0.75rem;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 0.5rem;
-  align-items: center;
+  padding: 1.5rem;
   border-top: 1px solid var(--border-color);
-}
-
-.nav-button.large {
-  padding: 0.5rem;
-  font-size: 0.9rem;
-  min-width: 40px;
-  max-width: fit-content;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 2rem;
 }
 
-.button-text {
-  display: none;
-}
-
+/* Row selector styles */
 .row-selector {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0 0.25rem;
+  gap: 1rem;
 }
 
 .row-counter {
-  display: none; /* Hide on mobile */
+  color: var(--text-secondary);
 }
 
 .row-select {
-  padding: 0.4rem;
-  font-size: 0.9rem;
-  width: 100%;
-  max-width: 200px;
-  text-align: center;
+  padding: 0.5rem;
   border: 1px solid var(--input-border);
   border-radius: 6px;
   background-color: var(--input-bg);
   color: var(--text-primary);
+  font-size: 1rem;
+  min-width: 150px;
 }
 
 .row-select:focus {
@@ -959,151 +1056,22 @@ const mobilePreviewStitches = computed(() => {
   background-color: var(--hover-bg);
 }
 
-/* Desktop styles */
-@media (min-width: 768px) {
+/* Responsive styles */
+@media (min-width: 1024px) {
   .pattern-view {
-    padding: 1rem;
+    padding: 2rem;
   }
 
-  .row-header {
-    padding: 1.5rem;
-  }
-
-  .row-info {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+  .header-content h1 {
+    font-size: 2.5rem;
   }
 
   .row-title h2 {
-    font-size: 1.5rem;
-  }
-
-  .complete-button {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    width: auto;
-  }
-
-  .stitch-control {
-    flex-direction: row;
-    margin-top: 1rem;
-    font-size: 1rem;
-  }
-
-  .pattern-card {
-    padding: 1.5rem;
-  }
-
-  .stitch-navigation {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .nav-button {
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    min-width: auto;
-    max-width: none;
-  }
-
-  .nav-button span {
-    margin: 0 0.5rem;
+    font-size: 1.8rem;
   }
 
   .current-stitches {
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    min-height: auto;
-    gap: 0.5rem;
-    letter-spacing: 0.15rem;
-  }
-
-  .stitch-progress {
-    font-size: 0.9rem;
-  }
-
-  .full-row-preview {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-  }
-
-  .full-row-preview h3 {
-    font-size: 1rem;
-  }
-
-  .preview-content {
-    gap: 0.25rem;
-    padding: 0.5rem;
-  }
-
-  .preview-stitch {
-    font-size: 0.9rem;
-    padding: 0.3rem 0.4rem;
-    letter-spacing: 0.15rem;
-    border-radius: 4px;
-  }
-
-  .nav-button.large {
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    min-width: 120px;
-    max-width: none;
-    gap: 0.75rem;
-    height: 44px;
-  }
-
-  .button-text {
-    display: inline;
-    white-space: nowrap;
-  }
-
-  .row-navigation {
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    gap: 2rem;
-  }
-
-  .row-selector {
-    flex-direction: row;
-    gap: 1rem;
-  }
-
-  .row-select {
-    padding: 0.5rem;
-    font-size: 1rem;
-    width: auto;
-    min-width: 150px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .pattern-content {
-    max-width: 1200px;
-  }
-}
-
-@media (max-width: 767px) {
-  .preview-content {
-    justify-content: flex-start;
-    padding: 0.25rem;
-    gap: 0.15rem;
-  }
-  
-  .preview-stitch {
-    font-size: 0.7rem;
-    padding: 0.15rem 0.2rem;
-    letter-spacing: 0.05rem;
-  }
-  
-  .preview-stitch.next-stitch::before {
-    content: '→';
-    display: inline-block;
-    margin-right: 0.1rem;
-    font-style: normal;
-    opacity: 0.8;
+    font-size: 2rem;
   }
 }
 </style> 
