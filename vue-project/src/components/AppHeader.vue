@@ -42,7 +42,7 @@ const router = useRouter()
 /* Main header container styles */
 .header {
   background-color: var(--header-bg);
-  height: 60px; /* Fixed smaller height for mobile */
+  min-height: 60px; /* Changed from fixed height to min-height */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -50,12 +50,13 @@ const router = useRouter()
   border-bottom: 1px solid var(--border-color);
   position: relative;
   width: 100%;
+  padding: 0.5rem 0; /* Added padding to prevent content squishing */
 }
 
 /* Header content wrapper styles */
 .header-content {
   width: 100%;
-  padding: 0 1rem;
+  padding: 0 0.75rem; /* Reduced side padding for mobile */
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -64,12 +65,14 @@ const router = useRouter()
 
 /* Left section styles for layout balance */
 .left-section {
-  width: 24px;
+  width: 20px; /* Reduced width for mobile */
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 /* Right section styles with navigation */
 .right-section {
-  width: 24px;
+  width: 20px; /* Reduced width for mobile */
+  flex-shrink: 0; /* Prevent shrinking */
   display: flex;
   justify-content: flex-end;
 }
@@ -77,7 +80,7 @@ const router = useRouter()
 /* App title styles with gradient effect */
 .header h1 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem; /* Slightly smaller font for mobile */
   font-weight: 600;
   cursor: pointer;
   background-image: linear-gradient(90deg, 
@@ -90,6 +93,10 @@ const router = useRouter()
   color: var(--accent-color);
   transition: all 0.2s;
   padding-bottom: 2px;
+  white-space: nowrap; /* Prevent text wrapping */
+  overflow: hidden; /* Hide overflow */
+  text-overflow: ellipsis; /* Show ellipsis if text overflows */
+  max-width: calc(100% - 40px); /* Account for side sections */
 }
 
 /* Hover effects for app title */
@@ -109,7 +116,8 @@ const router = useRouter()
   transition: all 0.2s;
   background-color: var(--button-bg);
   border: 1px solid var(--button-border);
-  font-size: 0.875rem;
+  font-size: 0.75rem; /* Smaller font size for mobile */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 /* Hover effects for profile link */
@@ -122,6 +130,7 @@ const router = useRouter()
 @media (min-width: 768px) {
   .header {
     height: var(--header-height);
+    padding: 0; /* Remove padding for larger screens */
   }
 
   .header-content {
@@ -137,6 +146,7 @@ const router = useRouter()
   .header h1 {
     font-size: 1.8rem;
     padding-bottom: 4px;
+    max-width: none; /* Remove max-width constraint */
   }
 
   .profile-link {

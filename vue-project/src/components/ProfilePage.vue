@@ -188,31 +188,34 @@ async function handleLogout() {
 
 /* Content wrapper styles */
 .profile-content {
-  padding: 2rem 4rem;
+  padding: 1rem;
   margin: 0 auto;
-  width: 1200px;
+  width: 100%;
+  max-width: 100%;
+  flex: 1;
 }
 
 /* Profile card styles */
 .profile-card {
   background-color: var(--header-bg);
-  border-radius: 12px;
-  padding: 2rem;
+  border-radius: 8px;
+  padding: 1.5rem;
   border: 1px solid var(--border-color);
+  margin-top: 1rem;
 }
 
 /* Card header styles */
 .profile-card h2 {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   color: var(--text-primary);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   text-align: center;
 }
 
 /* Loading state styles */
 .loading {
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem;
   color: var(--text-secondary);
 }
 
@@ -220,15 +223,15 @@ async function handleLogout() {
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  max-width: 400px;
+  gap: 1.25rem;
+  width: 100%;
   margin: 0 auto;
 }
 
 /* Form group styles */
 .form-group {
   position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 /* Input icon positioning */
@@ -260,6 +263,7 @@ async function handleLogout() {
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 /* Field icon styles */
@@ -291,6 +295,7 @@ async function handleLogout() {
 /* Button group layout */
 .button-group {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-top: 1rem;
   width: 100%;
@@ -298,13 +303,17 @@ async function handleLogout() {
 
 /* Common button styles */
 .button-group button {
-  flex: 1;
+  width: 100%;
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 /* Disabled button state */
@@ -322,7 +331,7 @@ button:disabled {
 
 /* Primary button hover state */
 .primary-button:hover:not(:disabled) {
-  background: #43a047;
+  background: var(--accent-hover);
   transform: translateY(-1px);
 }
 
@@ -335,7 +344,7 @@ button:disabled {
 
 /* Secondary button hover state */
 .secondary-button:hover:not(:disabled) {
-  background: rgba(76, 175, 80, 0.1);
+  background: var(--hover-bg);
 }
 
 /* Message styles */
@@ -367,14 +376,6 @@ button:disabled {
   color: var(--accent-color);
 }
 
-/* Button icon alignment */
-.button-group button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
 /* Theme toggle section styles */
 .theme-toggle {
   margin-bottom: 1.5rem;
@@ -400,7 +401,7 @@ button:disabled {
 
 /* Theme button hover state */
 .theme-button:hover {
-  background-color: rgba(76, 175, 80, 0.1);
+  background-color: var(--hover-bg);
   border-color: var(--accent-color);
 }
 
@@ -410,32 +411,39 @@ button:disabled {
   color: var(--accent-color);
 }
 
-/* Tablet responsive styles */
+/* Tablet styles */
 @media (min-width: 768px) {
+  .profile-content {
+    padding: 2rem;
+    max-width: 600px;
+  }
+
+  .profile-card {
+    padding: 2rem;
+    border-radius: 12px;
+  }
+
+  .profile-card h2 {
+    font-size: 1.5rem;
+  }
+
+  .button-group {
+    flex-direction: row;
+  }
+
+  .button-group button {
+    flex: 1;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1024px) {
   .profile-content {
     padding: 3rem;
   }
 
   .profile-card {
     padding: 3rem;
-  }
-
-  .profile-card h2 {
-    font-size: 1.8rem;
-  }
-}
-
-/* Desktop responsive styles */
-@media (min-width: 1024px) {
-  .profile-content {
-    padding: 3rem 4rem;
-  }
-}
-
-/* Mobile responsive styles */
-@media (max-width: 768px) {
-  .profile-content {
-    padding: 1rem;
   }
 }
 
