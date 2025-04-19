@@ -1,27 +1,35 @@
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
-import { db } from '@/firebase'
-import { useAuth } from './auth'
+import { db, auth } from '@/firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 
 const isDarkMode = ref(false) // Default to light mode
-const { user } = useAuth()
 
-// Watch for user changes to load their preferences
-watch(() => user.value?.uid, async (newUserId) => {
-  if (newUserId) {
+// Initialize theme and watch auth state
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
     await loadUserPreferences()
+  } else {
+    // Reset to default theme when user logs out
+    isDarkMode.value = false
+    applyTheme()
   }
 })
 
 async function loadUserPreferences() {
   try {
-    const prefDoc = await getDoc(doc(db, 'userPreferences', user.value.uid))
+    const userId = auth.currentUser?.uid
+    if (!userId) return
+
+    console.log('Loading theme preferences for user:', userId)
+    const prefDoc = await getDoc(doc(db, 'userPreferences', userId))
     if (prefDoc.exists()) {
       const prefs = prefDoc.data()
+      console.log('Loaded theme preferences:', prefs)
       isDarkMode.value = prefs.isDarkMode ?? false
       applyTheme()
     } else {
-      // Set initial preferences for new users
+      console.log('No preferences found, setting initial preferences')
       await setInitialPreferences()
     }
   } catch (error) {
@@ -30,10 +38,11 @@ async function loadUserPreferences() {
 }
 
 async function setInitialPreferences() {
-  if (!user.value?.uid) return
+  const userId = auth.currentUser?.uid
+  if (!userId) return
 
   try {
-    await setDoc(doc(db, 'userPreferences', user.value.uid), {
+    await setDoc(doc(db, 'userPreferences', userId), {
       isDarkMode: false
     })
     isDarkMode.value = false
@@ -44,10 +53,12 @@ async function setInitialPreferences() {
 }
 
 async function saveThemePreference(dark) {
-  if (!user.value?.uid) return
+  const userId = auth.currentUser?.uid
+  if (!userId) return
 
   try {
-    await setDoc(doc(db, 'userPreferences', user.value.uid), {
+    console.log('Saving theme preference:', dark)
+    await setDoc(doc(db, 'userPreferences', userId), {
       isDarkMode: dark
     }, { merge: true })
   } catch (error) {
@@ -55,13 +66,8 @@ async function saveThemePreference(dark) {
   }
 }
 
-function toggleTheme() {
-  isDarkMode.value = !isDarkMode.value
-  applyTheme()
-  saveThemePreference(isDarkMode.value)
-}
-
 function applyTheme() {
+  console.log('Applying theme, isDarkMode:', isDarkMode.value)
   const root = document.documentElement
   if (isDarkMode.value) {
     root.style.setProperty('--main-bg', '#121212')
@@ -98,11 +104,20 @@ function applyTheme() {
   }
 }
 
+function toggleTheme() {
+  isDarkMode.value = !isDarkMode.value
+  applyTheme()
+  saveThemePreference(isDarkMode.value)
+}
+
+// Apply default theme immediately
+applyTheme()
+
 export function useTheme() {
   return {
     isDarkMode,
     toggleTheme,
-    loadUserPreferences,
-    setInitialPreferences
+    setInitialPreferences,
+    loadUserPreferences
   }
 } 

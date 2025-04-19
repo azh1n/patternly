@@ -42,7 +42,7 @@ const router = useRouter()
 /* Main header container styles */
 .header {
   background-color: var(--header-bg);
-  height: var(--header-height);
+  height: 60px; /* Fixed smaller height for mobile */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -50,13 +50,12 @@ const router = useRouter()
   border-bottom: 1px solid var(--border-color);
   position: relative;
   width: 100%;
-  min-width: 1200px;
 }
 
 /* Header content wrapper styles */
 .header-content {
-  width: 1200px;
-  padding: 0 72px;
+  width: 100%;
+  padding: 0 1rem;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -65,12 +64,12 @@ const router = useRouter()
 
 /* Left section styles for layout balance */
 .left-section {
-  width: 100px;
+  width: 24px;
 }
 
 /* Right section styles with navigation */
 .right-section {
-  width: 100px;
+  width: 24px;
   display: flex;
   justify-content: flex-end;
 }
@@ -78,7 +77,7 @@ const router = useRouter()
 /* App title styles with gradient effect */
 .header h1 {
   margin: 0;
-  font-size: 2.2rem;
+  font-size: 1.25rem;
   font-weight: 600;
   cursor: pointer;
   background-image: linear-gradient(90deg, 
@@ -90,7 +89,7 @@ const router = useRouter()
   -webkit-text-fill-color: transparent;
   color: var(--accent-color);
   transition: all 0.2s;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 /* Hover effects for app title */
@@ -105,16 +104,60 @@ const router = useRouter()
   color: var(--button-text);
   text-decoration: none;
   font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   transition: all 0.2s;
   background-color: var(--button-bg);
   border: 1px solid var(--button-border);
+  font-size: 0.875rem;
 }
 
 /* Hover effects for profile link */
 .profile-link:hover {
   background-color: var(--button-hover-bg);
   border-color: var(--accent-color);
+}
+
+/* Tablet styles */
+@media (min-width: 768px) {
+  .header {
+    height: var(--header-height);
+  }
+
+  .header-content {
+    padding: 0 2rem;
+    max-width: 1200px;
+  }
+
+  .left-section,
+  .right-section {
+    width: 75px;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+    padding-bottom: 4px;
+  }
+
+  .profile-link {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1024px) {
+  .header-content {
+    padding: 0 4rem;
+  }
+
+  .left-section,
+  .right-section {
+    width: 100px;
+  }
+
+  .header h1 {
+    font-size: 2.2rem;
+  }
 }
 </style> 
