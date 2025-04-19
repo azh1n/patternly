@@ -31,15 +31,24 @@
       <div class="row-header">
         <div class="row-info">
           <div class="row-title">
-            <h2>Row {{ currentRow?.rowNum }}</h2>
-            <span class="row-color">{{ currentRow?.color }}</span>
+            <!-- Desktop view -->
+            <div class="desktop-only">
+              <h2>Row {{ currentRow?.rowNum }}</h2>
+              <span class="row-color">{{ currentRow?.color }}</span>
+            </div>
+            <!-- Mobile view -->
+            <div class="mobile-only stacked-info">
+              <h2>{{ currentRow?.rowNum }}</h2>
+              <div class="row-color">{{ currentRow?.color }}</div>
+            </div>
           </div>
           <button 
             @click="toggleRowComplete"
             :class="['complete-button', { 'completed': isRowComplete }]"
           >
             <font-awesome-icon :icon="isRowComplete ? 'check-circle' : 'circle'" />
-            {{ isRowComplete ? 'Completed' : 'Mark Complete' }}
+            <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
+            <span class="mobile-only button-text">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
           </button>
         </div>
         
@@ -863,22 +872,45 @@ onMounted(() => {
     font-size: 1.5rem;
   }
 
+  .row-header {
+    padding: 0.75rem;
+  }
+
+  .row-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .row-title h2 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .row-number {
+    font-weight: 600;
   }
 
   .row-color {
-    font-size: 1rem;
-  }
-
-  .row-header {
-    padding: 0.75rem;
+    color: var(--accent-color);
   }
 
   .complete-button {
     padding: 0.35rem 0.75rem;
     font-size: 0.9rem;
+    height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
     gap: 0.35rem;
+  }
+
+  .button-text {
+    display: inline-block;
+    margin-left: 0.25rem;
   }
 
   .stitch-control {
@@ -1009,6 +1041,31 @@ onMounted(() => {
   .desktop-only {
     display: none;
   }
+
+  /* Update the template section for mobile view */
+  @media (max-width: 767px) {
+    .row-title h2::before {
+      content: "Row ";
+    }
+  }
+
+  .stacked-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .stacked-info h2 {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .stacked-info .row-color {
+    color: var(--accent-color);
+    font-size: 0.9rem;
+  }
 }
 
 /* Row navigation styles */
@@ -1054,6 +1111,63 @@ onMounted(() => {
 
   .current-stitches {
     font-size: 2rem;
+  }
+}
+
+/* Desktop-specific styles */
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+
+  .row-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .row-title h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+  }
+
+  .row-color {
+    color: var(--accent-color);
+    font-weight: 500;
+  }
+
+  .complete-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* Mobile-specific styles */
+@media (max-width: 767px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .stacked-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .stacked-info h2 {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .stacked-info .row-color {
+    color: var(--accent-color);
+    font-size: 0.9rem;
   }
 }
 </style> 
