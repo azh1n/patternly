@@ -1,7 +1,7 @@
 <template>
   <div class="profile-container">
     <header class="header">
-      <h1 @click="router.push('/')" class="clickable">Pattern Tracker</h1>
+      <h1 @click="router.push('/')" class="clickable">Patternly</h1>
     </header>
 
     <div class="profile-content">
@@ -147,9 +147,11 @@ async function handleLogout() {
 
 .header h1 {
   margin: 0;
-  color: var(--text-primary);
   font-size: 1.5rem;
-  background: linear-gradient(45deg, var(--accent-color), #81C784);
+  background: linear-gradient(90deg, 
+    #81C784 0%,
+    var(--accent-color) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   transition: all 0.2s;
@@ -333,6 +335,12 @@ button:disabled {
 
   .profile-content {
     padding: 3rem 4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-content {
+    padding: 1rem;
   }
 }
 

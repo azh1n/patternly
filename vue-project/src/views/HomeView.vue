@@ -5,7 +5,7 @@
         :class="{ clickable: selectedPattern }"
         @click="selectedPattern && router.push('/')"
       >
-        Pattern Tracker
+        Patternly
       </h1>
       <nav>
         <router-link to="/profile" class="profile-link">Profile</router-link>
@@ -214,6 +214,7 @@ watch(() => user.value?.uid, (newUserId) => {
   flex-direction: column;
   background-color: var(--main-bg);
   color: var(--text-primary);
+  min-width: 1200px;
 }
 
 .header {
@@ -230,9 +231,11 @@ watch(() => user.value?.uid, (newUserId) => {
 
 .header h1 {
   margin: 0;
-  color: var(--text-primary);
   font-size: 1.5rem;
-  background: linear-gradient(45deg, var(--accent-color), #81C784);
+  background: linear-gradient(90deg, 
+    #81C784 0%,
+    var(--accent-color) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   transition: all 0.2s;
@@ -275,6 +278,7 @@ watch(() => user.value?.uid, (newUserId) => {
   max-width: var(--max-content-width);
   margin: 0 auto;
   padding: 1rem;
+  min-width: 1200px;
 }
 
 @media (min-width: 768px) {
