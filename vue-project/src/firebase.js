@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, getDocs } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 
 // Firebase configuration using environment variables
@@ -19,10 +19,5 @@ const app = initializeApp(firebaseConfig)
 // Initialize Firestore and Auth
 const db = getFirestore(app)
 const auth = getAuth(app)
-
-// Verify Firestore connection
-const testCollection = collection(db, 'test')
-getDocs(testCollection)
-    .catch(error => console.error('Firestore connection error:', error))
 
 export { db, auth } 
