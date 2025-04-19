@@ -23,4 +23,27 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+#app {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Always keep login page light */
+body.login-page {
+  background-color: white !important;
+}
+
+body.login-page #app {
+  background-color: white !important;
+}
+
+/* Regular theme handling for other pages */
+body:not(.login-page) {
+  background-color: var(--main-bg);
+}
+
+body:not(.login-page) #app {
+  background-color: var(--main-bg);
+}
 </style>

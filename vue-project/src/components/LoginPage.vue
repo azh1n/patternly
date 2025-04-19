@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/services/auth'
 
@@ -165,6 +165,14 @@ const handleResetPassword = async () => {
     submitting.value = false
   }
 }
+
+onMounted(() => {
+  document.body.classList.add('login-page')
+})
+
+onUnmounted(() => {
+  document.body.classList.remove('login-page')
+})
 </script>
 
 <style scoped>
@@ -174,7 +182,7 @@ const handleResetPassword = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: var(--main-bg);
+  background-color: white;
   padding: 2rem;
 }
 
@@ -190,7 +198,7 @@ const handleResetPassword = async () => {
   font-weight: 600;
   background: linear-gradient(90deg, 
     #81C784 0%,
-    var(--accent-color) 100%
+    #2E7D32 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -204,13 +212,14 @@ const handleResetPassword = async () => {
 }
 
 .form-container {
-  background-color: var(--header-bg);
+  background-color: white;
   border-radius: 16px;
   padding: 3rem 4rem;
   width: 100%;
   min-width: 800px;
   max-width: 1200px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
 .auth-form {
@@ -233,42 +242,42 @@ const handleResetPassword = async () => {
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #333;
 }
 
 .field-icon {
-  color: var(--accent-color);
+  color: #4CAF50;
   width: 16px;
   height: 16px;
 }
 
 input {
   padding: 0.75rem;
-  background-color: #2a2a2a;
-  border: 1px solid var(--border-color);
+  background-color: white;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
   font-size: 1rem;
-  color: var(--text-primary);
+  color: #333;
   transition: all 0.2s;
 }
 
 input:focus {
   outline: none;
-  border-color: var(--accent-color);
-  background-color: #333;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 input::placeholder {
-  color: var(--text-secondary);
+  color: #9e9e9e;
 }
 
 .error-message {
-  color: #e74c3c;
-  font-size: 0.9rem;
-  text-align: center;
   background-color: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
   padding: 0.75rem;
   border-radius: 6px;
+  text-align: center;
+  font-size: 0.9rem;
   border: 1px solid rgba(231, 76, 60, 0.2);
 }
 
@@ -297,7 +306,7 @@ button:disabled {
 }
 
 .primary-button {
-  background: var(--accent-color);
+  background: #4CAF50;
   color: white;
   border: none;
 }
@@ -305,12 +314,13 @@ button:disabled {
 .primary-button:hover:not(:disabled) {
   background: #43a047;
   transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
 }
 
 .secondary-button {
   background: transparent;
-  color: var(--accent-color);
-  border: 1px solid var(--accent-color);
+  color: #4CAF50;
+  border: 1px solid #4CAF50;
   display: flex;
   align-items: center;
   padding: 0.75rem 1.5rem;
@@ -347,20 +357,20 @@ button:disabled {
 }
 
 .secondary-button:hover:not(:disabled) {
-  background: rgba(76, 175, 80, 0.1);
-  border-color: #81C784;
+  background: rgba(76, 175, 80, 0.05);
+  border-color: #43a047;
 }
 
 .text-button {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: #666;
   font-size: 0.9rem;
   padding: 0.5rem;
 }
 
 .text-button:hover:not(:disabled) {
-  color: var(--text-primary);
+  color: #333;
 }
 
 @media (min-width: 768px) {
@@ -392,6 +402,13 @@ button:disabled {
 
   .app-title {
     font-size: 3.5rem;
+  }
+}
+
+@media (max-width: 840px) {
+  .form-container {
+    min-width: auto;
+    width: 100%;
   }
 }
 </style> 

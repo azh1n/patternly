@@ -308,8 +308,24 @@ const previousStitches = () => {
   }
 }
 
-const nextRow = () => {
+const nextRow = async () => {
   if (currentRowIndex.value < parsedRows.value.length - 1) {
+    // Mark current row as complete
+    if (currentRow.value && !isRowComplete.value) {
+      try {
+        const textId = props.pattern.id
+        const completionData = props.pattern.completedRows || {}
+        completionData[`row${currentRow.value.rowNum}`] = true
+        
+        await updateDoc(doc(db, 'patterns', textId), {
+          completedRows: completionData
+        })
+      } catch (error) {
+        console.error('Error updating row completion:', error)
+      }
+    }
+    
+    // Move to next row
     currentRowIndex.value++
     currentStitchIndex.value = 0
   }
