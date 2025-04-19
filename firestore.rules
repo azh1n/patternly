@@ -1,96 +1,49 @@
-/**
- * Firestore Security Rules
- * These rules enforce access control and data validation for the Firestore database.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===== Helper Functions =====
-    
-    /**
-     * Checks if the request is from an authenticated user
-     */
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user owns the resource
-     * @param {string} userId - The user ID to check ownership against
-     */
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    /**
-     * Validates pattern document structure and content
-     * Ensures:
-     * - Document size is within limits
-     * - Required fields are present and valid
-     * - User owns the pattern
-     */
     function isValidPattern() {
       let pattern = request.resource.data;
-      return pattern.size() <= 1000000                  // Max 1MB document size
-             && pattern.title is string 
-             && pattern.title.size() <= 100             // Max title length
-             && pattern.userId == request.auth.uid      // User owns pattern
-             && pattern.timestamp is timestamp;         // Has valid timestamp
+      return pattern.size() <= 1000000 && // Max document size
+             pattern.title is string && 
+             pattern.title.size() <= 100 &&
+             pattern.userId == request.auth.uid &&
+             pattern.timestamp is timestamp;
     }
 
-    /**
-     * Implements rate limiting for write operations
-     * Limits users to 10 writes per minute to prevent abuse
-     */
     function isNotRateLimited() {
       let oneMinute = duration.value(60, 'SECONDS');
-      let recentWrites = getCountFromTime(
-        '/databases/$(database)/documents/patterns',
-        oneMinute
-      );
-      return recentWrites < 10;  // Max 10 writes per minute
+      let time = request.time;
+      let recentWrites = getCountFromTime('/databases/$(database)/documents/patterns', oneMinute);
+      return recentWrites < 10; // Max 10 writes per minute
     }
 
-    // ===== Collection Rules =====
-
-    /**
-     * Pattern Collection
-     * Stores user-created patterns with access control and validation
-     */
+    // Pattern collection rules
     match /patterns/{patternId} {
-      // Read: User can only read their own patterns
       allow read: if isOwner(resource.data.userId);
-      
-      // Create: User must be authenticated, pattern must be valid, and within rate limits
       allow create: if isAuthenticated() 
                    && isValidPattern()
                    && isNotRateLimited();
-      
-      // Update: Owner only, pattern must remain valid, and within rate limits
       allow update: if isOwner(resource.data.userId)
                    && isValidPattern()
                    && isNotRateLimited();
-      
-      // Delete: Owner only
       allow delete: if isOwner(resource.data.userId);
     }
 
-    /**
-     * User Preferences Collection
-     * Stores user-specific settings with size limits and type validation
-     */
+    // User preferences rules
     match /userPreferences/{userId} {
-      // Read: User can only read their own preferences
       allow read: if isOwner(userId);
-      
-      // Write: User can only write their own preferences
-      // Validates:
-      // - Document size is within limits
-      // - isDarkMode is a boolean when present
       allow write: if isOwner(userId)
-                  && request.resource.data.size() <= 100000
-                  && (!('isDarkMode' in request.resource.data) 
-                      || request.resource.data.isDarkMode is bool);
+                  && request.resource.data.size() <= 100000 // Max size
+                  && (!('isDarkMode' in request.resource.data) || request.resource.data.isDarkMode is bool);
     }
   }
 } 

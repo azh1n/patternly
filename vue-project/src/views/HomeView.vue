@@ -1,21 +1,8 @@
-<!--
-  HomeView.vue
-  Main view component that displays either the pattern grid or a selected pattern.
-  
-  Features:
-  - Pattern grid display with search and filtering
-  - Individual pattern view with navigation
-  - Add new pattern functionality
-  - Responsive layout
--->
 <template>
   <div class="home">
-    <!-- Header Section -->
     <AppHeader :show-nav="true" />
 
-    <!-- Main Content -->
     <main class="main-content">
-      <!-- Pattern Grid or Pattern View -->
       <div v-if="!selectedPattern" class="home-view">
         <PatternGrid
           :patterns="savedTexts"
@@ -35,7 +22,6 @@
       />
     </main>
 
-    <!-- Add Pattern Modal -->
     <AddPatternModal
       v-model="showAddPattern"
       :is-loading="isLoading"
@@ -45,55 +31,33 @@
 </template>
 
 <script setup>
-/**
- * Imports
- */
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  query, 
-  orderBy, 
-  where, 
-  getDoc 
-} from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, orderBy, where, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useAuth } from '@/services/auth'
-
-// Components
 import PatternView from '@/components/PatternView.vue'
 import PatternGrid from '@/components/PatternGrid.vue'
 import AddPatternModal from '@/components/AddPatternModal.vue'
 import AppHeader from '@/components/AppHeader.vue'
 
-/**
- * Component Setup
- */
 const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
 
-/**
- * State Management
- */
 const savedTexts = ref([])
 const isLoading = ref(false)
 const currentTextIndex = ref(0)
 const selectedPattern = ref(null)
 const showAddPattern = ref(false)
 
-/**
- * Lifecycle Hooks
- */
 onMounted(async () => {
   try {
     isLoading.value = true
     console.log('Component mounted, fetching patterns')
     await fetchSavedTexts()
     
-    // Handle pattern ID from URL
+    // Check if we have a pattern ID in the URL
     if (route.params.id) {
       console.log('Found pattern ID in URL:', route.params.id)
       const pattern = savedTexts.value.find(p => p.id === route.params.id)
@@ -109,9 +73,6 @@ onMounted(async () => {
   }
 })
 
-/**
- * Watchers
- */
 // Watch for route changes
 watch(() => route.params.id, async (newId) => {
   if (newId) {
@@ -124,24 +85,6 @@ watch(() => route.params.id, async (newId) => {
   }
 })
 
-// Watch for user auth state changes
-watch(() => user.value?.uid, (newUserId) => {
-  console.log('User ID changed:', newUserId)
-  if (newUserId) {
-    fetchSavedTexts()
-  } else {
-    savedTexts.value = []
-    selectedPattern.value = null
-  }
-})
-
-/**
- * Methods
- */
-
-/**
- * Fetches saved patterns for the current user
- */
 const fetchSavedTexts = async () => {
   if (!user.value?.uid) {
     console.log('No user logged in')
@@ -151,6 +94,7 @@ const fetchSavedTexts = async () => {
   try {
     console.log('Fetching patterns for user:', user.value.uid)
     const patternsRef = collection(db, 'patterns')
+    console.log('Using collection:', patternsRef.path)
     
     const q = query(
       patternsRef,
@@ -160,11 +104,16 @@ const fetchSavedTexts = async () => {
     
     const querySnapshot = await getDocs(q)
     console.log('Query snapshot size:', querySnapshot.size)
+    console.log('Query snapshot empty:', querySnapshot.empty)
     
-    savedTexts.value = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    savedTexts.value = querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      console.log('Pattern document:', doc.id, data)
+      return {
+        id: doc.id,
+        ...data
+      }
+    })
     
     console.log('Total patterns loaded:', savedTexts.value.length)
   } catch (error) {
@@ -175,21 +124,12 @@ const fetchSavedTexts = async () => {
   }
 }
 
-/**
- * Selects a pattern and updates the route
- * @param {Object} pattern - The pattern to select
- * @param {number} index - The index of the pattern in the list
- */
 const selectPattern = (pattern, index) => {
   selectedPattern.value = pattern
   currentTextIndex.value = index
   router.push(`/pattern/${pattern.id}`)
 }
 
-/**
- * Handles adding a new pattern
- * @param {Object} newPattern - The pattern to add
- */
 const handlePatternAdded = async (newPattern) => {
   if (!user.value?.uid) {
     console.log('No user logged in')
@@ -204,27 +144,31 @@ const handlePatternAdded = async (newPattern) => {
       timestamp: new Date(),
       completedRows: {}
     }
+    console.log('Adding pattern with data:', patternData)
     
     const patternsRef = collection(db, 'patterns')
-    const docRef = await addDoc(patternsRef, patternData)
+    console.log('Using collection for add:', patternsRef.path)
     
-    // Verify the pattern was added
+    const docRef = await addDoc(patternsRef, patternData)
+    console.log('Successfully added pattern with ID:', docRef.id)
+    
+    // Verify the pattern was added by fetching it
     const addedDoc = await getDoc(docRef)
     if (addedDoc.exists()) {
       console.log('Verified pattern exists:', addedDoc.data())
-      
-      // Update local state
-      const newPatternWithId = { 
-        id: docRef.id, 
-        ...patternData 
-      }
-      savedTexts.value = [newPatternWithId, ...savedTexts.value]
-      
-      showAddPattern.value = false
-      selectPattern(newPatternWithId, 0)
     } else {
-      throw new Error('Pattern was not saved successfully')
+      console.error('Pattern was not saved successfully')
     }
+    
+    // Update local state
+    const newPatternWithId = { 
+      id: docRef.id, 
+      ...patternData 
+    }
+    savedTexts.value = [newPatternWithId, ...savedTexts.value]
+    
+    showAddPattern.value = false
+    selectPattern(newPatternWithId, 0)
   } catch (error) {
     console.error('Error adding pattern:', error)
     if (error.code === 'permission-denied') {
@@ -236,41 +180,58 @@ const handlePatternAdded = async (newPattern) => {
   }
 }
 
-/**
- * Handles pattern deletion
- */
 const handlePatternDeleted = async () => {
   await fetchSavedTexts()
   selectedPattern.value = null
   currentTextIndex.value = 0
 }
+
+// Watch for user auth state changes
+watch(() => user.value?.uid, (newUserId) => {
+  console.log('User ID changed:', newUserId)
+  if (newUserId) {
+    fetchSavedTexts()
+  } else {
+    savedTexts.value = []
+    selectedPattern.value = null
+  }
+})
 </script>
 
 <style scoped>
-/* ===== Layout Styles ===== */
 .home {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  min-width: var(--max-content-width);
+  background-color: var(--main-bg);
+  color: var(--text-primary);
+  min-width: 1200px;
 }
 
 .main-content {
   flex: 1;
-  padding: var(--spacing-xl);
-  width: var(--max-content-width);
+  width: 1200px;
   margin: 0 auto;
-  min-width: var(--max-content-width);
+  padding: 2rem 3rem;
 }
 
-.home-view {
-  height: 100%;
-}
-
-/* ===== Responsive Styles ===== */
-@media (max-width: 768px) {
+/* Only apply these styles when the screen is actually small */
+@media (max-width: 1023px) and (max-device-width: 1023px) {
+  .home {
+    min-width: unset;
+  }
+  
   .main-content {
-    padding: var(--spacing-md);
+    max-width: 90%;
+    padding: 1.5rem 2rem;
+  }
+}
+
+/* Only apply these styles when the screen is very small AND it's a mobile device */
+@media (max-width: 767px) and (max-device-width: 767px) {
+  .main-content {
+    padding: 1rem;
+    max-width: 100%;
   }
 }
 </style> 

@@ -1,17 +1,3 @@
-<!--
-  ProfilePage.vue
-  User profile management component.
-  
-  Features:
-  - Display name editing
-  - Email management
-  - Password change
-  - Form validation
-  - Error handling
-  - Loading states
-  - Responsive design
-  - Keyboard navigation
--->
 <template>
   <div class="profile-container">
     <AppHeader />
@@ -27,12 +13,7 @@
           Loading...
         </div>
         
-        <form 
-          @submit.prevent="handleSubmit" 
-          class="profile-form"
-          role="form"
-          aria-label="Profile settings form"
-        >
+        <form v-else @submit.prevent="handleSubmit" class="profile-form">
           <div class="form-group theme-toggle">
             <label>
               <font-awesome-icon :icon="isDarkMode ? 'moon' : 'sun'" class="field-icon" />
@@ -53,23 +34,12 @@
               <font-awesome-icon icon="user-circle" class="field-icon" />
               Display Name
             </label>
-            <div class="input-wrapper">
-              <input
-                id="displayName"
-                v-model="form.displayName"
-                type="text"
-                :placeholder="user?.displayName || 'Enter display name'"
-                :class="{ 'error': displayNameError }"
-                aria-invalid="displayNameError"
-                aria-describedby="display-name-error"
-                required
-                autocomplete="name"
-                @keydown.enter="handleSubmit"
-              >
-            </div>
-            <span v-if="displayNameError" id="display-name-error" class="error-message">
-              {{ displayNameError }}
-            </span>
+            <input
+              id="displayName"
+              v-model="form.displayName"
+              type="text"
+              :placeholder="user?.displayName || 'Enter display name'"
+            >
           </div>
           
           <div class="form-group">
@@ -77,23 +47,12 @@
               <font-awesome-icon icon="envelope" class="field-icon" />
               Email
             </label>
-            <div class="input-wrapper">
-              <input
-                id="email"
-                v-model="form.email"
-                type="email"
-                :value="user?.email"
-                :class="{ 'error': emailError }"
-                aria-invalid="emailError"
-                aria-describedby="email-error"
-                required
-                autocomplete="email"
-                @keydown.enter="handleSubmit"
-              >
-            </div>
-            <span v-if="emailError" id="email-error" class="error-message">
-              {{ emailError }}
-            </span>
+            <input
+              id="email"
+              :value="user?.email"
+              type="email"
+              disabled
+            >
           </div>
           
           <div class="form-group">
@@ -101,33 +60,12 @@
               <font-awesome-icon icon="lock" class="field-icon" />
               New Password (optional)
             </label>
-            <div class="input-wrapper">
-              <input
-                id="newPassword"
-                v-model="form.newPassword"
-                type="password"
-                placeholder="Enter new password"
-                :class="{ 'error': passwordError }"
-                aria-invalid="passwordError"
-                aria-describedby="password-error"
-                autocomplete="new-password"
-                @keydown.enter="handleSubmit"
-              >
-              <button
-                type="button"
-                class="toggle-password"
-                @click="togglePassword"
-                :aria-label="showPassword ? 'Hide password' : 'Show password'"
-              >
-                <font-awesome-icon 
-                  :icon="showPassword ? 'eye-slash' : 'eye'" 
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-            <span v-if="passwordError" id="password-error" class="error-message">
-              {{ passwordError }}
-            </span>
+            <input
+              id="newPassword"
+              v-model="form.newPassword"
+              type="password"
+              placeholder="Enter new password"
+            >
           </div>
           
           <div v-if="error" class="error-message">
@@ -165,112 +103,41 @@
 </template>
 
 <script setup>
-/**
- * Imports
- */
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useAuth } from '@/services/auth'
 import { useTheme } from '@/services/theme'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 
-/**
- * Router Setup
- */
 const router = useRouter()
-
-/**
- * Auth Setup
- */
 const { user, loading, updateProfile, updatePassword, logout } = useAuth()
 const { isDarkMode, toggleTheme } = useTheme()
 
-/**
- * State
- */
 const form = reactive({
   displayName: '',
-  email: '',
   newPassword: ''
 })
 
 const error = ref('')
 const success = ref('')
 const isSubmitting = ref(false)
-const showPassword = ref(false)
-const displayNameError = ref('')
-const emailError = ref('')
-const passwordError = ref('')
 
-/**
- * Computed Properties
- */
-const isDisplayNameValid = computed(() => {
-  return form.displayName.trim().length >= 2
-})
-
-const isEmailValid = computed(() => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(form.email)
-})
-
-const isPasswordValid = computed(() => {
-  return !form.newPassword || form.newPassword.length >= 6
-})
-
-/**
- * Methods
- */
-const togglePassword = () => {
-  showPassword.value = !showPassword.value
-}
-
-const resetForm = () => {
+async function handleSubmit() {
   error.value = ''
   success.value = ''
-  displayNameError.value = ''
-  emailError.value = ''
-  passwordError.value = ''
-}
-
-const validateForm = () => {
-  let isValid = true
-  resetForm()
-
-  if (!isDisplayNameValid.value) {
-    displayNameError.value = 'Display name must be at least 2 characters'
-    isValid = false
-  }
-
-  if (!isEmailValid.value) {
-    emailError.value = 'Please enter a valid email address'
-    isValid = false
-  }
-
-  if (!isPasswordValid.value) {
-    passwordError.value = 'Password must be at least 6 characters'
-    isValid = false
-  }
-
-  return isValid
-}
-
-const handleSubmit = async () => {
-  if (!validateForm()) return
+  isSubmitting.value = true
 
   try {
-    isSubmitting.value = true
-    error.value = ''
-    success.value = ''
+    if (form.displayName) {
+      await updateProfile({ displayName: form.displayName })
+    }
 
-    await updateProfile({
-      displayName: form.displayName,
-      email: form.email,
-      password: form.newPassword
-    })
+    if (form.newPassword) {
+      await updatePassword(form.newPassword)
+    }
 
     success.value = 'Profile updated successfully'
-    form.newPassword = ''
+    form.newPassword = '' // Clear password field after success
   } catch (err) {
     error.value = err.message
   } finally {
@@ -278,7 +145,7 @@ const handleSubmit = async () => {
   }
 }
 
-const handleLogout = async () => {
+async function handleLogout() {
   try {
     await logout()
     router.push('/login')
@@ -286,16 +153,6 @@ const handleLogout = async () => {
     error.value = err.message
   }
 }
-
-/**
- * Lifecycle Hooks
- */
-onMounted(() => {
-  if (user.value) {
-    form.displayName = user.value.displayName || ''
-    form.email = user.value.email || ''
-  }
-})
 </script>
 
 <style scoped>
@@ -531,28 +388,5 @@ button:disabled {
 .theme-icon {
   font-size: 1.2rem;
   color: var(--accent-color);
-}
-
-.input-wrapper {
-  position: relative;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0.75rem;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.toggle-password:hover,
-.toggle-password:focus {
-  color: var(--text-primary);
 }
 </style> 
