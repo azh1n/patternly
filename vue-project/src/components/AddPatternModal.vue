@@ -1,109 +1,310 @@
+<!--
+  AddPatternModal.vue
+  Modal component for adding new patterns to the collection.
+  
+  Features:
+  - Pattern name and content input
+  - Form validation
+  - Error handling
+  - Responsive design
+  - Loading states
+  - Keyboard navigation
+  - Focus management
+-->
 <template>
-  <div v-if="modelValue" class="modal-overlay" @click="$emit('update:modelValue', false)">
-    <div class="modal" @click.stop>
+  <div 
+    class="modal-overlay" 
+    v-if="isOpen"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    @keydown.escape="closeModal"
+  >
+    <div class="modal-content">
+      <!-- Header -->
       <div class="modal-header">
-        <h2>Add New Pattern</h2>
-        <button @click="$emit('update:modelValue', false)" class="close-button">×</button>
+        <h2 id="modal-title">Add New Pattern</h2>
+        <button 
+          @click="closeModal" 
+          class="close-button"
+          aria-label="Close modal"
+          @keydown.enter="closeModal"
+        >
+          <font-awesome-icon icon="times" aria-hidden="true" />
+        </button>
       </div>
-      <div class="modal-content">
+
+      <!-- Form -->
+      <form @submit.prevent="handleSubmit" class="pattern-form">
+        <!-- Name Input -->
         <div class="form-group">
-          <label for="patternName">Pattern Name</label>
-          <input
-            type="text"
-            id="patternName"
-            v-model="patternName"
-            placeholder="Give your pattern a name..."
-            class="pattern-name-input"
-            required
-          />
-        </div>
-        <div class="form-group">
-          <label for="text">Pattern Instructions</label>
-          <textarea
-            v-model="patternText"
-            @input="handleInput"
-            :maxlength="MAX_CHARS"
-            placeholder="Paste your pattern instructions here..."
-            class="text-area"
-          ></textarea>
+          <label for="pattern-name">Pattern Name</label>
+          <div class="input-wrapper">
+            <font-awesome-icon icon="tag" class="input-icon" aria-hidden="true" />
+            <input
+              id="pattern-name"
+              v-model="patternName"
+              type="text"
+              placeholder="Enter pattern name..."
+              :class="{ 'error': nameError }"
+              aria-invalid="nameError"
+              aria-describedby="name-error"
+              @keydown.enter.prevent="handleSubmit"
+              ref="nameInput"
+            />
+          </div>
+          <span v-if="nameError" id="name-error" class="error-message">
+            {{ nameError }}
+          </span>
         </div>
 
-        <div class="modal-actions">
-          <button @click="$emit('update:modelValue', false)" class="cancel-button">Cancel</button>
+        <!-- Content Input -->
+        <div class="form-group">
+          <label for="pattern-content">Pattern Content</label>
+          <div class="input-wrapper">
+            <font-awesome-icon icon="file-alt" class="input-icon" aria-hidden="true" />
+            <textarea
+              id="pattern-content"
+              v-model="patternContent"
+              placeholder="Enter pattern content..."
+              :class="{ 'error': contentError }"
+              aria-invalid="contentError"
+              aria-describedby="content-error"
+              @keydown.ctrl.enter.prevent="handleSubmit"
+              ref="contentInput"
+            ></textarea>
+          </div>
+          <span v-if="contentError" id="content-error" class="error-message">
+            {{ contentError }}
+          </span>
+        </div>
+
+        <!-- Status Message -->
+        <div 
+          v-if="statusMessage" 
+          class="status-message"
+          :class="{ 'error': isError }"
+          role="alert"
+          aria-live="polite"
+        >
+          {{ statusMessage }}
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
           <button 
-            @click="savePattern"
-            :disabled="isLoading || !patternText || !patternName"
-            class="save-button"
+            type="button" 
+            @click="closeModal"
+            class="cancel-button"
+            @keydown.enter="closeModal"
           >
-            {{ isLoading ? 'Saving...' : 'Save Pattern' }}
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="submit-button"
+            :disabled="isLoading"
+            @keydown.enter="handleSubmit"
+          >
+            <span v-if="isLoading">Adding...</span>
+            <span v-else>Add Pattern</span>
           </button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+/**
+ * Imports
+ */
+import { ref, computed, onMounted, watch } from 'vue'
+import { db } from '../firebase'
+import { collection, addDoc } from 'firebase/firestore'
+import { useAuth } from '../composables/useAuth'
 
+/**
+ * Props
+ */
 const props = defineProps({
-  modelValue: {
+  /** Whether the modal is open */
+  isOpen: {
     type: Boolean,
     required: true
-  },
-  isLoading: {
-    type: Boolean,
-    default: false
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'pattern-added'])
+/**
+ * Emits
+ */
+const emit = defineEmits(['close', 'pattern-added'])
 
-const MAX_CHARS = 100000
+/**
+ * Auth Setup
+ */
+const { user } = useAuth()
+
+/**
+ * Refs
+ */
+const nameInput = ref(null)
+const contentInput = ref(null)
+
+/**
+ * State
+ */
 const patternName = ref('')
-const patternText = ref('')
+const patternContent = ref('')
+const isLoading = ref(false)
+const statusMessage = ref('')
+const isError = ref(false)
+const nameError = ref('')
+const contentError = ref('')
 
-const handleInput = (event) => {
-  if (event.target.value.length <= MAX_CHARS) {
-    patternText.value = event.target.value
+/**
+ * Computed Properties
+ */
+
+/**
+ * Validates the pattern name
+ * @returns {boolean} Whether the name is valid
+ */
+const isNameValid = computed(() => {
+  return patternName.value.trim().length > 0
+})
+
+/**
+ * Validates the pattern content
+ * @returns {boolean} Whether the content is valid
+ */
+const isContentValid = computed(() => {
+  return patternContent.value.trim().length > 0
+})
+
+/**
+ * Methods
+ */
+
+/**
+ * Closes the modal and resets the form
+ */
+const closeModal = () => {
+  resetForm()
+  emit('close')
+}
+
+/**
+ * Resets the form state
+ */
+const resetForm = () => {
+  patternName.value = ''
+  patternContent.value = ''
+  nameError.value = ''
+  contentError.value = ''
+  statusMessage.value = ''
+  isError.value = false
+}
+
+/**
+ * Validates the form inputs
+ * @returns {boolean} Whether the form is valid
+ */
+const validateForm = () => {
+  let isValid = true
+
+  if (!isNameValid.value) {
+    nameError.value = 'Please enter a pattern name'
+    isValid = false
+  } else {
+    nameError.value = ''
+  }
+
+  if (!isContentValid.value) {
+    contentError.value = 'Please enter pattern content'
+    isValid = false
+  } else {
+    contentError.value = ''
+  }
+
+  return isValid
+}
+
+/**
+ * Handles form submission
+ */
+const handleSubmit = async () => {
+  if (!validateForm()) return
+
+  try {
+    isLoading.value = true
+    statusMessage.value = 'Adding pattern...'
+    isError.value = false
+
+    const patternData = {
+      name: patternName.value.trim(),
+      content: patternContent.value.trim(),
+      userId: user.value.uid,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    const docRef = await addDoc(collection(db, 'patterns'), patternData)
+    
+    statusMessage.value = 'Pattern added successfully'
+    emit('pattern-added', { id: docRef.id, ...patternData })
+    closeModal()
+  } catch (error) {
+    console.error('Error adding pattern:', error)
+    statusMessage.value = 'Error adding pattern. Please try again.'
+    isError.value = true
+  } finally {
+    isLoading.value = false
   }
 }
 
-const savePattern = () => {
-  emit('pattern-added', {
-    name: patternName.value,
-    content: patternText.value
-  })
-  patternName.value = ''
-  patternText.value = ''
-}
+/**
+ * Watchers
+ */
+watch(() => props.isOpen, (newValue) => {
+  if (newValue) {
+    // Focus the name input when modal opens
+    setTimeout(() => {
+      nameInput.value?.focus()
+    }, 100)
+  }
+})
 </script>
 
 <style scoped>
+/* ===== Modal Overlay ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
 }
 
-.modal {
-  width: min(600px, 90%);
-  background-color: #2a2a2a;
-  border-radius: 16px;
-  overflow-y: auto;
-  max-height: 90vh;
+/* ===== Modal Content ===== */
+.modal-content {
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
+/* ===== Header Styles ===== */
 .modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #333;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -112,148 +313,174 @@ const savePattern = () => {
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .close-button {
-  background: none;
+  padding: var(--spacing-sm);
+  background: transparent;
   border: none;
-  color: #666;
-  font-size: 1.5rem;
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 0.5rem;
   transition: all 0.2s ease;
+  outline: none;
 }
 
-.close-button:hover {
-  color: #fff;
+.close-button:hover,
+.close-button:focus {
+  color: var(--text-primary);
+  transform: scale(1.1);
 }
 
-.modal-content {
-  padding: 1.5rem;
+/* ===== Form Styles ===== */
+.pattern-form {
+  padding: var(--spacing-lg);
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-lg);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #fff;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
   font-weight: 500;
 }
 
-.pattern-name-input {
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+input,
+textarea {
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #333;
-  border-radius: 12px;
-  background-color: #1a1a1a;
-  color: #fff;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);
+  border: 1px solid var(--input-border);
+  border-radius: var(--border-radius-md);
+  background-color: var(--input-bg);
+  color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.3s ease;
-}
-
-.pattern-name-input:focus {
   outline: none;
-  border-color: #4CAF50;
 }
 
-.text-area {
-  width: 100%;
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  background-color: var(--hover-bg);
+}
+
+input.error,
+textarea.error {
+  border-color: var(--error-color);
+}
+
+.error-message {
+  display: block;
+  margin-top: var(--spacing-sm);
+  color: var(--error-color);
+  font-size: 0.9rem;
+}
+
+textarea {
   min-height: 200px;
-  padding: 1rem;
-  border: 2px solid #333;
-  border-radius: 12px;
-  background-color: #1a1a1a;
-  color: #fff;
-  font-size: 1rem;
   resize: vertical;
-  transition: all 0.3s ease;
+  font-family: monospace;
 }
 
-.text-area:focus {
-  outline: none;
-  border-color: #4CAF50;
+/* ===== Status Message ===== */
+.status-message {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  text-align: center;
+  font-size: 0.9rem;
 }
 
-.modal-actions {
+.status-message.error {
+  background-color: var(--error-bg);
+  color: var(--error-color);
+}
+
+/* ===== Form Actions ===== */
+.form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.cancel-button,
+.submit-button {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .cancel-button {
-  padding: 0.8rem 1.5rem;
   background-color: transparent;
-  color: #fff;
-  border: 1px solid #333;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
-.cancel-button:hover {
-  background-color: #333;
+.cancel-button:hover,
+.cancel-button:focus {
+  background-color: var(--hover-bg);
+  border-color: var(--text-secondary);
 }
 
-.save-button {
-  padding: 0.8rem 1.5rem;
-  background-color: #4CAF50;
-  color: white;
+.submit-button {
+  background-color: var(--accent-color);
   border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
+  color: white;
 }
 
-.save-button:hover:not(:disabled) {
-  background-color: #45a049;
+.submit-button:hover:not(:disabled),
+.submit-button:focus:not(:disabled) {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
 }
 
-.save-button:disabled {
+.submit-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-@media (min-width: 1024px) {
-  .modal {
-    max-width: 800px;
+/* ===== Responsive Styles ===== */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: var(--spacing-md);
   }
 
   .modal-header {
-    padding: 2rem;
+    padding: var(--spacing-md);
   }
 
-  .modal-header h2 {
-    font-size: 2rem;
+  .pattern-form {
+    padding: var(--spacing-md);
   }
 
-  .modal-content {
-    padding: 2rem;
-  }
-
-  .pattern-name-input,
-  .text-area {
-    font-size: 1.1rem;
-    padding: 1.2rem;
-  }
-
-  .text-area {
-    min-height: 300px;
-  }
-
-  .modal-actions {
-    margin-top: 3rem;
+  .form-actions {
+    flex-direction: column;
   }
 
   .cancel-button,
-  .save-button {
-    padding: 1rem 2.5rem;
-    font-size: 1.1rem;
+  .submit-button {
+    width: 100%;
   }
 }
 </style> 

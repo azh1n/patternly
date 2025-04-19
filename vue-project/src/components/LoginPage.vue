@@ -1,414 +1,525 @@
+<!--
+  LoginPage.vue
+  Authentication page component for user login and registration.
+  
+  Features:
+  - User login and registration
+  - Form validation
+  - Password visibility toggle
+  - Error handling
+  - Loading states
+  - Responsive design
+  - Keyboard navigation
+  - Password reset functionality
+-->
 <template>
   <div class="login-page">
-    <div class="login-header">
-      <h1 class="app-title">Patternly</h1>
-    </div>
-    <div class="form-container">
-      <form @submit.prevent="handleSubmit" class="auth-form">
-        <div class="form-group">
-          <label for="email">
-            <font-awesome-icon icon="envelope" class="field-icon" />
-            Email
-          </label>
-          <input 
-            type="email" 
+    <!-- Header -->
+    <header class="page-header">
+      <h1>{{ isLoginMode ? 'Welcome Back' : 'Create Account' }}</h1>
+      <p class="subtitle">
+        {{ isLoginMode 
+          ? 'Sign in to access your patterns' 
+          : 'Join Patternly to start creating patterns' 
+        }}
+      </p>
+    </header>
+
+    <!-- Auth Form -->
+    <form 
+      @submit.prevent="handleSubmit" 
+      class="auth-form"
+      role="form"
+      aria-label="Authentication form"
+    >
+      <!-- Email Input -->
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <div class="input-wrapper">
+          <font-awesome-icon icon="envelope" class="input-icon" aria-hidden="true" />
+          <input
             id="email"
             v-model="email"
-            required
+            type="email"
             placeholder="Enter your email"
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="password">
-            <font-awesome-icon icon="lock" class="field-icon" />
-            Password
-          </label>
-          <input 
-            type="password"
-            id="password" 
-            v-model="password"
+            :class="{ 'error': emailError }"
+            aria-invalid="emailError"
+            aria-describedby="email-error"
             required
-            placeholder="Enter your password"
-          >
+            autocomplete="email"
+            @keydown.enter="handleSubmit"
+            ref="emailInput"
+          />
         </div>
+        <span v-if="emailError" id="email-error" class="error-message">
+          {{ emailError }}
+        </span>
+      </div>
 
-        <div v-if="isRegistering" class="form-group">
-          <label for="displayName">
-            <font-awesome-icon icon="user-circle" class="field-icon" />
-            Display Name
-          </label>
-          <input 
-            type="text"
+      <!-- Password Input -->
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <font-awesome-icon icon="lock" class="input-icon" aria-hidden="true" />
+          <input
+            id="password"
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="Enter your password"
+            :class="{ 'error': passwordError }"
+            aria-invalid="passwordError"
+            aria-describedby="password-error"
+            required
+            autocomplete="current-password"
+            @keydown.enter="handleSubmit"
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            @click="togglePassword"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+          >
+            <font-awesome-icon 
+              :icon="showPassword ? 'eye-slash' : 'eye'" 
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        <span v-if="passwordError" id="password-error" class="error-message">
+          {{ passwordError }}
+        </span>
+      </div>
+
+      <!-- Display Name Input (Registration Only) -->
+      <div v-if="!isLoginMode" class="form-group">
+        <label for="displayName">Display Name</label>
+        <div class="input-wrapper">
+          <font-awesome-icon icon="user" class="input-icon" aria-hidden="true" />
+          <input
             id="displayName"
             v-model="displayName"
-            required
+            type="text"
             placeholder="Choose a display name"
-          >
+            :class="{ 'error': displayNameError }"
+            aria-invalid="displayNameError"
+            aria-describedby="display-name-error"
+            required
+            autocomplete="name"
+            @keydown.enter="handleSubmit"
+          />
         </div>
+        <span v-if="displayNameError" id="display-name-error" class="error-message">
+          {{ displayNameError }}
+        </span>
+      </div>
 
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
+      <!-- Error Message -->
+      <div 
+        v-if="errorMessage" 
+        class="error-message"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ errorMessage }}
+      </div>
 
-        <div class="button-group">
-          <button 
-            type="submit"
-            class="primary-button"
-            :disabled="submitting"
-          >
-            <font-awesome-icon :icon="isRegistering ? 'user-plus' : 'sign-in-alt'" />
-            {{ submitButtonText }}
-          </button>
+      <!-- Submit Button -->
+      <button 
+        type="submit" 
+        class="submit-button"
+        :disabled="isLoading"
+        @keydown.enter="handleSubmit"
+      >
+        <span v-if="isLoading">
+          <span class="spinner" aria-hidden="true"></span>
+          {{ isLoginMode ? 'Signing in...' : 'Creating account...' }}
+        </span>
+        <span v-else>
+          {{ isLoginMode ? 'Sign In' : 'Create Account' }}
+        </span>
+      </button>
 
-          <button 
-            type="button"
-            class="secondary-button"
-            @click="toggleMode"
-            :disabled="submitting"
-          >
-            <font-awesome-icon :icon="isRegistering ? 'sign-in-alt' : 'user-plus'" class="button-icon" />
-            <div class="button-text">
-              <div class="button-text-small">{{ isRegistering ? 'Already have an account?' : 'Need an account?' }}</div>
-              <div class="button-text-large">{{ isRegistering ? 'Login' : 'Register' }}</div>
-            </div>
-          </button>
-        </div>
+      <!-- Mode Toggle -->
+      <button 
+        type="button" 
+        class="mode-toggle"
+        @click="toggleMode"
+        @keydown.enter="toggleMode"
+      >
+        {{ isLoginMode 
+          ? 'Need an account? Create one' 
+          : 'Already have an account? Sign in' 
+        }}
+      </button>
 
-        <button 
-          v-if="!isRegistering"
-          type="button"
-          class="text-button"
-          @click="handleResetPassword"
-          :disabled="submitting"
-        >
-          Forgot password?
-        </button>
-      </form>
-    </div>
+      <!-- Password Reset -->
+      <router-link 
+        v-if="isLoginMode"
+        to="/reset-password" 
+        class="reset-link"
+        @keydown.enter="handleResetClick"
+      >
+        Forgot your password?
+      </router-link>
+    </form>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+/**
+ * Imports
+ */
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuth } from '@/services/auth'
+import { useAuth } from '../composables/useAuth'
 
+/**
+ * Router Setup
+ */
 const router = useRouter()
-const { login, register, resetPassword } = useAuth()
 
+/**
+ * Auth Setup
+ */
+const { login, register, error: authError } = useAuth()
+
+/**
+ * State
+ */
 const email = ref('')
 const password = ref('')
 const displayName = ref('')
-const error = ref('')
-const submitting = ref(false)
-const isRegistering = ref(false)
+const isLoginMode = ref(true)
+const isLoading = ref(false)
+const showPassword = ref(false)
+const errorMessage = ref('')
+const emailError = ref('')
+const passwordError = ref('')
+const displayNameError = ref('')
 
-const submitButtonText = computed(() => {
-  if (submitting.value) {
-    return isRegistering.value ? 'Creating Account...' : 'Logging in...'
-  }
-  return isRegistering.value ? 'Create Account' : 'Login'
+/**
+ * Refs
+ */
+const emailInput = ref(null)
+
+/**
+ * Computed Properties
+ */
+
+/**
+ * Validates email format
+ * @returns {boolean} Whether email is valid
+ */
+const isEmailValid = computed(() => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email.value)
 })
 
-const toggleButtonText = computed(() => {
-  return isRegistering.value 
-    ? 'Already have an account? Login' 
-    : 'Need an account? Register'
+/**
+ * Validates password strength
+ * @returns {boolean} Whether password is valid
+ */
+const isPasswordValid = computed(() => {
+  return password.value.length >= 6
 })
 
+/**
+ * Validates display name
+ * @returns {boolean} Whether display name is valid
+ */
+const isDisplayNameValid = computed(() => {
+  return displayName.value.trim().length >= 2
+})
+
+/**
+ * Methods
+ */
+
+/**
+ * Toggles password visibility
+ */
+const togglePassword = () => {
+  showPassword.value = !showPassword.value
+}
+
+/**
+ * Toggles between login and registration modes
+ */
 const toggleMode = () => {
-  isRegistering.value = !isRegistering.value
-  error.value = ''
+  isLoginMode.value = !isLoginMode.value
+  resetForm()
 }
 
+/**
+ * Resets form state
+ */
+const resetForm = () => {
+  errorMessage.value = ''
+  emailError.value = ''
+  passwordError.value = ''
+  displayNameError.value = ''
+}
+
+/**
+ * Validates form inputs
+ * @returns {boolean} Whether form is valid
+ */
+const validateForm = () => {
+  let isValid = true
+  resetForm()
+
+  if (!isEmailValid.value) {
+    emailError.value = 'Please enter a valid email address'
+    isValid = false
+  }
+
+  if (!isPasswordValid.value) {
+    passwordError.value = 'Password must be at least 6 characters'
+    isValid = false
+  }
+
+  if (!isLoginMode.value && !isDisplayNameValid.value) {
+    displayNameError.value = 'Display name must be at least 2 characters'
+    isValid = false
+  }
+
+  return isValid
+}
+
+/**
+ * Handles form submission
+ */
 const handleSubmit = async () => {
-  error.value = ''
-  submitting.value = true
+  if (!validateForm()) return
 
   try {
-    if (isRegistering.value) {
-      await register({
-        email: email.value,
-        password: password.value,
-        displayName: displayName.value
-      })
+    isLoading.value = true
+    errorMessage.value = ''
+
+    if (isLoginMode.value) {
+      await login(email.value, password.value)
     } else {
-      await login({
-        email: email.value,
-        password: password.value
-      })
+      await register(email.value, password.value, displayName.value)
     }
+
     router.push('/')
-  } catch (err) {
-    error.value = err.message
+  } catch (error) {
+    errorMessage.value = authError.value || 'An error occurred. Please try again.'
   } finally {
-    submitting.value = false
+    isLoading.value = false
   }
 }
 
-const handleResetPassword = async () => {
-  if (!email.value) {
-    error.value = 'Please enter your email address'
-    return
-  }
-
-  error.value = ''
-  submitting.value = true
-
-  try {
-    await resetPassword(email.value)
-    error.value = 'Password reset email sent. Please check your inbox.'
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    submitting.value = false
-  }
+/**
+ * Handles password reset click
+ */
+const handleResetClick = (event) => {
+  event.preventDefault()
+  router.push('/reset-password')
 }
 
+/**
+ * Lifecycle Hooks
+ */
 onMounted(() => {
-  document.body.classList.add('login-page')
-})
-
-onUnmounted(() => {
-  document.body.classList.remove('login-page')
+  emailInput.value?.focus()
 })
 </script>
 
 <style scoped>
+/* ===== Page Layout ===== */
 .login-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: white;
-  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
 }
 
-.login-header {
+/* ===== Header Styles ===== */
+.page-header {
   text-align: center;
-  margin-bottom: 2rem;
-  width: 100%;
-  max-width: 1200px;
+  margin-bottom: var(--spacing-xl);
 }
 
-.app-title {
-  font-size: 2.5rem;
-  font-weight: 600;
-  background: linear-gradient(90deg, 
-    #81C784 0%,
-    #2E7D32 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.page-header h1 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-primary);
+  font-size: 2rem;
+}
+
+.subtitle {
   margin: 0;
-  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  font-size: 1rem;
 }
 
-.app-title:hover {
-  transform: translateY(-2px);
-  text-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
-}
-
-.form-container {
-  background-color: white;
-  border-radius: 16px;
-  padding: 3rem 4rem;
-  width: 100%;
-  min-width: 800px;
-  max-width: 1200px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-}
-
+/* ===== Form Styles ===== */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  width: 80%;
-  max-width: 600px;
-  margin: 0 auto;
+  gap: var(--spacing-lg);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
 }
 
 .form-group label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  color: #333;
-}
-
-.field-icon {
-  color: #4CAF50;
-  width: 16px;
-  height: 16px;
-}
-
-input {
-  padding: 0.75rem;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 1rem;
-  color: #333;
-  transition: all 0.2s;
-}
-
-input:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
-}
-
-input::placeholder {
-  color: #9e9e9e;
-}
-
-.error-message {
-  background-color: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
-  padding: 0.75rem;
-  border-radius: 6px;
-  text-align: center;
+  color: var(--text-primary);
   font-size: 0.9rem;
-  border: 1px solid rgba(231, 76, 60, 0.2);
-}
-
-.button-group {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.button-group button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 1rem;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.primary-button {
-  background: #4CAF50;
-  color: white;
-  border: none;
-}
-
-.primary-button:hover:not(:disabled) {
-  background: #43a047;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
-}
-
-.secondary-button {
-  background: transparent;
-  color: #4CAF50;
-  border: 1px solid #4CAF50;
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  width: 100%;
+.input-wrapper {
   position: relative;
 }
 
-.button-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
+.input-icon {
   position: absolute;
-  left: 1.5rem;
+  left: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 1rem;
 }
 
-.button-text {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.button-text-small {
-  font-size: 0.8rem;
-  opacity: 0.9;
+input {
   width: 100%;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);
+  border: 1px solid var(--input-border);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  outline: none;
 }
 
-.button-text-large {
-  font-size: 1.1rem;
-  font-weight: 600;
-  width: 100%;
+input:focus {
+  border-color: var(--accent-color);
+  background-color: var(--hover-bg);
 }
 
-.secondary-button:hover:not(:disabled) {
-  background: rgba(76, 175, 80, 0.05);
-  border-color: #43a047;
+input.error {
+  border-color: var(--error-color);
 }
 
-.text-button {
-  background: none;
-  border: none;
-  color: #666;
+.error-message {
+  color: var(--error-color);
   font-size: 0.9rem;
-  padding: 0.5rem;
+  margin-top: var(--spacing-xs);
 }
 
-.text-button:hover:not(:disabled) {
-  color: #333;
+/* ===== Password Toggle ===== */
+.toggle-password {
+  position: absolute;
+  right: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  transition: all 0.2s ease;
+  outline: none;
 }
 
-@media (min-width: 768px) {
-  .form-container {
-    padding: 3rem;
-    width: 85%;
-    max-width: 1000px;
-  }
-
-  .button-group {
-    flex-direction: row;
-  }
-
-  .button-group button {
-    flex: 1;
-  }
-
-  .app-title {
-    font-size: 3rem;
-  }
+.toggle-password:hover,
+.toggle-password:focus {
+  color: var(--text-primary);
 }
 
-@media (min-width: 1024px) {
-  .form-container {
-    padding: 4rem;
-    width: 80%;
-    max-width: 1200px;
-  }
-
-  .app-title {
-    font-size: 3.5rem;
-  }
+/* ===== Submit Button ===== */
+.submit-button {
+  width: 100%;
+  padding: var(--spacing-md);
+  background-color: var(--accent-color);
+  border: none;
+  border-radius: var(--border-radius-lg);
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
 }
 
-@media (max-width: 840px) {
-  .form-container {
-    min-width: auto;
-    width: 100%;
+.submit-button:hover:not(:disabled),
+.submit-button:focus:not(:disabled) {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Mode Toggle ===== */
+.mode-toggle {
+  background: transparent;
+  border: none;
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  text-align: center;
+}
+
+.mode-toggle:hover,
+.mode-toggle:focus {
+  text-decoration: underline;
+}
+
+/* ===== Reset Link ===== */
+.reset-link {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.reset-link:hover,
+.reset-link:focus {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
+/* ===== Responsive Styles ===== */
+@media (max-width: 480px) {
+  .login-page {
+    padding: var(--spacing-lg);
+  }
+
+  .page-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
   }
 }
 </style> 
