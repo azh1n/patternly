@@ -12,6 +12,7 @@ import { auth } from '@/firebase'
 
 const user = ref(null)
 const loading = ref(true)
+const loginAttempts = new Map() // Track login attempts for rate limiting
 
 // Set up auth state listener
 onAuthStateChanged(auth, (firebaseUser) => {
@@ -19,51 +20,89 @@ onAuthStateChanged(auth, (firebaseUser) => {
   loading.value = false
 })
 
+// Password validation
+function validatePassword(password) {
+  const minLength = 8
+  const hasUpperCase = /[A-Z]/.test(password)
+  const hasLowerCase = /[a-z]/.test(password)
+  const hasNumbers = /\d/.test(password)
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+
+  const errors = []
+  if (password.length < minLength) errors.push(`Password must be at least ${minLength} characters long`)
+  if (!hasUpperCase) errors.push('Password must contain at least one uppercase letter')
+  if (!hasLowerCase) errors.push('Password must contain at least one lowercase letter')
+  if (!hasNumbers) errors.push('Password must contain at least one number')
+  if (!hasSpecialChar) errors.push('Password must contain at least one special character')
+
+  return errors
+}
+
+// Rate limiting
+function checkRateLimit(email) {
+  const now = Date.now()
+  const attempts = loginAttempts.get(email) || []
+  const recentAttempts = attempts.filter(time => now - time < 15 * 60 * 1000) // 15 minutes window
+  
+  if (recentAttempts.length >= 5) {
+    const timeUntilReset = Math.ceil((recentAttempts[0] + 15 * 60 * 1000 - now) / 1000 / 60)
+    throw new Error(`Too many login attempts. Please try again in ${timeUntilReset} minutes`)
+  }
+
+  loginAttempts.set(email, [...recentAttempts, now])
+}
+
 function getErrorMessage(error) {
-  console.error('Auth error:', error) // Log the full error for debugging
+  console.error('Auth error:', error.code, error.message) // Log for debugging, but don't expose details
   
   const code = error.code || ''
   switch (code) {
     case 'auth/configuration-not-found':
-      return 'Authentication is not properly configured. Please ensure Email/Password authentication is enabled in the Firebase Console.'
+      return 'Authentication service is temporarily unavailable. Please try again later.'
     case 'auth/email-already-in-use':
       return 'This email is already registered'
     case 'auth/invalid-email':
-      return 'Invalid email address'
+      return 'Please enter a valid email address'
     case 'auth/operation-not-allowed':
-      return 'Email/password accounts are not enabled in the Firebase Console'
+      return 'This operation is not allowed. Please contact support.'
     case 'auth/weak-password':
-      return 'Password is too weak (minimum 6 characters)'
+      return 'Password is too weak. Please choose a stronger password.'
     case 'auth/user-disabled':
-      return 'This account has been disabled'
+      return 'This account has been disabled. Please contact support.'
     case 'auth/user-not-found':
-      return 'No account found with this email'
     case 'auth/wrong-password':
-      return 'Incorrect password'
+      return 'Invalid email or password' // Don't specify which is incorrect
     case 'auth/requires-recent-login':
-      return 'Please log out and log back in to perform this action'
+      return 'This action requires recent authentication. Please log out and log back in.'
+    case 'auth/too-many-requests':
+      return 'Too many unsuccessful attempts. Please try again later.'
     default:
-      // Log unexpected errors for debugging
-      console.warn('Unexpected auth error:', error)
-      return error.message || 'An error occurred. Please try again'
+      return 'An error occurred. Please try again later.'
   }
 }
 
 export function useAuth() {
   const register = async ({ email, password, displayName }) => {
     try {
-      // Validate inputs before attempting registration
-      if (!email || !password) {
+      // Input validation
+      if (!email?.trim() || !password?.trim()) {
         throw new Error('Email and password are required')
       }
-      
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long')
+
+      // Validate password strength
+      const passwordErrors = validatePassword(password)
+      if (passwordErrors.length > 0) {
+        throw new Error(passwordErrors.join('. '))
       }
 
-      const { user: newUser } = await createUserWithEmailAndPassword(auth, email, password)
-      if (displayName) {
-        await firebaseUpdateProfile(newUser, { displayName })
+      // Sanitize display name
+      const sanitizedDisplayName = displayName?.trim()
+        .replace(/[<>]/g, '') // Remove potential HTML/script injection
+        .substring(0, 50) // Limit length
+
+      const { user: newUser } = await createUserWithEmailAndPassword(auth, email.trim(), password)
+      if (sanitizedDisplayName) {
+        await firebaseUpdateProfile(newUser, { displayName: sanitizedDisplayName })
       }
       return newUser
     } catch (error) {
@@ -73,11 +112,14 @@ export function useAuth() {
 
   const login = async ({ email, password }) => {
     try {
-      if (!email || !password) {
+      if (!email?.trim() || !password?.trim()) {
         throw new Error('Email and password are required')
       }
 
-      const { user: loggedInUser } = await signInWithEmailAndPassword(auth, email, password)
+      // Check rate limiting
+      checkRateLimit(email)
+
+      const { user: loggedInUser } = await signInWithEmailAndPassword(auth, email.trim(), password)
       return loggedInUser
     } catch (error) {
       throw new Error(getErrorMessage(error))
@@ -87,6 +129,8 @@ export function useAuth() {
   const logout = async () => {
     try {
       await signOut(auth)
+      // Clear any sensitive data from memory
+      loginAttempts.clear()
     } catch (error) {
       throw new Error(getErrorMessage(error))
     }
@@ -95,7 +139,15 @@ export function useAuth() {
   const updateProfile = async (profileData) => {
     try {
       if (!auth.currentUser) throw new Error('No user logged in')
-      await firebaseUpdateProfile(auth.currentUser, profileData)
+      
+      // Sanitize profile data
+      const sanitizedData = {
+        displayName: profileData.displayName?.trim()
+          .replace(/[<>]/g, '')
+          .substring(0, 50)
+      }
+
+      await firebaseUpdateProfile(auth.currentUser, sanitizedData)
     } catch (error) {
       throw new Error(getErrorMessage(error))
     }
@@ -104,6 +156,13 @@ export function useAuth() {
   const updatePassword = async (newPassword) => {
     try {
       if (!auth.currentUser) throw new Error('No user logged in')
+      
+      // Validate new password
+      const passwordErrors = validatePassword(newPassword)
+      if (passwordErrors.length > 0) {
+        throw new Error(passwordErrors.join('. '))
+      }
+
       await firebaseUpdatePassword(auth.currentUser, newPassword)
     } catch (error) {
       throw new Error(getErrorMessage(error))
@@ -112,10 +171,14 @@ export function useAuth() {
 
   const resetPassword = async (email) => {
     try {
-      if (!email) {
+      if (!email?.trim()) {
         throw new Error('Email is required')
       }
-      await sendPasswordResetEmail(auth, email)
+
+      // Check rate limiting for reset password
+      checkRateLimit(email)
+
+      await sendPasswordResetEmail(auth, email.trim())
     } catch (error) {
       throw new Error(getErrorMessage(error))
     }

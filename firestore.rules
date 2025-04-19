@@ -1,12 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /patterns/{patternId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidPattern() {
+      let pattern = request.resource.data;
+      return pattern.size() <= 1000000 && // Max document size
+             pattern.title is string && 
+             pattern.title.size() <= 100 &&
+             pattern.userId == request.auth.uid &&
+             pattern.timestamp is timestamp;
+    }
+
+    function isNotRateLimited() {
+      let oneMinute = duration.value(60, 'SECONDS');
+      let time = request.time;
+      let recentWrites = getCountFromTime('/databases/$(database)/documents/patterns', oneMinute);
+      return recentWrites < 10; // Max 10 writes per minute
+    }
+
+    // Pattern collection rules
+    match /patterns/{patternId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() 
+                   && isValidPattern()
+                   && isNotRateLimited();
+      allow update: if isOwner(resource.data.userId)
+                   && isValidPattern()
+                   && isNotRateLimited();
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // User preferences rules
     match /userPreferences/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId)
+                  && request.resource.data.size() <= 100000 // Max size
+                  && (!('isDarkMode' in request.resource.data) || request.resource.data.isDarkMode is bool);
     }
   }
 } 
