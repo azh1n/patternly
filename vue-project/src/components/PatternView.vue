@@ -167,6 +167,7 @@
           <font-awesome-icon icon="arrow-left" />
         </button>
         <div class="row-selector">
+          <span class="row-label desktop-only">Row</span>
           <select 
             v-model="currentRowIndex" 
             class="row-select"
@@ -176,7 +177,12 @@
               :key="index" 
               :value="index"
             >
-              Row {{ row.rowNum }} ({{ row.color }})
+              <template v-if="windowWidth >= 768">
+                {{ row.rowNum }} ({{ row.color }})
+              </template>
+              <template v-else>
+                Row {{ row.rowNum }} ({{ row.color }})
+              </template>
             </option>
           </select>
           <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
@@ -1139,10 +1145,106 @@ onMounted(() => {
   color: var(--text-secondary);
 }
 
-.row-select:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  background-color: var(--hover-bg);
+/* Mobile-specific styles */
+@media (max-width: 767px) {
+  .row-navigation {
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .row-selector {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .row-select {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    padding: 0.5rem;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--button-bg);
+    border: 1px solid var(--button-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    text-align: center;
+    background-image: none;
+  }
+
+  /* Target mobile Safari specifically */
+  @supports (-webkit-touch-callout: none) {
+    .row-select {
+      -webkit-appearance: menulist;
+      appearance: menulist;
+      background: var(--button-bg);
+    }
+  }
+
+  /* Target Android devices */
+  @supports not (-webkit-touch-callout: none) {
+    .row-select {
+      -webkit-appearance: menulist;
+      appearance: menulist;
+      background: var(--button-bg);
+    }
+  }
+}
+
+/* Desktop-specific styles */
+@media (min-width: 768px) {
+  .row-selector {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+
+  .row-label {
+    font-weight: 500;
+  }
+
+  .row-select {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--button-border);
+    border-radius: 8px;
+    background-color: var(--button-bg);
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 200px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1.2rem;
+    padding-right: 2.5rem;
+  }
+
+  .row-select:hover {
+    border-color: var(--accent-color);
+    background-color: var(--button-hover-bg);
+  }
+
+  .row-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background-color: var(--hover-bg);
+  }
+
+  .row-select::-ms-expand {
+    display: none;
+  }
+
+  .row-navigation {
+    padding: 1rem 1.5rem;
+  }
 }
 
 /* Responsive styles */
