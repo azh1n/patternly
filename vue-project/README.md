@@ -49,7 +49,7 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 ```
 
-## Future Features
+## Potential Future Features
 
 ### Community Features
 - Pattern sharing and marketplace
@@ -80,11 +80,3 @@ VITE_FIREBASE_APP_ID=
 - Pattern size converter
 - Pattern difficulty calculator
 - Pattern version control system
-
-## Contributing
-
-Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
