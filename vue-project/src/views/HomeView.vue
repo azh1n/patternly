@@ -1,16 +1,6 @@
 <template>
   <div class="home">
-    <header class="header">
-      <h1 
-        :class="{ clickable: selectedPattern }"
-        @click="selectedPattern && router.push('/')"
-      >
-        Patternly
-      </h1>
-      <nav>
-        <router-link to="/profile" class="profile-link">Profile</router-link>
-      </nav>
-    </header>
+    <AppHeader :show-nav="true" />
 
     <main class="main-content">
       <div v-if="!selectedPattern" class="home-view">
@@ -49,6 +39,7 @@ import { useAuth } from '@/services/auth'
 import PatternView from '@/components/PatternView.vue'
 import PatternGrid from '@/components/PatternGrid.vue'
 import AddPatternModal from '@/components/AddPatternModal.vue'
+import AppHeader from '@/components/AppHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -217,91 +208,30 @@ watch(() => user.value?.uid, (newUserId) => {
   min-width: 1200px;
 }
 
-.header {
-  background-color: var(--header-bg);
-  height: var(--header-height);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid var(--border-color);
-  position: relative;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  background: linear-gradient(90deg, 
-    #81C784 0%,
-    var(--accent-color) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: all 0.2s;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.header nav {
-  margin-left: auto;
-}
-
-.header h1.clickable {
-  cursor: pointer;
-}
-
-.header h1.clickable:hover {
-  transform: translateX(-50%) translateY(-1px);
-  text-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
-}
-
-.profile-link {
-  color: var(--text-primary);
-  text-decoration: none;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  transition: all 0.2s;
-  background-color: #2a2a2a;
-  border: 1px solid #444;
-}
-
-.profile-link:hover {
-  background-color: #3a3a3a;
-}
-
 .main-content {
   flex: 1;
-  width: 100%;
-  max-width: var(--max-content-width);
+  width: 1200px;
   margin: 0 auto;
-  padding: 1rem;
-  min-width: 1200px;
+  padding: 2rem 3rem;
 }
 
-@media (min-width: 768px) {
-  .header {
-    padding: 1rem 4rem;
+/* Only apply these styles when the screen is actually small */
+@media (max-width: 1023px) and (max-device-width: 1023px) {
+  .home {
+    min-width: unset;
   }
-
-  .header h1 {
-    font-size: 1.8rem;
-  }
-
+  
   .main-content {
+    max-width: 90%;
     padding: 1.5rem 2rem;
   }
 }
 
-@media (min-width: 1024px) {
-  .header h1 {
-    font-size: 2.2rem;
-  }
-
+/* Only apply these styles when the screen is very small AND it's a mobile device */
+@media (max-width: 767px) and (max-device-width: 767px) {
   .main-content {
-    padding: 2rem 3rem;
+    padding: 1rem;
+    max-width: 100%;
   }
 }
 </style> 

@@ -432,10 +432,8 @@ onMounted(() => {
 
 <style scoped>
 .pattern-view {
-  width: 100%;
-  max-width: var(--max-content-width, 1200px);
-  margin: 0 auto;
-  padding: 1rem 1rem 2rem;
+  padding: 1rem;
+  color: var(--text-primary);
 }
 
 .pattern-header {
@@ -450,9 +448,26 @@ onMounted(() => {
 }
 
 .header-content h1 {
-  font-size: 2rem;
   margin: 0;
-  color: #fff;
+  font-size: 2rem;
+  color: var(--text-primary);
+}
+
+.delete-button {
+  padding: 0.8rem 1.5rem;
+  border: 1px solid #ff4444;
+  border-radius: 8px;
+  background: transparent;
+  color: #ff4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.delete-button:hover {
+  background-color: rgba(255, 68, 68, 0.1);
 }
 
 .progress-bar {
@@ -461,43 +476,41 @@ onMounted(() => {
 
 .progress-track {
   width: 100%;
-  height: 8px;
-  background-color: #2a2a2a;
-  border-radius: 4px;
+  height: 4px;
+  background-color: var(--border-color);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background-color: #4CAF50;
+  background-color: var(--accent-color);
   transition: width 0.3s ease;
 }
 
 .progress-text {
   display: block;
   margin-top: 0.5rem;
-  color: #888;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 .pattern-content {
-  background-color: #2a2a2a;
+  background-color: var(--card-bg);
   border-radius: 16px;
-  border: 1px solid #333;
+  border: 1px solid var(--border-color);
   overflow: hidden;
 }
 
 .row-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #333;
-  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .row-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
 }
 
 .row-title {
@@ -509,10 +522,11 @@ onMounted(() => {
 .row-title h2 {
   margin: 0;
   font-size: 1.5rem;
+  color: var(--text-primary);
 }
 
 .row-color {
-  color: #4CAF50;
+  color: var(--accent-color);
   font-weight: 500;
 }
 
@@ -521,10 +535,10 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border: 2px solid #4CAF50;
+  border: 2px solid var(--accent-color);
   border-radius: 8px;
   background: transparent;
-  color: #4CAF50;
+  color: var(--accent-color);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -535,7 +549,7 @@ onMounted(() => {
 }
 
 .complete-button.completed {
-  background-color: #4CAF50;
+  background-color: var(--accent-color);
   color: white;
 }
 
@@ -543,6 +557,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-top: 1rem;
+  color: var(--text-primary);
 }
 
 .number-control {
@@ -555,19 +571,21 @@ onMounted(() => {
   padding: 0.5rem;
   width: 32px;
   height: 32px;
-  border: 1px solid #444;
-  border-radius: 4px;
-  background: #1a1a1a;
-  color: #fff;
+  border: 1px solid var(--button-border);
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-text);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.2rem;
 }
 
 .control-button:hover:not(:disabled) {
-  background: #333;
+  background: var(--button-hover-bg);
+  border-color: var(--accent-color);
 }
 
 .control-button:disabled {
@@ -578,13 +596,19 @@ onMounted(() => {
 .number-input {
   width: 60px;
   padding: 0.5rem;
-  border: 1px solid #444;
-  border-radius: 4px;
-  background: #1a1a1a;
-  color: #fff;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
   text-align: center;
   font-size: 1rem;
   -moz-appearance: textfield;
+}
+
+.number-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  background-color: var(--hover-bg);
 }
 
 .number-input::-webkit-outer-spin-button,
@@ -595,6 +619,7 @@ onMounted(() => {
 
 .pattern-card {
   padding: 2rem;
+  background-color: var(--card-bg);
 }
 
 .stitch-navigation {
@@ -606,10 +631,10 @@ onMounted(() => {
 
 .nav-button {
   padding: 0.8rem;
-  border: 1px solid #444;
+  border: 1px solid var(--button-border);
   border-radius: 8px;
-  background: #1a1a1a;
-  color: #fff;
+  background: var(--button-bg);
+  color: var(--button-text);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -618,8 +643,8 @@ onMounted(() => {
 }
 
 .nav-button:hover:not(:disabled) {
-  background: #333;
-  border-color: #4CAF50;
+  background: var(--button-hover-bg);
+  border-color: var(--accent-color);
 }
 
 .nav-button:disabled {
@@ -643,22 +668,23 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   gap: 1rem;
+  color: var(--accent-color);
 }
 
 .stitch-progress {
-  color: #888;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 .full-row-preview {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border-color);
 }
 
 .full-row-preview h3 {
   margin: 0 0 1rem 0;
-  color: #888;
+  color: var(--text-secondary);
   font-size: 1rem;
   font-weight: normal;
 }
@@ -669,19 +695,20 @@ onMounted(() => {
   gap: 0.5rem;
   font-family: monospace;
   line-height: 1.6;
+  color: var(--text-primary);
 }
 
 .completed-stitch {
-  color: #4CAF50;
+  color: var(--accent-color);
 }
 
 .row-navigation {
   padding: 1.5rem;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--card-bg);
 }
 
 .row-selector {
@@ -691,9 +718,9 @@ onMounted(() => {
 }
 
 .row-select {
-  background: #1a1a1a;
-  color: #fff;
-  border: 1px solid #444;
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--button-border);
   border-radius: 6px;
   padding: 0.5rem;
   font-size: 1rem;
@@ -703,34 +730,17 @@ onMounted(() => {
 }
 
 .row-select:hover {
-  border-color: #4CAF50;
-  background: #333;
+  border-color: var(--accent-color);
+  background: var(--button-hover-bg);
 }
 
 .row-select:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: var(--accent-color);
 }
 
 .row-counter {
-  color: #888;
-}
-
-.delete-button {
-  padding: 0.8rem 1.5rem;
-  border: 1px solid #ff4444;
-  border-radius: 8px;
-  background: transparent;
-  color: #ff4444;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.delete-button:hover {
-  background-color: rgba(255, 68, 68, 0.1);
+  color: var(--text-secondary);
 }
 
 @media (min-width: 1024px) {

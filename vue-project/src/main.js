@@ -23,7 +23,9 @@ import {
   faEnvelope,
   faLock,
   faSignInAlt,
-  faUserPlus
+  faUserPlus,
+  faSun,
+  faMoon
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -45,7 +47,9 @@ library.add(
   faEnvelope,
   faLock,
   faSignInAlt,
-  faUserPlus
+  faUserPlus,
+  faSun,
+  faMoon
 )
 
 const app = createApp(App)

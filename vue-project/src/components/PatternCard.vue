@@ -62,21 +62,19 @@ const handleClick = () => {
 
 <style scoped>
 .pattern-card {
-  background-color: #2a2a2a;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 1.5rem;
-  cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid #333;
-  display: flex;
-  flex-direction: column;
-  min-height: 200px;
+  cursor: pointer;
+  position: relative;
 }
 
 .pattern-card:hover {
-  transform: translateY(-4px);
-  background-color: #333;
-  border-color: #4CAF50;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: var(--hover-bg);
 }
 
 .pattern-header {
@@ -90,13 +88,13 @@ const handleClick = () => {
 .pattern-header h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: #fff;
+  color: var(--text-primary);
   flex: 1;
 }
 
 .pattern-date {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -108,7 +106,7 @@ const handleClick = () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #aaa;
+  color: var(--text-secondary);
   line-height: 1.5;
   flex: 1;
 }
@@ -116,7 +114,7 @@ const handleClick = () => {
 .pattern-footer {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -130,32 +128,32 @@ const handleClick = () => {
 
 .completion-count {
   font-size: 0.9rem;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .completion-bar {
   width: 100px;
   height: 4px;
-  background-color: #333;
+  background-color: var(--border-color);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .completion-progress {
   height: 100%;
-  background-color: #4CAF50;
+  background-color: var(--button-bg);
   transition: width 0.3s ease;
 }
 
 .view-pattern {
-  color: #4CAF50;
+  color: var(--button-bg);
   font-size: 0.9rem;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .pattern-card:hover .view-pattern {
-  color: #81C784;
+  color: var(--button-hover-bg);
 }
 
 @media (min-width: 1024px) {

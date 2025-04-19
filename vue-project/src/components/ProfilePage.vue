@@ -1,8 +1,6 @@
 <template>
   <div class="profile-container">
-    <header class="header">
-      <h1 @click="router.push('/')" class="clickable">Patternly</h1>
-    </header>
+    <AppHeader />
 
     <div class="profile-content">
       <div class="profile-card">
@@ -16,6 +14,21 @@
         </div>
         
         <form v-else @submit.prevent="handleSubmit" class="profile-form">
+          <div class="form-group theme-toggle">
+            <label>
+              <font-awesome-icon :icon="isDarkMode ? 'moon' : 'sun'" class="field-icon" />
+              Theme
+            </label>
+            <button 
+              type="button"
+              class="theme-button"
+              @click="toggleTheme"
+            >
+              <font-awesome-icon :icon="isDarkMode ? 'sun' : 'moon'" class="theme-icon" />
+              Switch to {{ isDarkMode ? 'Light' : 'Dark' }} Mode
+            </button>
+          </div>
+
           <div class="form-group">
             <label for="displayName">
               <font-awesome-icon icon="user-circle" class="field-icon" />
@@ -90,12 +103,15 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useAuth } from '@/services/auth'
+import { useTheme } from '@/services/theme'
 import { useRouter } from 'vue-router'
+import AppHeader from '@/components/AppHeader.vue'
 
 const router = useRouter()
 const { user, loading, updateProfile, updatePassword, logout } = useAuth()
+const { isDarkMode, toggleTheme } = useTheme()
 
 const form = reactive({
   displayName: '',
@@ -147,42 +163,6 @@ async function handleLogout() {
   background-color: var(--main-bg);
 }
 
-.header {
-  background-color: var(--header-bg);
-  height: var(--header-height);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid var(--border-color);
-  position: relative;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  background: linear-gradient(90deg, 
-    #81C784 0%,
-    var(--accent-color) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: all 0.2s;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.header h1.clickable {
-  cursor: pointer;
-}
-
-.header h1.clickable:hover {
-  transform: translateX(-50%) translateY(-1px);
-  text-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
-}
-
 .profile-content {
   padding: 2rem 4rem;
   margin: 0 auto;
@@ -218,9 +198,26 @@ async function handleLogout() {
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.form-group .input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.form-group input {
+  padding: 0.75rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 1rem;
+  color: var(--text-primary);
+  transition: all 0.2s;
   width: 100%;
 }
 
@@ -239,25 +236,14 @@ async function handleLogout() {
   height: 16px;
 }
 
-.form-group input {
-  padding: 0.75rem;
-  background-color: #2a2a2a;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 1rem;
-  color: var(--text-primary);
-  transition: all 0.2s;
-  width: 100%;
-}
-
 .form-group input:focus {
   outline: none;
   border-color: var(--accent-color);
-  background-color: #333;
+  background-color: var(--hover-bg);
 }
 
 .form-group input:disabled {
-  background-color: #222;
+  background-color: var(--disabled-bg);
   cursor: not-allowed;
   color: var(--text-secondary);
 }
@@ -342,14 +328,6 @@ button:disabled {
 }
 
 @media (min-width: 768px) {
-  .header {
-    padding: 1rem 4rem;
-  }
-
-  .header h1 {
-    font-size: 1.8rem;
-  }
-
   .profile-content {
     padding: 3rem;
   }
@@ -364,10 +342,6 @@ button:disabled {
 }
 
 @media (min-width: 1024px) {
-  .header h1 {
-    font-size: 2.2rem;
-  }
-
   .profile-content {
     padding: 3rem 4rem;
   }
@@ -383,5 +357,36 @@ button:disabled {
 :deep(.vue-dev-overlay),
 :deep(.__vue-dev-overlay) {
   display: none !important;
+}
+
+.theme-toggle {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.theme-button:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-color: var(--accent-color);
+}
+
+.theme-icon {
+  font-size: 1.2rem;
+  color: var(--accent-color);
 }
 </style> 

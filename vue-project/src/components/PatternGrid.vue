@@ -154,18 +154,18 @@ watch(searchQuery, () => {
 .search-input {
   width: 100%;
   padding: 1rem 1rem 1rem 3rem;
-  border: 2px solid #333;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
-  background-color: #2a2a2a;
-  color: #fff;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.3s ease;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #4CAF50;
-  background-color: #333;
+  border-color: var(--accent-color);
+  background-color: var(--hover-bg);
 }
 
 .search-icon {
@@ -173,7 +173,7 @@ watch(searchQuery, () => {
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #666;
+  color: var(--text-secondary);
   font-size: 1.2rem;
 }
 
@@ -183,7 +183,7 @@ watch(searchQuery, () => {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.8rem 1.5rem;
-  background-color: #4CAF50;
+  background-color: var(--accent-color);
   color: white;
   border: none;
   border-radius: 12px;
@@ -196,7 +196,7 @@ watch(searchQuery, () => {
 }
 
 .add-button:hover {
-  background-color: #45a049;
+  background-color: var(--accent-hover);
   transform: translateY(-1px);
 }
 
@@ -213,8 +213,8 @@ watch(searchQuery, () => {
   width: 40px;
   height: 40px;
   margin: 0 auto 1rem;
-  border: 3px solid #333;
-  border-top-color: #4CAF50;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -237,7 +237,7 @@ watch(searchQuery, () => {
 
 .pattern-count {
   font-size: 1rem;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: normal;
 }
 
@@ -256,9 +256,9 @@ watch(searchQuery, () => {
 .empty-state {
   text-align: center;
   padding: 4rem 1rem;
-  background-color: #2a2a2a;
+  background-color: var(--card-bg);
   border-radius: 16px;
-  border: 1px solid #333;
+  border: 1px solid var(--border-color);
   width: calc(100vw - 4rem);
   max-width: var(--max-content-width, 1200px);
   margin: 0 auto;
@@ -270,17 +270,17 @@ watch(searchQuery, () => {
 .empty-icon {
   font-size: 3rem;
   margin-bottom: 1.5rem;
-  color: #4CAF50;
+  color: var(--accent-color);
 }
 
 .empty-state h3 {
   margin: 0 0 0.5rem 0;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 
 .empty-state p {
-  color: #888;
+  color: var(--text-secondary);
   margin: 0;
   font-size: 1rem;
 }
@@ -295,9 +295,9 @@ watch(searchQuery, () => {
 
 .pagination-button {
   padding: 0.8rem 1.5rem;
-  background-color: #2a2a2a;
-  color: #fff;
-  border: 1px solid #333;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--button-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -305,8 +305,8 @@ watch(searchQuery, () => {
 }
 
 .pagination-button:hover:not(:disabled) {
-  background-color: #333;
-  border-color: #4CAF50;
+  background-color: var(--button-hover-bg);
+  border-color: var(--accent-color);
 }
 
 .pagination-button:disabled {
@@ -325,9 +325,9 @@ watch(searchQuery, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #2a2a2a;
-  color: #fff;
-  border: 1px solid #333;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--button-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -335,13 +335,14 @@ watch(searchQuery, () => {
 }
 
 .page-number:hover:not(.active) {
-  background-color: #333;
-  border-color: #4CAF50;
+  background-color: var(--button-hover-bg);
+  border-color: var(--accent-color);
 }
 
 .page-number.active {
-  background-color: #4CAF50;
-  border-color: #4CAF50;
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
 }
 
 @media (min-width: 640px) {
