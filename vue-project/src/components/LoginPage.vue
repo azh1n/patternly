@@ -495,9 +495,86 @@ button:disabled {
 
 /* Mobile responsive styles */
 @media (max-width: 840px) {
+  .login-page {
+    padding: 1rem;
+  }
+
   .form-container {
     min-width: auto;
     width: 100%;
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+
+  .auth-form {
+    width: 100%;
+  }
+
+  .app-title {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  input {
+    font-size: 16px; /* Prevent iOS zoom on input focus */
+    padding: 0.875rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .button-group button {
+    width: 100%;
+    padding: 0.875rem;
+  }
+
+  .secondary-button {
+    padding: 0.875rem;
+  }
+
+  .button-icon {
+    position: static;
+    margin-right: 0.5rem;
+  }
+
+  .button-text {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .button-text-small {
+    font-size: 0.875rem;
+  }
+
+  .button-text-large {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
+
+/* Additional small screen adjustments */
+@media (max-width: 380px) {
+  .login-page {
+    padding: 0.75rem;
+  }
+
+  .form-container {
+    padding: 1rem;
+  }
+
+  .app-title {
+    font-size: 1.75rem;
+  }
+
+  input {
+    padding: 0.75rem;
   }
 }
 
