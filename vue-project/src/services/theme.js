@@ -3,7 +3,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useAuth } from './auth'
 
-const isDarkMode = ref(true) // Default to dark mode
+const isDarkMode = ref(false) // Default to light mode
 const { user } = useAuth()
 
 // Watch for user changes to load their preferences
@@ -18,11 +18,28 @@ async function loadUserPreferences() {
     const prefDoc = await getDoc(doc(db, 'userPreferences', user.value.uid))
     if (prefDoc.exists()) {
       const prefs = prefDoc.data()
-      isDarkMode.value = prefs.isDarkMode ?? true
+      isDarkMode.value = prefs.isDarkMode ?? false
       applyTheme()
+    } else {
+      // Set initial preferences for new users
+      await setInitialPreferences()
     }
   } catch (error) {
     console.error('Error loading user preferences:', error)
+  }
+}
+
+async function setInitialPreferences() {
+  if (!user.value?.uid) return
+
+  try {
+    await setDoc(doc(db, 'userPreferences', user.value.uid), {
+      isDarkMode: false
+    })
+    isDarkMode.value = false
+    applyTheme()
+  } catch (error) {
+    console.error('Error setting initial preferences:', error)
   }
 }
 
@@ -85,6 +102,7 @@ export function useTheme() {
   return {
     isDarkMode,
     toggleTheme,
-    loadUserPreferences
+    loadUserPreferences,
+    setInitialPreferences
   }
 } 

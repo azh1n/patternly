@@ -36,7 +36,27 @@
             v-model="password"
             required
             placeholder="Enter your password"
+            @input="validatePassword"
           >
+          <!-- Password requirements display -->
+          <div v-if="isRegistering" class="password-requirements">
+            <div :class="{ 'requirement-met': password.length >= 8 }">
+              <font-awesome-icon :icon="password.length >= 8 ? 'check-circle' : 'circle'" />
+              At least 8 characters
+            </div>
+            <div :class="{ 'requirement-met': hasUppercase }">
+              <font-awesome-icon :icon="hasUppercase ? 'check-circle' : 'circle'" />
+              One uppercase letter
+            </div>
+            <div :class="{ 'requirement-met': hasNumber }">
+              <font-awesome-icon :icon="hasNumber ? 'check-circle' : 'circle'" />
+              One number
+            </div>
+            <div :class="{ 'requirement-met': hasSpecialChar }">
+              <font-awesome-icon :icon="hasSpecialChar ? 'check-circle' : 'circle'" />
+              One special character
+            </div>
+          </div>
         </div>
 
         <!-- Display name input group (shown only during registration) -->
@@ -65,7 +85,7 @@
           <button 
             type="submit"
             class="primary-button"
-            :disabled="submitting"
+            :disabled="submitting || (isRegistering && !isPasswordValid)"
           >
             <font-awesome-icon :icon="isRegistering ? 'user-plus' : 'sign-in-alt'" />
             {{ submitButtonText }}
@@ -118,6 +138,11 @@ const error = ref('')
 const submitting = ref(false)
 const isRegistering = ref(false)
 
+// Password validation state
+const hasUppercase = ref(false)
+const hasNumber = ref(false)
+const hasSpecialChar = ref(false)
+
 // Computed properties for dynamic button text
 const submitButtonText = computed(() => {
   if (submitting.value) {
@@ -132,10 +157,26 @@ const toggleButtonText = computed(() => {
     : 'Need an account? Register'
 })
 
+// Computed property for password validation
+const isPasswordValid = computed(() => {
+  return password.value.length >= 8 && 
+         hasUppercase.value && 
+         hasNumber.value && 
+         hasSpecialChar.value
+})
+
 // Toggle between login and registration modes
 const toggleMode = () => {
   isRegistering.value = !isRegistering.value
   error.value = ''
+}
+
+// Password validation function
+const validatePassword = () => {
+  const pass = password.value
+  hasUppercase.value = /[A-Z]/.test(pass)
+  hasNumber.value = /[0-9]/.test(pass)
+  hasSpecialChar.value = /[!@#$%^&*(),.?":{}|<>]/.test(pass)
 }
 
 // Handle form submission for both login and registration
@@ -458,5 +499,22 @@ button:disabled {
     min-width: auto;
     width: 100%;
   }
+}
+
+.password-requirements {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.password-requirements div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.requirement-met {
+  color: #4CAF50;
 }
 </style> 

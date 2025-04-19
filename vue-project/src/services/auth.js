@@ -9,10 +9,12 @@ import {
   onAuthStateChanged
 } from 'firebase/auth'
 import { auth } from '@/firebase'
+import { useTheme } from './theme'
 
 const user = ref(null)
 const loading = ref(true)
 const loginAttempts = new Map() // Track login attempts for rate limiting
+const { setInitialPreferences } = useTheme()
 
 // Set up auth state listener
 onAuthStateChanged(auth, (firebaseUser) => {
@@ -104,6 +106,10 @@ export function useAuth() {
       if (sanitizedDisplayName) {
         await firebaseUpdateProfile(newUser, { displayName: sanitizedDisplayName })
       }
+      
+      // Set initial theme preferences
+      await setInitialPreferences()
+      
       return newUser
     } catch (error) {
       throw new Error(getErrorMessage(error))
