@@ -1,5 +1,8 @@
+<!-- Pattern view component for displaying and interacting with knitting patterns -->
 <template>
+  <!-- Main pattern view container -->
   <div class="pattern-view">
+    <!-- Pattern header with title, controls, and progress -->
     <div class="pattern-header">
       <div class="header-content">
         <h1>{{ pattern.name }}</h1>
@@ -10,6 +13,7 @@
           </button>
         </div>
       </div>
+      <!-- Progress bar showing completion status -->
       <div class="progress-bar">
         <div class="progress-track">
           <div 
@@ -21,7 +25,9 @@
       </div>
     </div>
 
+    <!-- Main pattern content area -->
     <div class="pattern-content">
+      <!-- Row header with current row info and controls -->
       <div class="row-header">
         <div class="row-info">
           <div class="row-title">
@@ -37,6 +43,7 @@
           </button>
         </div>
         
+        <!-- Stitches per view control -->
         <div class="stitch-control">
           <label for="stitchesPerView">Stitches per view:</label>
           <div class="number-control">
@@ -66,6 +73,7 @@
         </div>
       </div>
 
+      <!-- Pattern card with stitch navigation -->
       <div class="pattern-card">
         <div class="stitch-navigation">
           <button 
@@ -76,6 +84,7 @@
             <font-awesome-icon icon="chevron-left" />
           </button>
           
+          <!-- Current stitches display -->
           <div class="stitch-content">
             <div class="current-stitches">
               <span 
@@ -103,13 +112,18 @@
           </button>
         </div>
 
+        <!-- Full row preview section -->
         <div class="full-row-preview">
           <h3>Full Row Preview</h3>
           <div class="preview-content">
             <span 
               v-for="(item, index) in getCompletedCodes" 
               :key="index"
-              :class="{ 'completed-stitch': item.isCompleted }"
+              :class="[
+                'preview-stitch',
+                { 'completed-stitch': item.isCompleted },
+                { 'current-stitch': index >= currentStitchIndex && index < currentStitchIndex + stitchesPerView }
+              ]"
             >
               {{ item.code }}
             </span>
@@ -117,6 +131,7 @@
         </div>
       </div>
 
+      <!-- Row navigation controls -->
       <div class="row-navigation">
         <button 
           @click="previousRow" 
@@ -161,31 +176,35 @@ import { useRouter } from 'vue-router'
 import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
+// Component props
 const props = defineProps({
   pattern: {
     type: Object,
-    required: true
+    required: true  // Pattern object containing name, content, and completion data
   },
   patterns: {
     type: Array,
-    required: true
+    required: true  // Array of all patterns
   },
   currentTextIndex: {
     type: Number,
-    required: true
+    required: true  // Current text index for navigation
   }
 })
 
+// Event emitters and router
 const emit = defineEmits(['update:currentTextIndex', 'pattern-deleted'])
 const router = useRouter()
 
-const stitchesPerView = ref(5)
-const currentStitchIndex = ref(0)
-const currentRowIndex = ref(0)
-const isSwiping = ref(false)
-const startX = ref(0)
-const currentX = ref(0)
+// Reactive state
+const stitchesPerView = ref(5)  // Number of stitches to display at once
+const currentStitchIndex = ref(0)  // Current stitch index in the row
+const currentRowIndex = ref(0)  // Current row index in the pattern
+const isSwiping = ref(false)  // Touch swipe state
+const startX = ref(0)  // Touch start position
+const currentX = ref(0)  // Current touch position
 
+// Parse pattern rows into structured data
 const parsedRows = computed(() => {
   if (!props.pattern) return []
   
@@ -197,6 +216,7 @@ const parsedRows = computed(() => {
   let currentRowNum = null
   let currentColor = null
   
+  // Process pattern codes into structured format
   const processPattern = (pattern) => {
     const parts = pattern.split(/,(?![^(]*\))/).map(p => p.trim())
     return parts.filter(code => 
@@ -205,6 +225,7 @@ const parsedRows = computed(() => {
     )
   }
   
+  // Parse each row of the pattern
   rows.forEach(row => {
     const rowMatch = row.match(/Row (\d+): With (Color [A-Z])/)
     if (rowMatch) {
@@ -250,6 +271,7 @@ const parsedRows = computed(() => {
   return parsedRows
 })
 
+// Computed properties for current state
 const currentRow = computed(() => {
   return parsedRows.value[currentRowIndex.value]
 })
@@ -261,6 +283,7 @@ const visibleStitches = computed(() => {
   return currentRow.value.codes.slice(start, end).join(' ')
 })
 
+// Calculate total stitches in current row
 const totalStitches = computed(() => {
   if (!currentRow.value) return 0
   return currentRow.value.codes.reduce((total, code) => {
@@ -276,6 +299,7 @@ const totalStitches = computed(() => {
   }, 0)
 })
 
+// Get completed codes for full row preview
 const getCompletedCodes = computed(() => {
   if (!currentRow.value) return []
   const completedIndex = currentStitchIndex.value + stitchesPerView.value
@@ -285,17 +309,20 @@ const getCompletedCodes = computed(() => {
   }))
 })
 
+// Check if current row is marked as complete
 const isRowComplete = computed(() => {
   if (!currentRow.value || !props.pattern?.completedRows) return false
   return props.pattern.completedRows[`row${currentRow.value.rowNum}`] || false
 })
 
+// Touch swipe transform style
 const transformStyle = computed(() => {
   if (!isSwiping.value) return ''
   const diff = currentX.value - startX.value
   return `translateX(${diff}px)`
 })
 
+// Navigation methods
 const nextStitches = () => {
   if (currentStitchIndex.value + stitchesPerView.value < totalStitches.value) {
     currentStitchIndex.value += stitchesPerView.value
@@ -308,6 +335,7 @@ const previousStitches = () => {
   }
 }
 
+// Row navigation with completion tracking
 const nextRow = async () => {
   if (currentRowIndex.value < parsedRows.value.length - 1) {
     // Mark current row as complete
@@ -338,6 +366,7 @@ const previousRow = () => {
   }
 }
 
+// Toggle row completion status
 const toggleRowComplete = async () => {
   if (!currentRow.value) return
   
@@ -354,6 +383,7 @@ const toggleRowComplete = async () => {
   }
 }
 
+// Touch event handlers
 const handleTouchStart = (e) => {
   isSwiping.value = true
   startX.value = e.touches[0].clientX
@@ -382,6 +412,7 @@ const handleTouchEnd = () => {
   currentX.value = 0
 }
 
+// Pattern deletion
 const confirmDelete = () => {
   if (confirm('Are you sure you want to delete this pattern? This action cannot be undone.')) {
     deletePattern()
@@ -399,6 +430,7 @@ const deletePattern = async () => {
   }
 }
 
+// Completion tracking
 const completedRows = computed(() => {
   if (!props.pattern?.completedRows) return 0
   return Object.values(props.pattern.completedRows).filter(Boolean).length
@@ -411,6 +443,7 @@ const completionPercentage = computed(() => {
   return Math.round((completedRows.value / totalRows.value) * 100)
 })
 
+// Current stitches display
 const currentStitches = computed(() => {
   if (!currentRow.value) return []
   const start = currentStitchIndex.value
@@ -421,6 +454,7 @@ const currentStitches = computed(() => {
   }))
 })
 
+// Stitch view controls
 const decreaseStitches = () => {
   if (stitchesPerView.value > 1) {
     stitchesPerView.value--
@@ -433,6 +467,7 @@ const increaseStitches = () => {
   }
 }
 
+// Component initialization
 onMounted(() => {
   // Find the first incomplete row
   const firstIncompleteRowIndex = parsedRows.value.findIndex(row => {
@@ -447,11 +482,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Main container styles */
 .pattern-view {
   padding: 1rem;
   color: var(--text-primary);
 }
 
+/* Header section styles */
 .pattern-header {
   margin-bottom: 2rem;
 }
@@ -469,6 +506,7 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
+/* Delete button styles */
 .delete-button {
   padding: 0.8rem 1.5rem;
   border: 1px solid #ff4444;
@@ -486,6 +524,7 @@ onMounted(() => {
   background-color: rgba(255, 68, 68, 0.1);
 }
 
+/* Progress bar styles */
 .progress-bar {
   margin-top: 1rem;
 }
@@ -511,6 +550,7 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
+/* Pattern content styles */
 .pattern-content {
   background-color: var(--card-bg);
   border-radius: 16px;
@@ -518,6 +558,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
+/* Row header styles */
 .row-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
@@ -546,6 +587,7 @@ onMounted(() => {
   font-weight: 500;
 }
 
+/* Complete button styles */
 .complete-button {
   display: flex;
   align-items: center;
@@ -569,6 +611,7 @@ onMounted(() => {
   color: white;
 }
 
+/* Stitch control styles */
 .stitch-control {
   display: flex;
   align-items: center;
@@ -583,6 +626,7 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
+/* Control button styles */
 .control-button {
   padding: 0.5rem;
   width: 32px;
@@ -609,6 +653,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
+/* Number input styles */
 .number-input {
   width: 60px;
   padding: 0.5rem;
@@ -633,11 +678,13 @@ onMounted(() => {
   margin: 0;
 }
 
+/* Pattern card styles */
 .pattern-card {
   padding: 2rem;
   background-color: var(--card-bg);
 }
 
+/* Stitch navigation styles */
 .stitch-navigation {
   display: flex;
   align-items: center;
@@ -645,6 +692,7 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
+/* Navigation button styles */
 .nav-button {
   padding: 0.8rem;
   border: 1px solid var(--button-border);
@@ -673,6 +721,7 @@ onMounted(() => {
   font-size: 1.1rem;
 }
 
+/* Stitch content styles */
 .stitch-content {
   flex: 1;
   text-align: center;
@@ -692,88 +741,98 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
+/* Full row preview styles */
 .full-row-preview {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid var(--border-color);
 }
 
-.full-row-preview h3 {
-  margin: 0 0 1rem 0;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  font-weight: normal;
-}
-
 .preview-content {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  font-family: monospace;
-  line-height: 1.6;
-  color: var(--text-primary);
+  margin-top: 1rem;
 }
 
-.completed-stitch {
+.preview-stitch {
+  font-size: 1rem;
+  color: var(--text-primary);
+  position: relative;
+}
+
+.preview-stitch.completed-stitch {
   color: var(--accent-color);
 }
 
+.preview-stitch.current-stitch {
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.preview-stitch.current-stitch::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--accent-color);
+}
+
+/* Row navigation styles */
 .row-navigation {
   padding: 1.5rem;
   border-top: 1px solid var(--border-color);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background-color: var(--card-bg);
+  justify-content: space-between;
+  gap: 2rem;
 }
 
+/* Row selector styles */
 .row-selector {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.row-select {
-  background: var(--button-bg);
-  color: var(--button-text);
-  border: 1px solid var(--button-border);
-  border-radius: 6px;
-  padding: 0.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 150px;
-}
-
-.row-select:hover {
-  border-color: var(--accent-color);
-  background: var(--button-hover-bg);
-}
-
-.row-select:focus {
-  outline: none;
-  border-color: var(--accent-color);
+  gap: 1rem;
 }
 
 .row-counter {
   color: var(--text-secondary);
 }
 
+.row-select {
+  padding: 0.5rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 1rem;
+  min-width: 150px;
+}
+
+.row-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  background-color: var(--hover-bg);
+}
+
+/* Responsive styles */
 @media (min-width: 1024px) {
   .pattern-view {
-    padding: 1.5rem 2rem 3rem;
+    padding: 2rem;
   }
 
   .header-content h1 {
     font-size: 2.5rem;
   }
 
-  .current-stitches {
-    font-size: 2.2rem;
+  .row-title h2 {
+    font-size: 1.8rem;
   }
 
-  .pattern-card {
-    padding: 3rem;
+  .current-stitches {
+    font-size: 2rem;
   }
 }
 </style> 

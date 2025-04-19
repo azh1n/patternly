@@ -1,11 +1,16 @@
+<!-- Modal component for adding new knitting patterns -->
 <template>
+  <!-- Modal overlay with click-away functionality -->
   <div v-if="modelValue" class="modal-overlay" @click="$emit('update:modelValue', false)">
+    <!-- Modal container that prevents click propagation -->
     <div class="modal" @click.stop>
+      <!-- Modal header with title and close button -->
       <div class="modal-header">
         <h2>Add New Pattern</h2>
         <button @click="$emit('update:modelValue', false)" class="close-button">×</button>
       </div>
       <div class="modal-content">
+        <!-- Pattern name input field -->
         <div class="form-group">
           <label for="patternName">Pattern Name</label>
           <input
@@ -17,6 +22,7 @@
             required
           />
         </div>
+        <!-- Pattern instructions textarea with character limit -->
         <div class="form-group">
           <label for="text">Pattern Instructions</label>
           <textarea
@@ -28,6 +34,7 @@
           ></textarea>
         </div>
 
+        <!-- Modal action buttons -->
         <div class="modal-actions">
           <button @click="$emit('update:modelValue', false)" class="cancel-button">Cancel</button>
           <button 
@@ -46,29 +53,34 @@
 <script setup>
 import { ref } from 'vue'
 
+// Component props
 const props = defineProps({
   modelValue: {
     type: Boolean,
-    required: true
+    required: true  // Controls modal visibility
   },
   isLoading: {
     type: Boolean,
-    default: false
+    default: false  // Indicates saving state
   }
 })
 
+// Event emitters for modal control and pattern addition
 const emit = defineEmits(['update:modelValue', 'pattern-added'])
 
-const MAX_CHARS = 100000
-const patternName = ref('')
-const patternText = ref('')
+// Constants and reactive state
+const MAX_CHARS = 100000  // Maximum characters allowed in pattern instructions
+const patternName = ref('')  // Stores pattern name input
+const patternText = ref('')  // Stores pattern instructions input
 
+// Handles textarea input with character limit enforcement
 const handleInput = (event) => {
   if (event.target.value.length <= MAX_CHARS) {
     patternText.value = event.target.value
   }
 }
 
+// Saves the pattern and resets form fields
 const savePattern = () => {
   emit('pattern-added', {
     name: patternName.value,
@@ -80,6 +92,7 @@ const savePattern = () => {
 </script>
 
 <style scoped>
+/* Modal overlay styles - covers entire viewport */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -93,6 +106,7 @@ const savePattern = () => {
   z-index: 1000;
 }
 
+/* Modal container styles */
 .modal {
   width: min(600px, 90%);
   background-color: #2a2a2a;
@@ -101,6 +115,7 @@ const savePattern = () => {
   max-height: 90vh;
 }
 
+/* Modal header styles */
 .modal-header {
   padding: 1.5rem;
   border-bottom: 1px solid #333;
@@ -115,6 +130,7 @@ const savePattern = () => {
   color: #fff;
 }
 
+/* Close button styles */
 .close-button {
   background: none;
   border: none;
@@ -129,10 +145,12 @@ const savePattern = () => {
   color: #fff;
 }
 
+/* Modal content styles */
 .modal-content {
   padding: 1.5rem;
 }
 
+/* Form group styles */
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -144,6 +162,7 @@ const savePattern = () => {
   font-weight: 500;
 }
 
+/* Pattern name input styles */
 .pattern-name-input {
   width: 100%;
   padding: 1rem;
@@ -160,6 +179,7 @@ const savePattern = () => {
   border-color: #4CAF50;
 }
 
+/* Pattern instructions textarea styles */
 .text-area {
   width: 100%;
   min-height: 200px;
@@ -178,6 +198,7 @@ const savePattern = () => {
   border-color: #4CAF50;
 }
 
+/* Modal action buttons container */
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -185,6 +206,7 @@ const savePattern = () => {
   margin-top: 2rem;
 }
 
+/* Cancel button styles */
 .cancel-button {
   padding: 0.8rem 1.5rem;
   background-color: transparent;
@@ -199,6 +221,7 @@ const savePattern = () => {
   background-color: #333;
 }
 
+/* Save button styles */
 .save-button {
   padding: 0.8rem 1.5rem;
   background-color: #4CAF50;
@@ -219,6 +242,7 @@ const savePattern = () => {
   cursor: not-allowed;
 }
 
+/* Responsive styles for larger screens */
 @media (min-width: 1024px) {
   .modal {
     max-width: 800px;
@@ -248,12 +272,6 @@ const savePattern = () => {
 
   .modal-actions {
     margin-top: 3rem;
-  }
-
-  .cancel-button,
-  .save-button {
-    padding: 1rem 2.5rem;
-    font-size: 1.1rem;
   }
 }
 </style> 

@@ -1,10 +1,15 @@
+<!-- Authentication page component handling login and registration -->
 <template>
+  <!-- Main container for the login/registration page -->
   <div class="login-page">
+    <!-- Header section with app title -->
     <div class="login-header">
       <h1 class="app-title">Patternly</h1>
     </div>
+    <!-- Form container with authentication form -->
     <div class="form-container">
       <form @submit.prevent="handleSubmit" class="auth-form">
+        <!-- Email input group -->
         <div class="form-group">
           <label for="email">
             <font-awesome-icon icon="envelope" class="field-icon" />
@@ -19,6 +24,7 @@
           >
         </div>
 
+        <!-- Password input group -->
         <div class="form-group">
           <label for="password">
             <font-awesome-icon icon="lock" class="field-icon" />
@@ -33,6 +39,7 @@
           >
         </div>
 
+        <!-- Display name input group (shown only during registration) -->
         <div v-if="isRegistering" class="form-group">
           <label for="displayName">
             <font-awesome-icon icon="user-circle" class="field-icon" />
@@ -47,11 +54,14 @@
           >
         </div>
 
+        <!-- Error message display -->
         <div v-if="error" class="error-message">
           {{ error }}
         </div>
 
+        <!-- Action buttons group -->
         <div class="button-group">
+          <!-- Primary action button (Login/Register) -->
           <button 
             type="submit"
             class="primary-button"
@@ -61,6 +71,7 @@
             {{ submitButtonText }}
           </button>
 
+          <!-- Toggle mode button (Switch between Login/Register) -->
           <button 
             type="button"
             class="secondary-button"
@@ -75,6 +86,7 @@
           </button>
         </div>
 
+        <!-- Password reset button (shown only in login mode) -->
         <button 
           v-if="!isRegistering"
           type="button"
@@ -94,9 +106,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/services/auth'
 
+// Router and authentication service initialization
 const router = useRouter()
 const { login, register, resetPassword } = useAuth()
 
+// Form state management
 const email = ref('')
 const password = ref('')
 const displayName = ref('')
@@ -104,6 +118,7 @@ const error = ref('')
 const submitting = ref(false)
 const isRegistering = ref(false)
 
+// Computed properties for dynamic button text
 const submitButtonText = computed(() => {
   if (submitting.value) {
     return isRegistering.value ? 'Creating Account...' : 'Logging in...'
@@ -117,11 +132,13 @@ const toggleButtonText = computed(() => {
     : 'Need an account? Register'
 })
 
+// Toggle between login and registration modes
 const toggleMode = () => {
   isRegistering.value = !isRegistering.value
   error.value = ''
 }
 
+// Handle form submission for both login and registration
 const handleSubmit = async () => {
   error.value = ''
   submitting.value = true
@@ -147,6 +164,7 @@ const handleSubmit = async () => {
   }
 }
 
+// Handle password reset request
 const handleResetPassword = async () => {
   if (!email.value) {
     error.value = 'Please enter your email address'
@@ -166,6 +184,7 @@ const handleResetPassword = async () => {
   }
 }
 
+// Lifecycle hooks for managing body class
 onMounted(() => {
   document.body.classList.add('login-page')
 })
@@ -176,6 +195,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Main container styles */
 .login-page {
   min-height: 100vh;
   display: flex;
@@ -186,6 +206,7 @@ onUnmounted(() => {
   padding: 2rem;
 }
 
+/* Header and title styles */
 .login-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -193,6 +214,7 @@ onUnmounted(() => {
   max-width: 1200px;
 }
 
+/* App title with gradient effect */
 .app-title {
   font-size: 2.5rem;
   font-weight: 600;
@@ -206,11 +228,13 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
+/* Title hover animation */
 .app-title:hover {
   transform: translateY(-2px);
   text-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
 }
 
+/* Form container styles */
 .form-container {
   background-color: white;
   border-radius: 16px;
@@ -222,6 +246,7 @@ onUnmounted(() => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
+/* Authentication form layout */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -231,12 +256,14 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
+/* Form group styles */
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
+/* Form label styles */
 .form-group label {
   display: flex;
   align-items: center;
@@ -245,12 +272,14 @@ onUnmounted(() => {
   color: #333;
 }
 
+/* Icon styles in form fields */
 .field-icon {
   color: #4CAF50;
   width: 16px;
   height: 16px;
 }
 
+/* Input field styles */
 input {
   padding: 0.75rem;
   background-color: white;
@@ -261,16 +290,19 @@ input {
   transition: all 0.2s;
 }
 
+/* Input focus states */
 input:focus {
   outline: none;
   border-color: #4CAF50;
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
+/* Input placeholder styles */
 input::placeholder {
   color: #9e9e9e;
 }
 
+/* Error message styles */
 .error-message {
   background-color: rgba(231, 76, 60, 0.1);
   color: #e74c3c;
@@ -281,12 +313,14 @@ input::placeholder {
   border: 1px solid rgba(231, 76, 60, 0.2);
 }
 
+/* Button group layout */
 .button-group {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
+/* Common button styles */
 .button-group button {
   display: flex;
   align-items: center;
@@ -300,23 +334,27 @@ input::placeholder {
   transition: all 0.2s;
 }
 
+/* Disabled button states */
 button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
+/* Primary button styles */
 .primary-button {
   background: #4CAF50;
   color: white;
   border: none;
 }
 
+/* Primary button hover effects */
 .primary-button:hover:not(:disabled) {
   background: #43a047;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
 }
 
+/* Secondary button styles */
 .secondary-button {
   background: transparent;
   color: #4CAF50;
@@ -328,6 +366,7 @@ button:disabled {
   position: relative;
 }
 
+/* Button icon positioning */
 .button-icon {
   font-size: 1.2rem;
   flex-shrink: 0;
@@ -335,6 +374,7 @@ button:disabled {
   left: 1.5rem;
 }
 
+/* Button text container */
 .button-text {
   display: flex;
   flex-direction: column;
@@ -344,23 +384,27 @@ button:disabled {
   flex: 1;
 }
 
+/* Small button text styles */
 .button-text-small {
   font-size: 0.8rem;
   opacity: 0.9;
   width: 100%;
 }
 
+/* Large button text styles */
 .button-text-large {
   font-size: 1.1rem;
   font-weight: 600;
   width: 100%;
 }
 
+/* Secondary button hover effects */
 .secondary-button:hover:not(:disabled) {
   background: rgba(76, 175, 80, 0.05);
   border-color: #43a047;
 }
 
+/* Text button styles */
 .text-button {
   background: none;
   border: none;
@@ -369,10 +413,12 @@ button:disabled {
   padding: 0.5rem;
 }
 
+/* Text button hover effects */
 .text-button:hover:not(:disabled) {
   color: #333;
 }
 
+/* Tablet responsive styles */
 @media (min-width: 768px) {
   .form-container {
     padding: 3rem;
@@ -393,6 +439,7 @@ button:disabled {
   }
 }
 
+/* Desktop responsive styles */
 @media (min-width: 1024px) {
   .form-container {
     padding: 4rem;
@@ -405,6 +452,7 @@ button:disabled {
   }
 }
 
+/* Mobile responsive styles */
 @media (max-width: 840px) {
   .form-container {
     min-width: auto;

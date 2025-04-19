@@ -1,19 +1,26 @@
+<!-- User profile page component for managing account settings -->
 <template>
+  <!-- Main profile container -->
   <div class="profile-container">
     <AppHeader />
 
+    <!-- Profile content wrapper -->
     <div class="profile-content">
+      <!-- Profile settings card -->
       <div class="profile-card">
         <h2>
           <font-awesome-icon icon="user" class="profile-icon" />
           Profile Settings
         </h2>
         
+        <!-- Loading state indicator -->
         <div v-if="loading" class="loading">
           Loading...
         </div>
         
+        <!-- Profile settings form -->
         <form v-else @submit.prevent="handleSubmit" class="profile-form">
+          <!-- Theme toggle section -->
           <div class="form-group theme-toggle">
             <label>
               <font-awesome-icon :icon="isDarkMode ? 'moon' : 'sun'" class="field-icon" />
@@ -29,6 +36,7 @@
             </button>
           </div>
 
+          <!-- Display name input group -->
           <div class="form-group">
             <label for="displayName">
               <font-awesome-icon icon="user-circle" class="field-icon" />
@@ -42,6 +50,7 @@
             >
           </div>
           
+          <!-- Email display (read-only) -->
           <div class="form-group">
             <label for="email">
               <font-awesome-icon icon="envelope" class="field-icon" />
@@ -55,6 +64,7 @@
             >
           </div>
           
+          <!-- New password input group -->
           <div class="form-group">
             <label for="newPassword">
               <font-awesome-icon icon="lock" class="field-icon" />
@@ -68,15 +78,19 @@
             >
           </div>
           
+          <!-- Error message display -->
           <div v-if="error" class="error-message">
             {{ error }}
           </div>
           
+          <!-- Success message display -->
           <div v-if="success" class="success-message">
             {{ success }}
           </div>
           
+          <!-- Action buttons group -->
           <div class="button-group">
+            <!-- Save changes button -->
             <button 
               type="submit" 
               class="primary-button"
@@ -86,6 +100,7 @@
               {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
             </button>
             
+            <!-- Logout button -->
             <button 
               type="button" 
               class="secondary-button"
@@ -109,29 +124,35 @@ import { useTheme } from '@/services/theme'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 
+// Initialize router and services
 const router = useRouter()
 const { user, loading, updateProfile, updatePassword, logout } = useAuth()
 const { isDarkMode, toggleTheme } = useTheme()
 
+// Form state management
 const form = reactive({
   displayName: '',
   newPassword: ''
 })
 
+// Status indicators
 const error = ref('')
 const success = ref('')
 const isSubmitting = ref(false)
 
+// Handle form submission for profile updates
 async function handleSubmit() {
   error.value = ''
   success.value = ''
   isSubmitting.value = true
 
   try {
+    // Update display name if provided
     if (form.displayName) {
       await updateProfile({ displayName: form.displayName })
     }
 
+    // Update password if provided
     if (form.newPassword) {
       await updatePassword(form.newPassword)
     }
@@ -145,6 +166,7 @@ async function handleSubmit() {
   }
 }
 
+// Handle user logout
 async function handleLogout() {
   try {
     await logout()
@@ -156,6 +178,7 @@ async function handleLogout() {
 </script>
 
 <style scoped>
+/* Main container styles */
 .profile-container {
   min-height: 100vh;
   display: flex;
@@ -163,12 +186,14 @@ async function handleLogout() {
   background-color: var(--main-bg);
 }
 
+/* Content wrapper styles */
 .profile-content {
   padding: 2rem 4rem;
   margin: 0 auto;
   width: 1200px;
 }
 
+/* Profile card styles */
 .profile-card {
   background-color: var(--header-bg);
   border-radius: 12px;
@@ -176,6 +201,7 @@ async function handleLogout() {
   border: 1px solid var(--border-color);
 }
 
+/* Card header styles */
 .profile-card h2 {
   margin-bottom: 2rem;
   color: var(--text-primary);
@@ -183,12 +209,14 @@ async function handleLogout() {
   text-align: center;
 }
 
+/* Loading state styles */
 .loading {
   text-align: center;
   padding: 2rem;
   color: var(--text-secondary);
 }
 
+/* Form layout styles */
 .profile-form {
   display: flex;
   flex-direction: column;
@@ -197,11 +225,13 @@ async function handleLogout() {
   margin: 0 auto;
 }
 
+/* Form group styles */
 .form-group {
   position: relative;
   margin-bottom: 1.5rem;
 }
 
+/* Input icon positioning */
 .form-group .input-icon {
   position: absolute;
   left: 12px;
@@ -210,6 +240,7 @@ async function handleLogout() {
   color: var(--text-secondary);
 }
 
+/* Input field styles */
 .form-group input {
   padding: 0.75rem;
   background-color: var(--input-bg);
@@ -221,6 +252,7 @@ async function handleLogout() {
   width: 100%;
 }
 
+/* Form label styles */
 .form-group label {
   display: flex;
   align-items: center;
@@ -230,28 +262,33 @@ async function handleLogout() {
   font-weight: 500;
 }
 
+/* Field icon styles */
 .field-icon {
   color: var(--accent-color);
   width: 16px;
   height: 16px;
 }
 
+/* Input focus state */
 .form-group input:focus {
   outline: none;
   border-color: var(--accent-color);
   background-color: var(--hover-bg);
 }
 
+/* Disabled input styles */
 .form-group input:disabled {
   background-color: var(--disabled-bg);
   cursor: not-allowed;
   color: var(--text-secondary);
 }
 
+/* Input placeholder styles */
 .form-group input::placeholder {
   color: var(--text-secondary);
 }
 
+/* Button group layout */
 .button-group {
   display: flex;
   gap: 1rem;
@@ -259,6 +296,7 @@ async function handleLogout() {
   width: 100%;
 }
 
+/* Common button styles */
 .button-group button {
   flex: 1;
   padding: 0.75rem;
@@ -269,32 +307,38 @@ async function handleLogout() {
   transition: all 0.2s;
 }
 
+/* Disabled button state */
 button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
+/* Primary button styles */
 .primary-button {
   background: var(--accent-color);
   color: white;
   border: none;
 }
 
+/* Primary button hover state */
 .primary-button:hover:not(:disabled) {
   background: #43a047;
   transform: translateY(-1px);
 }
 
+/* Secondary button styles */
 .secondary-button {
   background: transparent;
   color: var(--accent-color);
   border: 1px solid var(--accent-color);
 }
 
+/* Secondary button hover state */
 .secondary-button:hover:not(:disabled) {
   background: rgba(76, 175, 80, 0.1);
 }
 
+/* Message styles */
 .error-message,
 .success-message {
   padding: 0.75rem;
@@ -303,23 +347,27 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+/* Error message styles */
 .error-message {
   background-color: rgba(231, 76, 60, 0.1);
   color: #e74c3c;
   border: 1px solid rgba(231, 76, 60, 0.2);
 }
 
+/* Success message styles */
 .success-message {
   background-color: rgba(46, 204, 113, 0.1);
   color: #2ecc71;
   border: 1px solid rgba(46, 204, 113, 0.2);
 }
 
+/* Profile icon styles */
 .profile-icon {
   margin-right: 0.5rem;
   color: var(--accent-color);
 }
 
+/* Button icon alignment */
 .button-group button {
   display: flex;
   align-items: center;
@@ -327,44 +375,14 @@ button:disabled {
   gap: 0.5rem;
 }
 
-@media (min-width: 768px) {
-  .profile-content {
-    padding: 3rem;
-  }
-
-  .profile-card {
-    padding: 3rem;
-  }
-
-  .profile-card h2 {
-    font-size: 1.8rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .profile-content {
-    padding: 3rem 4rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .profile-content {
-    padding: 1rem;
-  }
-}
-
-/* Remove any development overlays */
-:deep(.vue-dev-overlay),
-:deep(.__vue-dev-overlay) {
-  display: none !important;
-}
-
+/* Theme toggle section styles */
 .theme-toggle {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
+/* Theme toggle button styles */
 .theme-button {
   display: flex;
   align-items: center;
@@ -380,13 +398,50 @@ button:disabled {
   width: 100%;
 }
 
+/* Theme button hover state */
 .theme-button:hover {
   background-color: rgba(76, 175, 80, 0.1);
   border-color: var(--accent-color);
 }
 
+/* Theme icon styles */
 .theme-icon {
   font-size: 1.2rem;
   color: var(--accent-color);
+}
+
+/* Tablet responsive styles */
+@media (min-width: 768px) {
+  .profile-content {
+    padding: 3rem;
+  }
+
+  .profile-card {
+    padding: 3rem;
+  }
+
+  .profile-card h2 {
+    font-size: 1.8rem;
+  }
+}
+
+/* Desktop responsive styles */
+@media (min-width: 1024px) {
+  .profile-content {
+    padding: 3rem 4rem;
+  }
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .profile-content {
+    padding: 1rem;
+  }
+}
+
+/* Remove any development overlays */
+:deep(.vue-dev-overlay),
+:deep(.__vue-dev-overlay) {
+  display: none !important;
 }
 </style> 
