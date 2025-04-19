@@ -15,7 +15,15 @@ import {
   faCheckCircle,
   faCircle,
   faArrowLeft,
-  faArrowRight
+  faArrowRight,
+  faUser,
+  faSave,
+  faSignOutAlt,
+  faUserCircle,
+  faEnvelope,
+  faLock,
+  faSignInAlt,
+  faUserPlus
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -29,7 +37,15 @@ library.add(
   faCheckCircle,
   faCircle,
   faArrowLeft,
-  faArrowRight
+  faArrowRight,
+  faUser,
+  faSave,
+  faSignOutAlt,
+  faUserCircle,
+  faEnvelope,
+  faLock,
+  faSignInAlt,
+  faUserPlus
 )
 
 const app = createApp(App)

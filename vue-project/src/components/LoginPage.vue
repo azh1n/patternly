@@ -1,11 +1,15 @@
 <template>
   <div class="login-page">
+    <div class="login-header">
+      <h1 class="app-title">Patternly</h1>
+    </div>
     <div class="form-container">
-      <h1>{{ isRegistering ? 'Create Account' : 'Login' }}</h1>
-      
       <form @submit.prevent="handleSubmit" class="auth-form">
         <div class="form-group">
-          <label for="email">Email</label>
+          <label for="email">
+            <font-awesome-icon icon="envelope" class="field-icon" />
+            Email
+          </label>
           <input 
             type="email" 
             id="email"
@@ -16,7 +20,10 @@
         </div>
 
         <div class="form-group">
-          <label for="password">Password</label>
+          <label for="password">
+            <font-awesome-icon icon="lock" class="field-icon" />
+            Password
+          </label>
           <input 
             type="password"
             id="password" 
@@ -27,7 +34,10 @@
         </div>
 
         <div v-if="isRegistering" class="form-group">
-          <label for="displayName">Display Name</label>
+          <label for="displayName">
+            <font-awesome-icon icon="user-circle" class="field-icon" />
+            Display Name
+          </label>
           <input 
             type="text"
             id="displayName"
@@ -47,6 +57,7 @@
             class="primary-button"
             :disabled="submitting"
           >
+            <font-awesome-icon :icon="isRegistering ? 'user-plus' : 'sign-in-alt'" />
             {{ submitButtonText }}
           </button>
 
@@ -56,7 +67,11 @@
             @click="toggleMode"
             :disabled="submitting"
           >
-            {{ toggleButtonText }}
+            <font-awesome-icon :icon="isRegistering ? 'sign-in-alt' : 'user-plus'" class="button-icon" />
+            <div class="button-text">
+              <div class="button-text-small">{{ isRegistering ? 'Already have an account?' : 'Need an account?' }}</div>
+              <div class="button-text-large">{{ isRegistering ? 'Login' : 'Register' }}</div>
+            </div>
           </button>
         </div>
 
@@ -156,10 +171,36 @@ const handleResetPassword = async () => {
 .login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background-color: var(--main-bg);
   padding: 2rem;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.app-title {
+  font-size: 2.5rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, 
+    #81C784 0%,
+    var(--accent-color) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.app-title:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
 }
 
 .form-container {
@@ -170,16 +211,6 @@ const handleResetPassword = async () => {
   min-width: 800px;
   max-width: 1200px;
   border: 1px solid var(--border-color);
-}
-
-h1 {
-  margin-bottom: 2rem;
-  text-align: center;
-  color: var(--text-primary);
-  font-size: 1.8rem;
-  background: linear-gradient(45deg, var(--accent-color), #81C784);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .auth-form {
@@ -197,9 +228,18 @@ h1 {
   gap: 0.5rem;
 }
 
-label {
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 500;
   color: var(--text-primary);
+}
+
+.field-icon {
+  color: var(--accent-color);
+  width: 16px;
+  height: 16px;
 }
 
 input {
@@ -238,7 +278,11 @@ input::placeholder {
   gap: 1rem;
 }
 
-button {
+.button-group button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 1rem;
@@ -267,10 +311,44 @@ button:disabled {
   background: transparent;
   color: var(--accent-color);
   border: 1px solid var(--accent-color);
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  width: 100%;
+  position: relative;
+}
+
+.button-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  position: absolute;
+  left: 1.5rem;
+}
+
+.button-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.button-text-small {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  width: 100%;
+}
+
+.button-text-large {
+  font-size: 1.1rem;
+  font-weight: 600;
+  width: 100%;
 }
 
 .secondary-button:hover:not(:disabled) {
   background: rgba(76, 175, 80, 0.1);
+  border-color: #81C784;
 }
 
 .text-button {
@@ -292,16 +370,16 @@ button:disabled {
     max-width: 1000px;
   }
 
-  h1 {
-    font-size: 2rem;
-  }
-
   .button-group {
     flex-direction: row;
   }
 
   .button-group button {
     flex: 1;
+  }
+
+  .app-title {
+    font-size: 3rem;
   }
 }
 
@@ -310,6 +388,10 @@ button:disabled {
     padding: 4rem;
     width: 80%;
     max-width: 1200px;
+  }
+
+  .app-title {
+    font-size: 3.5rem;
   }
 }
 </style> 

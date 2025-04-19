@@ -6,7 +6,10 @@
 
     <div class="profile-content">
       <div class="profile-card">
-        <h2>Profile Settings</h2>
+        <h2>
+          <font-awesome-icon icon="user" class="profile-icon" />
+          Profile Settings
+        </h2>
         
         <div v-if="loading" class="loading">
           Loading...
@@ -14,7 +17,10 @@
         
         <form v-else @submit.prevent="handleSubmit" class="profile-form">
           <div class="form-group">
-            <label for="displayName">Display Name</label>
+            <label for="displayName">
+              <font-awesome-icon icon="user-circle" class="field-icon" />
+              Display Name
+            </label>
             <input
               id="displayName"
               v-model="form.displayName"
@@ -24,7 +30,10 @@
           </div>
           
           <div class="form-group">
-            <label for="email">Email</label>
+            <label for="email">
+              <font-awesome-icon icon="envelope" class="field-icon" />
+              Email
+            </label>
             <input
               id="email"
               :value="user?.email"
@@ -34,7 +43,10 @@
           </div>
           
           <div class="form-group">
-            <label for="newPassword">New Password (optional)</label>
+            <label for="newPassword">
+              <font-awesome-icon icon="lock" class="field-icon" />
+              New Password (optional)
+            </label>
             <input
               id="newPassword"
               v-model="form.newPassword"
@@ -57,6 +69,7 @@
               class="primary-button"
               :disabled="isSubmitting"
             >
+              <font-awesome-icon icon="save" />
               {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
             </button>
             
@@ -66,6 +79,7 @@
               @click="handleLogout"
               :disabled="isSubmitting"
             >
+              <font-awesome-icon icon="sign-out-alt" />
               Logout
             </button>
           </div>
@@ -211,9 +225,18 @@ async function handleLogout() {
 }
 
 .form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+.field-icon {
+  color: var(--accent-color);
+  width: 16px;
+  height: 16px;
 }
 
 .form-group input {
@@ -304,6 +327,18 @@ button:disabled {
   background-color: rgba(46, 204, 113, 0.1);
   color: #2ecc71;
   border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.profile-icon {
+  margin-right: 0.5rem;
+  color: var(--accent-color);
+}
+
+.button-group button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 @media (min-width: 768px) {
