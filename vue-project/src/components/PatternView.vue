@@ -341,7 +341,11 @@ const visibleStitches = computed(() => {
 // Calculate total stitches in current row
 const totalStitches = computed(() => {
   if (!currentRow.value) return 0
-  return currentRow.value.codes.length
+  return currentRow.value.codes.reduce((total, code) => {
+    // Extract the number from the stitch code (e.g., "22dc" -> 22)
+    const match = code.match(/^(\d+)/)
+    return total + (match ? parseInt(match[1]) : 1)
+  }, 0)
 })
 
 // Get completed codes for full row preview
@@ -387,9 +391,24 @@ const previousStitches = () => {
 // Update stitch progress display
 const stitchProgress = computed(() => {
   if (!currentRow.value) return ''
-  const start = currentStitchIndex.value + 1
-  const end = Math.min(currentStitchIndex.value + stitchesPerView.value, totalStitches.value)
-  return `${start}-${end} of ${totalStitches.value} stitches`
+  
+  // Calculate total stitches up to current position
+  const currentStitchCount = currentRow.value.codes
+    .slice(0, currentStitchIndex.value)
+    .reduce((total, code) => {
+      const match = code.match(/^(\d+)/)
+      return total + (match ? parseInt(match[1]) : 1)
+    }, 0)
+  
+  // Calculate stitches in current view
+  const viewStitches = currentRow.value.codes
+    .slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value)
+    .reduce((total, code) => {
+      const match = code.match(/^(\d+)/)
+      return total + (match ? parseInt(match[1]) : 1)
+    }, 0)
+  
+  return `${currentStitchCount + 1}-${currentStitchCount + viewStitches} of ${totalStitches.value} stitches`
 })
 
 // Row navigation with completion tracking
