@@ -156,10 +156,8 @@
           :disabled="currentRowIndex === 0"
         >
           <font-awesome-icon icon="arrow-left" />
-          <span>Previous Row</span>
         </button>
         <div class="row-selector">
-          <span class="row-counter">Row</span>
           <select 
             v-model="currentRowIndex" 
             class="row-select"
@@ -169,10 +167,10 @@
               :key="index" 
               :value="index"
             >
-              {{ row.rowNum }} ({{ row.color }})
+              Row {{ row.rowNum }} ({{ row.color }})
             </option>
           </select>
-          <span class="row-counter">of {{ parsedRows.length }}</span>
+          <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
         </div>
         <button 
           @click="nextRow" 
@@ -180,7 +178,6 @@
           :disabled="currentRowIndex === parsedRows.length - 1"
         >
           <font-awesome-icon icon="arrow-right" />
-          <span>Next Row</span>
         </button>
       </div>
     </div>
@@ -333,46 +330,17 @@ const transformStyle = computed(() => {
 // Navigation methods
 const nextStitches = () => {
   if (!currentRow.value) return
-  let currentTotal = 0
-  let targetIndex = currentStitchIndex.value
-
-  // Calculate the total stitches up to the current index
-  for (let i = 0; i < currentStitchIndex.value; i++) {
-    const code = currentRow.value.codes[i]
-    const count = parseInt(code.match(/\d+/)[0], 10)
-    currentTotal += count
-  }
-
-  // Find the next index that would add approximately stitchesPerView.value stitches
-  while (targetIndex < currentRow.value.codes.length) {
-    const code = currentRow.value.codes[targetIndex]
-    const count = parseInt(code.match(/\d+/)[0], 10)
-    if (currentTotal + count > stitchesPerView.value) break
-    currentTotal += count
-    targetIndex++
-  }
-
-  if (targetIndex > currentStitchIndex.value) {
-    currentStitchIndex.value = targetIndex
+  const nextIndex = currentStitchIndex.value + stitchesPerView.value
+  if (nextIndex < currentRow.value.codes.length) {
+    currentStitchIndex.value = nextIndex
     updateScrollPosition()
   }
 }
 
 const previousStitches = () => {
   if (!currentRow.value || currentStitchIndex.value === 0) return
-  let currentTotal = 0
-  let targetIndex = currentStitchIndex.value - 1
-
-  // Calculate backwards until we find the right starting point
-  while (targetIndex > 0) {
-    const code = currentRow.value.codes[targetIndex]
-    const count = parseInt(code.match(/\d+/)[0], 10)
-    if (currentTotal + count > stitchesPerView.value) break
-    currentTotal += count
-    targetIndex--
-  }
-
-  currentStitchIndex.value = targetIndex
+  const prevIndex = Math.max(0, currentStitchIndex.value - stitchesPerView.value)
+  currentStitchIndex.value = prevIndex
   updateScrollPosition()
 }
 
@@ -550,28 +518,12 @@ const mobilePreviewStitches = computed(() => {
   if (!currentRow.value) return []
   
   const allStitches = currentRow.value.codes
-  const result = []
-  
-  // Add all completed stitches
-  for (let i = 0; i < currentStitchIndex.value; i++) {
-    result.push({ code: allStitches[i], status: 'completed' })
-  }
-  
-  // Add current visible stitches
-  for (let i = currentStitchIndex.value; i < currentStitchIndex.value + stitchesPerView.value; i++) {
-    if (i < allStitches.length) {
-      result.push({ code: allStitches[i], status: 'current' })
-    }
-  }
-  
-  // Add next 3 incomplete stitches
-  let nextCount = 0
-  for (let i = currentStitchIndex.value + stitchesPerView.value; i < allStitches.length && nextCount < 3; i++) {
-    result.push({ code: allStitches[i], status: 'next' })
-    nextCount++
-  }
-  
-  return result
+  return allStitches.map((code, index) => ({
+    code,
+    status: index < currentStitchIndex.value ? 'completed' 
+           : (index >= currentStitchIndex.value && index < currentStitchIndex.value + stitchesPerView.value) ? 'current'
+           : 'next'
+  }))
 })
 
 // Component initialization
@@ -992,36 +944,76 @@ onMounted(() => {
   
   .preview-stitch {
     flex-shrink: 0;
-    font-size: 1.2rem;
-    padding: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.25rem;
     white-space: nowrap;
   }
 
   .row-navigation {
     padding: 0.75rem;
-    flex-direction: row;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
   }
 
   .row-selector {
     flex: 1;
-    justify-content: center;
+    display: flex;
+    align-items: center;
   }
 
   .row-select {
+    flex: 1;
     max-width: none;
-    width: 120px;
+    min-width: 0;
+    padding: 0.5rem;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--button-bg);
+    border: 1px solid var(--button-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    text-align: center;
+    background-image: none;
   }
 
-  .stitch-progress {
-    margin-top: 0.5rem;
-    font-size: 0.8rem;
+  /* Target mobile Safari specifically */
+  @supports (-webkit-touch-callout: none) {
+    .row-select {
+      -webkit-appearance: menulist;
+      appearance: menulist;
+      background: var(--button-bg);
+    }
+  }
+
+  /* Target Android devices */
+  @supports not (-webkit-touch-callout: none) {
+    .row-select {
+      -webkit-appearance: menulist;
+      appearance: menulist;
+      background: var(--button-bg);
+    }
+  }
+
+  .nav-button.large {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .desktop-only {
+    display: none;
   }
 }
 
 /* Row navigation styles */
 .row-navigation {
-  padding: 1.5rem;
+  padding: 0.75rem;
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -1038,16 +1030,6 @@ onMounted(() => {
 
 .row-counter {
   color: var(--text-secondary);
-}
-
-.row-select {
-  padding: 0.5rem;
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  background-color: var(--input-bg);
-  color: var(--text-primary);
-  font-size: 1rem;
-  min-width: 150px;
 }
 
 .row-select:focus {
