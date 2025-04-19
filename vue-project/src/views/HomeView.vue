@@ -33,7 +33,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { collection, addDoc, getDocs, query, orderBy, where, getDoc } from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, orderBy, where, getDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useAuth } from '@/services/auth'
 import PatternView from '@/components/PatternView.vue'
@@ -53,23 +53,17 @@ const showAddPattern = ref(false)
 
 onMounted(async () => {
   try {
-    isLoading.value = true
-    console.log('Component mounted, fetching patterns')
-    await fetchSavedTexts()
+    await fetchPatterns()
     
-    // Check if we have a pattern ID in the URL
+    // If pattern ID is in URL, select it
     if (route.params.id) {
-      console.log('Found pattern ID in URL:', route.params.id)
       const pattern = savedTexts.value.find(p => p.id === route.params.id)
       if (pattern) {
-        console.log('Selecting pattern:', pattern)
-        selectPattern(pattern, savedTexts.value.indexOf(pattern))
+        selectedPattern.value = pattern
       }
     }
   } catch (error) {
     console.error('Error in onMounted:', error)
-  } finally {
-    isLoading.value = false
   }
 })
 
@@ -85,41 +79,27 @@ watch(() => route.params.id, async (newId) => {
   }
 })
 
-const fetchSavedTexts = async () => {
-  if (!user.value?.uid) {
-    console.log('No user logged in')
-    return
-  }
-  
+// Fetch patterns from Firestore
+async function fetchPatterns() {
+  if (!user.value) return
+
   try {
-    console.log('Fetching patterns for user:', user.value.uid)
     const patternsRef = collection(db, 'patterns')
-    console.log('Using collection:', patternsRef.path)
-    
-    const q = query(
-      patternsRef,
-      where('userId', '==', user.value.uid),
-      orderBy('timestamp', 'desc')
-    )
-    
+    const q = query(patternsRef, where('userId', '==', user.value.uid))
     const querySnapshot = await getDocs(q)
-    console.log('Query snapshot size:', querySnapshot.size)
-    console.log('Query snapshot empty:', querySnapshot.empty)
     
     savedTexts.value = querySnapshot.docs.map(doc => {
       const data = doc.data()
-      console.log('Pattern document:', doc.id, data)
       return {
         id: doc.id,
         ...data
       }
     })
-    
-    console.log('Total patterns loaded:', savedTexts.value.length)
   } catch (error) {
-    console.error('Error fetching documents:', error)
     if (error.code === 'permission-denied') {
       console.error('Permission denied. Check security rules.')
+    } else {
+      console.error('Error fetching documents:', error)
     }
   }
 }
@@ -130,12 +110,44 @@ const selectPattern = (pattern, index) => {
   router.push(`/pattern/${pattern.id}`)
 }
 
-const handlePatternAdded = async (newPattern) => {
-  if (!user.value?.uid) {
-    console.log('No user logged in')
-    return
+// Add new pattern
+async function addPattern(patternData) {
+  if (!user.value) return
+
+  try {
+    const patternsRef = collection(db, 'patterns')
+    const docRef = await addDoc(patternsRef, {
+      ...patternData,
+      userId: user.value.uid,
+      timestamp: serverTimestamp()
+    })
+
+    // Verify pattern was saved
+    const addedDoc = await getDoc(docRef)
+    if (addedDoc.exists()) {
+      const newPattern = {
+        id: docRef.id,
+        ...addedDoc.data()
+      }
+      savedTexts.value.push(newPattern)
+      return docRef.id
+    } else {
+      console.error('Pattern was not saved successfully')
+      return null
+    }
+  } catch (error) {
+    if (error.code === 'permission-denied') {
+      console.error('Permission denied. Check security rules.')
+    } else {
+      console.error('Error adding pattern:', error)
+    }
+    return null
   }
-  
+}
+
+const handlePatternAdded = async (newPattern) => {
+  if (!user.value?.uid) return
+
   try {
     isLoading.value = true
     const patternData = {
@@ -144,35 +156,30 @@ const handlePatternAdded = async (newPattern) => {
       timestamp: new Date(),
       completedRows: {}
     }
-    console.log('Adding pattern with data:', patternData)
     
     const patternsRef = collection(db, 'patterns')
-    console.log('Using collection for add:', patternsRef.path)
-    
     const docRef = await addDoc(patternsRef, patternData)
-    console.log('Successfully added pattern with ID:', docRef.id)
-    
+
     // Verify the pattern was added by fetching it
     const addedDoc = await getDoc(docRef)
     if (addedDoc.exists()) {
-      console.log('Verified pattern exists:', addedDoc.data())
+      // Update local state
+      const newPatternWithId = { 
+        id: docRef.id, 
+        ...patternData 
+      }
+      savedTexts.value = [newPatternWithId, ...savedTexts.value]
+      
+      showAddPattern.value = false
+      selectPattern(newPatternWithId, 0)
     } else {
       console.error('Pattern was not saved successfully')
     }
-    
-    // Update local state
-    const newPatternWithId = { 
-      id: docRef.id, 
-      ...patternData 
-    }
-    savedTexts.value = [newPatternWithId, ...savedTexts.value]
-    
-    showAddPattern.value = false
-    selectPattern(newPatternWithId, 0)
   } catch (error) {
-    console.error('Error adding pattern:', error)
     if (error.code === 'permission-denied') {
       console.error('Permission denied. Check security rules.')
+    } else {
+      console.error('Error adding pattern:', error)
     }
     alert('Failed to add pattern. Please try again.')
   } finally {
@@ -181,19 +188,17 @@ const handlePatternAdded = async (newPattern) => {
 }
 
 const handlePatternDeleted = async () => {
-  await fetchSavedTexts()
+  await fetchPatterns()
   selectedPattern.value = null
   currentTextIndex.value = 0
 }
 
-// Watch for user auth state changes
-watch(() => user.value?.uid, (newUserId) => {
-  console.log('User ID changed:', newUserId)
+// Watch for user changes
+watch(() => user.value?.uid, async (newUserId) => {
   if (newUserId) {
-    fetchSavedTexts()
+    await fetchPatterns()
   } else {
     savedTexts.value = []
-    selectedPattern.value = null
   }
 })
 </script>

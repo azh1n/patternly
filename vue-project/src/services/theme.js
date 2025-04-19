@@ -21,15 +21,12 @@ async function loadUserPreferences() {
     const userId = auth.currentUser?.uid
     if (!userId) return
 
-    console.log('Loading theme preferences for user:', userId)
     const prefDoc = await getDoc(doc(db, 'userPreferences', userId))
     if (prefDoc.exists()) {
       const prefs = prefDoc.data()
-      console.log('Loaded theme preferences:', prefs)
       isDarkMode.value = prefs.isDarkMode ?? false
       applyTheme()
     } else {
-      console.log('No preferences found, setting initial preferences')
       await setInitialPreferences()
     }
   } catch (error) {
@@ -57,7 +54,6 @@ async function saveThemePreference(dark) {
   if (!userId) return
 
   try {
-    console.log('Saving theme preference:', dark)
     await setDoc(doc(db, 'userPreferences', userId), {
       isDarkMode: dark
     }, { merge: true })
@@ -67,7 +63,6 @@ async function saveThemePreference(dark) {
 }
 
 function applyTheme() {
-  console.log('Applying theme, isDarkMode:', isDarkMode.value)
   const root = document.documentElement
   if (isDarkMode.value) {
     root.style.setProperty('--main-bg', '#121212')

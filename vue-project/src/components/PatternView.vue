@@ -243,10 +243,35 @@ const parsedRows = computed(() => {
   // Process pattern codes into structured format
   const processPattern = (pattern) => {
     const parts = pattern.split(/,(?![^(]*\))/).map(p => p.trim())
-    return parts.filter(code => 
-      code.match(/^\d+[a-z]+$/) || 
-      code.match(/^\([^)]+\)x\d+$/)
-    )
+    
+    // First filter out any non-stitch text and handle parentheses
+    const filteredParts = parts.filter(code => {
+      // Clean the code by removing any trailing period
+      const cleanCode = code.replace(/\.$/, '').trim()
+      
+      // Match standard stitch codes (e.g., "1bs", "22dc")
+      const isStandardCode = cleanCode.match(/^\d+[a-z]+$/)
+      // Match repeated patterns in parentheses (e.g., "(1dc, 2ch)x3")
+      const isRepeatedPattern = cleanCode.match(/^\([^)]+\)x\d+$/)
+      // Match border stitches specifically
+      const isBorderStitch = cleanCode.match(/^\d+bs$/)
+      
+      const keep = isStandardCode || isRepeatedPattern || isBorderStitch
+      return keep ? cleanCode : null
+    }).filter(Boolean)
+    
+    // Handle any repeated patterns by expanding them
+    const result = filteredParts.reduce((acc, code) => {
+      if (code.includes('x')) {
+        // It's a repeated pattern
+        const [pattern, count] = code.slice(1, -1).split(')x')
+        const repeats = parseInt(count)
+        const subCodes = pattern.split(',').map(p => p.trim())
+        return [...acc, ...Array(repeats).fill(subCodes).flat()]
+      }
+      return [...acc, code]
+    }, [])
+    return result
   }
   
   // Parse each row of the pattern
@@ -266,16 +291,22 @@ const parsedRows = computed(() => {
       currentColor = rowMatch[2]
       currentRow = []
       
-      let pattern = row.split(currentColor)[1]
-      const codes = processPattern(pattern)
-      currentRow.push(...codes)
+      let pattern = row.split(currentColor)[1]?.trim()
+      if (pattern) {
+        const codes = processPattern(pattern)
+        currentRow.push(...codes)
+      }
     } else {
-      let pattern = row
+      let pattern = row.trim()
+      
+      // Look for the last stitch before FO. or Stitch Count
       if (pattern.includes('FO.')) {
-        pattern = pattern.split('FO.')[0]
+        const beforeFO = pattern.substring(0, pattern.indexOf('FO.')).trim()
+        pattern = beforeFO.replace(/\.$/, '')  // Remove trailing period if present
       }
       if (pattern.includes('(Stitch Count')) {
-        pattern = pattern.split('(Stitch Count')[0]
+        const beforeCount = pattern.substring(0, pattern.indexOf('(Stitch Count')).trim()
+        pattern = beforeCount.replace(/\.$/, '')  // Remove trailing period if present
       }
       
       const codes = processPattern(pattern)
