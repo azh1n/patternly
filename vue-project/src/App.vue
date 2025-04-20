@@ -1,5 +1,6 @@
 <template>
   <router-view></router-view>
+  <AdBanner />
 </template>
 
 <style>
@@ -52,6 +53,7 @@ body:not(.login-page) #app {
 import { onAuthStateChanged } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 import { auth } from './firebase'
+import AdBanner from './components/AdBanner.vue'
 
 const router = useRouter()
 
