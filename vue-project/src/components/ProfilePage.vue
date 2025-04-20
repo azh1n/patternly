@@ -157,8 +157,13 @@ async function handleSubmit() {
       await updatePassword(form.newPassword)
     }
 
-    success.value = 'Profile updated successfully'
+    success.value = 'Profile updated successfully. Redirecting...'
     form.newPassword = '' // Clear password field after success
+    
+    // Redirect to pattern page after a delay to show success message
+    setTimeout(() => {
+      router.push('/')
+    }, 1500)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -368,6 +373,9 @@ button:disabled {
   background-color: rgba(46, 204, 113, 0.1);
   color: #2ecc71;
   border: 1px solid rgba(46, 204, 113, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 /* Profile icon styles */
