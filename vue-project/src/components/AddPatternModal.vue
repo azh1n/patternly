@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 // Component props
 const props = defineProps({
@@ -73,21 +73,31 @@ const MAX_CHARS = 100000  // Maximum characters allowed in pattern instructions
 const patternName = ref('')  // Stores pattern name input
 const patternText = ref('')  // Stores pattern instructions input
 
+// Reset form when modal is opened
+watch(() => props.modelValue, (newVal) => {
+  if (newVal) {
+    patternName.value = ''
+    patternText.value = ''
+  }
+})
+
 // Handles textarea input with character limit enforcement
 const handleInput = (event) => {
-  if (event.target.value.length <= MAX_CHARS) {
-    patternText.value = event.target.value
+  const value = event.target.value
+  if (value.length > MAX_CHARS) {
+    patternText.value = value.slice(0, MAX_CHARS)
+  } else {
+    patternText.value = value
   }
 }
 
-// Saves the pattern and resets form fields
+// Saves the pattern and closes the modal
 const savePattern = () => {
   emit('pattern-added', {
     name: patternName.value,
     content: patternText.value
   })
-  patternName.value = ''
-  patternText.value = ''
+  emit('update:modelValue', false)  // Close the modal after saving
 }
 </script>
 
@@ -109,32 +119,44 @@ const savePattern = () => {
 /* Modal container styles */
 .modal {
   width: min(600px, 90%);
-  background-color: #2a2a2a;
+  background-color: var(--card-bg);
   border-radius: 16px;
   overflow-y: auto;
   max-height: 90vh;
 }
 
+:root.light .modal {
+  background-color: #ffffff;
+}
+
 /* Modal header styles */
 .modal-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+:root.light .modal-header {
+  border-bottom: 1px solid #e0e0e0;
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #fff;
+  color: var(--text-primary);
+}
+
+:root.light .modal-header h2 {
+  color: #333;
 }
 
 /* Close button styles */
 .close-button {
   background: none;
   border: none;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0.5rem;
@@ -142,7 +164,15 @@ const savePattern = () => {
 }
 
 .close-button:hover {
-  color: #fff;
+  color: var(--text-primary);
+}
+
+:root.light .close-button {
+  color: #999;
+}
+
+:root.light .close-button:hover {
+  color: #333;
 }
 
 /* Modal content styles */
@@ -158,25 +188,35 @@ const savePattern = () => {
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 500;
+}
+
+:root.light .form-group label {
+  color: #333;
 }
 
 /* Pattern name input styles */
 .pattern-name-input {
   width: 100%;
   padding: 1rem;
-  border: 2px solid #333;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
-  background-color: #1a1a1a;
-  color: #fff;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.3s ease;
 }
 
+:root.light .pattern-name-input {
+  border: 2px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #333;
+}
+
 .pattern-name-input:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: var(--accent-color);
 }
 
 /* Pattern instructions textarea styles */
@@ -184,18 +224,24 @@ const savePattern = () => {
   width: 100%;
   min-height: 200px;
   padding: 1rem;
-  border: 2px solid #333;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
-  background-color: #1a1a1a;
-  color: #fff;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
   font-size: 1rem;
   resize: vertical;
   transition: all 0.3s ease;
 }
 
+:root.light .text-area {
+  border: 2px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #333;
+}
+
 .text-area:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: var(--accent-color);
 }
 
 /* Modal action buttons container */
@@ -209,22 +255,27 @@ const savePattern = () => {
 /* Cancel button styles */
 .cancel-button {
   padding: 0.8rem 1.5rem;
-  background-color: transparent;
-  color: #fff;
-  border: 1px solid #333;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--button-border);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
+:root.light .cancel-button {
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
+
 .cancel-button:hover {
-  background-color: #333;
+  background-color: var(--button-hover-bg);
 }
 
 /* Save button styles */
 .save-button {
   padding: 0.8rem 1.5rem;
-  background-color: #4CAF50;
+  background-color: var(--accent-color);
   color: white;
   border: none;
   border-radius: 12px;
@@ -234,7 +285,7 @@ const savePattern = () => {
 }
 
 .save-button:hover:not(:disabled) {
-  background-color: #45a049;
+  background-color: var(--accent-hover);
 }
 
 .save-button:disabled {
