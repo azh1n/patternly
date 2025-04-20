@@ -8,77 +8,7 @@
     </div>
     <!-- Form container with authentication form -->
     <div class="form-container">
-      <form @submit.prevent="handleSubmit" class="auth-form">
-        <!-- Email input group -->
-        <div class="form-group">
-          <label for="email">
-            <font-awesome-icon icon="envelope" class="field-icon" />
-            Email
-          </label>
-          <input 
-            type="email" 
-            id="email"
-            v-model="email"
-            required
-            placeholder="Enter your email"
-          >
-        </div>
-
-        <!-- Password input group -->
-        <div class="form-group">
-          <label for="password">
-            <font-awesome-icon icon="lock" class="field-icon" />
-            Password
-          </label>
-          <input 
-            type="password"
-            id="password" 
-            v-model="password"
-            required
-            placeholder="Enter your password"
-            @input="validatePassword"
-          >
-          <!-- Password requirements display -->
-          <div v-if="isRegistering" class="password-requirements">
-            <div :class="{ 'requirement-met': password.length >= 8 }">
-              <font-awesome-icon :icon="password.length >= 8 ? 'check-circle' : 'circle'" />
-              At least 8 characters
-            </div>
-            <div :class="{ 'requirement-met': hasUppercase }">
-              <font-awesome-icon :icon="hasUppercase ? 'check-circle' : 'circle'" />
-              One uppercase letter
-            </div>
-            <div :class="{ 'requirement-met': hasNumber }">
-              <font-awesome-icon :icon="hasNumber ? 'check-circle' : 'circle'" />
-              One number
-            </div>
-            <div :class="{ 'requirement-met': hasSpecialChar }">
-              <font-awesome-icon :icon="hasSpecialChar ? 'check-circle' : 'circle'" />
-              One special character
-            </div>
-          </div>
-        </div>
-
-        <!-- Display name input group (shown only during registration) -->
-        <div v-if="isRegistering" class="form-group">
-          <label for="displayName">
-            <font-awesome-icon icon="user-circle" class="field-icon" />
-            Display Name
-          </label>
-          <input 
-            type="text"
-            id="displayName"
-            v-model="displayName"
-            required
-            placeholder="Choose a display name"
-          >
-        </div>
-
-        <!-- Error message display -->
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
-
+      <div class="auth-content">
         <!-- Google Sign In Button -->
         <div class="google-signin-container">
           <button @click="signInWithGoogle" class="google-signin-button">
@@ -87,44 +17,116 @@
           </button>
         </div>
 
-        <!-- Action buttons group -->
-        <div class="button-group">
-          <!-- Primary action button (Login/Register) -->
-          <button 
-            type="submit"
-            class="primary-button"
-            :disabled="submitting || (isRegistering && !isPasswordValid)"
-          >
-            <font-awesome-icon :icon="isRegistering ? 'user-plus' : 'sign-in-alt'" />
-            {{ submitButtonText }}
-          </button>
+        <form @submit.prevent="handleSubmit" class="auth-form">
+          <!-- Email input group -->
+          <div class="form-group">
+            <label for="email">
+              <font-awesome-icon icon="envelope" class="field-icon" />
+              Email
+            </label>
+            <input 
+              type="email" 
+              id="email"
+              v-model="email"
+              required
+              placeholder="Enter your email"
+            >
+          </div>
 
-          <!-- Toggle mode button (Switch between Login/Register) -->
+          <!-- Password input group -->
+          <div class="form-group">
+            <label for="password">
+              <font-awesome-icon icon="lock" class="field-icon" />
+              Password
+            </label>
+            <input 
+              type="password"
+              id="password" 
+              v-model="password"
+              required
+              placeholder="Enter your password"
+              @input="validatePassword"
+            >
+            <!-- Password requirements display -->
+            <div v-if="isRegistering" class="password-requirements">
+              <div :class="{ 'requirement-met': password.length >= 8 }">
+                <font-awesome-icon :icon="password.length >= 8 ? 'check-circle' : 'circle'" />
+                At least 8 characters
+              </div>
+              <div :class="{ 'requirement-met': hasUppercase }">
+                <font-awesome-icon :icon="hasUppercase ? 'check-circle' : 'circle'" />
+                One uppercase letter
+              </div>
+              <div :class="{ 'requirement-met': hasNumber }">
+                <font-awesome-icon :icon="hasNumber ? 'check-circle' : 'circle'" />
+                One number
+              </div>
+              <div :class="{ 'requirement-met': hasSpecialChar }">
+                <font-awesome-icon :icon="hasSpecialChar ? 'check-circle' : 'circle'" />
+                One special character
+              </div>
+            </div>
+          </div>
+
+          <!-- Display name input group (shown only during registration) -->
+          <div v-if="isRegistering" class="form-group">
+            <label for="displayName">
+              <font-awesome-icon icon="user-circle" class="field-icon" />
+              Display Name
+            </label>
+            <input 
+              type="text"
+              id="displayName"
+              v-model="displayName"
+              required
+              placeholder="Choose a display name"
+            >
+          </div>
+
+          <!-- Error message display -->
+          <div v-if="error" class="error-message">
+            {{ error }}
+          </div>
+
+          <!-- Action buttons group -->
+          <div class="button-group">
+            <!-- Primary action button (Login/Register) -->
+            <button 
+              type="submit"
+              class="primary-button"
+              :disabled="submitting || (isRegistering && !isPasswordValid)"
+            >
+              <font-awesome-icon :icon="isRegistering ? 'user-plus' : 'sign-in-alt'" />
+              {{ submitButtonText }}
+            </button>
+
+            <!-- Toggle mode button (Switch between Login/Register) -->
+            <button 
+              type="button"
+              class="secondary-button"
+              @click="toggleMode"
+              :disabled="submitting"
+            >
+              <font-awesome-icon :icon="isRegistering ? 'sign-in-alt' : 'user-plus'" class="button-icon" />
+              <div class="button-text">
+                <div class="button-text-small">{{ isRegistering ? 'Already have an account?' : 'Need an account?' }}</div>
+                <div class="button-text-large">{{ isRegistering ? 'Login' : 'Register' }}</div>
+              </div>
+            </button>
+          </div>
+
+          <!-- Password reset button (shown only in login mode) -->
           <button 
+            v-if="!isRegistering"
             type="button"
-            class="secondary-button"
-            @click="toggleMode"
+            class="text-button"
+            @click="handleResetPassword"
             :disabled="submitting"
           >
-            <font-awesome-icon :icon="isRegistering ? 'sign-in-alt' : 'user-plus'" class="button-icon" />
-            <div class="button-text">
-              <div class="button-text-small">{{ isRegistering ? 'Already have an account?' : 'Need an account?' }}</div>
-              <div class="button-text-large">{{ isRegistering ? 'Login' : 'Register' }}</div>
-            </div>
+            Forgot password?
           </button>
-        </div>
-
-        <!-- Password reset button (shown only in login mode) -->
-        <button 
-          v-if="!isRegistering"
-          type="button"
-          class="text-button"
-          @click="handleResetPassword"
-          :disabled="submitting"
-        >
-          Forgot password?
-        </button>
-      </form>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -189,7 +191,9 @@ const validatePassword = () => {
 }
 
 // Handle form submission for both login and registration
-const handleSubmit = async () => {
+const handleSubmit = async (event) => {
+  // Prevent the default form submission behavior
+  event.preventDefault()
   error.value = ''
   submitting.value = true
 
@@ -357,13 +361,11 @@ onUnmounted(() => {
 }
 
 /* Authentication form layout */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.auth-content {
   width: 80%;
   max-width: 600px;
   margin: 0 auto;
+  padding: 3rem 0;
 }
 
 /* Form group styles */
@@ -560,6 +562,12 @@ button:disabled {
   .app-title {
     font-size: 3.5rem;
   }
+
+  .google-signin-container {
+    width: 80%;
+    max-width: 600px;
+    margin: 20px auto;
+  }
 }
 
 /* Mobile responsive styles */
@@ -578,6 +586,11 @@ button:disabled {
     padding: 1.5rem;
     border-radius: 12px;
     margin-top: 1rem; /* Add some top margin */
+  }
+
+  .auth-content {
+    width: 100%;
+    padding: 1.5rem 0;
   }
 
   .auth-form {
@@ -670,8 +683,9 @@ button:disabled {
 }
 
 .google-signin-container {
-  margin: 20px 0;
+  margin: 0 0 2rem 0;
   text-align: center;
+  width: 100%;
 }
 
 .google-signin-button {
@@ -682,9 +696,9 @@ button:disabled {
   padding: 12px;
   background-color: white;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #333;
-  font-size: 16px;
+  font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s;
 }
@@ -697,5 +711,12 @@ button:disabled {
   width: 18px;
   height: 18px;
   margin-right: 10px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
 }
 </style> 
