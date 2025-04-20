@@ -1,25 +1,39 @@
 <!-- Pattern card component displaying pattern information and completion status -->
 <template>
   <!-- Main card container with click handler -->
-  <div class="pattern-card" @click="handleClick">
+  <div 
+    class="pattern-card" 
+    @click="handleClick"
+    role="button"
+    tabindex="0"
+    @keydown.enter="handleClick"
+    @keydown.space="handleClick"
+    :aria-label="`View pattern: ${pattern.name}`"
+  >
     <!-- Card header with pattern name and date -->
     <div class="pattern-header">
       <h3>{{ pattern.name }}</h3>
-      <span class="pattern-date">
+      <span class="pattern-date" aria-label="Created on">
         {{ new Date(pattern.timestamp.seconds * 1000).toLocaleDateString() }}
       </span>
     </div>
     <!-- Pattern preview showing first line of instructions -->
-    <div class="pattern-preview">
+    <div class="pattern-preview" aria-label="Pattern preview">
       {{ pattern.content.split('\n')[0] }}
     </div>
     <!-- Card footer with completion status and view button -->
     <div class="pattern-footer">
       <div class="completion-info">
-        <span class="completion-count">
+        <span class="completion-count" aria-label="Completion progress">
           {{ completedRowsCount }} / {{ totalRows }} rows
         </span>
-        <div class="completion-bar">
+        <div 
+          class="completion-bar" 
+          role="progressbar"
+          :aria-valuenow="completionPercentage"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
           <div 
             class="completion-progress"
             :style="{ width: `${completionPercentage}%` }"

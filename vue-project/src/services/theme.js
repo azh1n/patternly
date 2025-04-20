@@ -5,16 +5,42 @@ import { onAuthStateChanged } from 'firebase/auth'
 
 const isDarkMode = ref(false) // Default to light mode
 
-// Initialize theme and watch auth state
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    await loadUserPreferences()
-  } else {
-    // Reset to default theme when user logs out
-    isDarkMode.value = false
+let initialized = false
+let initPromise = null
+
+function resetTheme() {
+  initialized = false
+  initPromise = null
+  isDarkMode.value = false
+  applyTheme()
+}
+
+async function initTheme() {
+  if (initialized) return initPromise
+  if (initPromise) return initPromise
+
+  initPromise = new Promise(async (resolve) => {
+    // Initialize theme and watch auth state
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await loadUserPreferences()
+      } else {
+        // Reset to default theme when user logs out
+        isDarkMode.value = false
+        applyTheme()
+      }
+      unsubscribe() // Unsubscribe after first auth state change
+      resolve()
+    })
+
+    // Apply default theme immediately
     applyTheme()
-  }
-})
+    initialized = true
+  })
+
+  await initPromise // Wait for initialization to complete
+  return initPromise
+}
 
 async function loadUserPreferences() {
   try {
@@ -25,10 +51,10 @@ async function loadUserPreferences() {
     if (prefDoc.exists()) {
       const prefs = prefDoc.data()
       isDarkMode.value = prefs.isDarkMode ?? false
-      applyTheme()
     } else {
       await setInitialPreferences()
     }
+    applyTheme()
   } catch (error) {
     console.error('Error loading user preferences:', error)
   }
@@ -105,14 +131,18 @@ function toggleTheme() {
   saveThemePreference(isDarkMode.value)
 }
 
-// Apply default theme immediately
-applyTheme()
-
 export function useTheme() {
+  if (!initialized) {
+    initTheme()
+  }
+  
   return {
     isDarkMode,
     toggleTheme,
     setInitialPreferences,
-    loadUserPreferences
+    loadUserPreferences,
+    applyTheme,
+    initTheme,
+    resetTheme
   }
 } 
