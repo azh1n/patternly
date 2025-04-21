@@ -22,191 +22,135 @@
 
         <!-- Pattern format configuration - only shown after input -->
         <div v-if="patternInput.trim()" class="format-section">
-          <div class="detected-format" v-if="detectedFormats">
-            <p>Detected Format:</p>
-            <div class="format-details">
-              <span><strong>Row:</strong> {{ detectedFormats.row || 'None' }} (use # for row number)</span>
-              <span><strong>Color:</strong> {{ detectedFormats.color || 'None' }}</span>
-            </div>
-          </div>
-          <div class="format-row">
-            <div class="format-field">
-              <label>Row Format:</label>
-              <input 
-                v-model="rowFormat"
-                :placeholder="detectedFormats?.row || 'e.g., Round #, Row #, R#'"
-                class="format-input"
-                @input="parsePattern"
-              >
+          <!-- Quick Settings Panel -->
+          <div class="quick-settings">
+            <div class="settings-group">
+              <h4>Pattern Format</h4>
+              <div class="format-inputs">
+                <div class="format-field">
+                  <label>Row Format:</label>
+                  <input 
+                    v-model="rowFormat"
+                    :placeholder="detectedFormats?.row || 'e.g., Round #, Row #, R#'"
+                    class="format-input"
+                    @input="parsePattern"
+                  >
+                </div>
+                <div class="format-field">
+                  <label>Color Format:</label>
+                  <input 
+                    v-model="colorFormat"
+                    :placeholder="detectedFormats?.color || 'e.g., Color A, MC, Pink'"
+                    class="format-input"
+                    @input="parsePattern"
+                  >
+                </div>
+              </div>
               <div class="format-help">Use # to indicate where the row number appears</div>
             </div>
-            <div class="format-field">
-              <label>Color Format:</label>
-              <input 
-                v-model="colorFormat"
-                :placeholder="detectedFormats?.color || 'e.g., Color A, MC, Pink'"
-                class="format-input"
-                @input="parsePattern"
-              >
+
+            <div class="settings-group">
+              <h4>Common Options</h4>
+              <div class="common-options">
+                <label class="option-item">
+                  <input 
+                    type="checkbox" 
+                    v-model="parsingOptions.ignoreStitchCounts"
+                    @change="parsePattern"
+                  >
+                  <span>Ignore Stitch Counts</span>
+                </label>
+                <label class="option-item">
+                  <input 
+                    type="checkbox" 
+                    v-model="parsingOptions.keepRepeatParentheses"
+                    @change="parsePattern"
+                  >
+                  <span>Keep Repeat Instructions</span>
+                </label>
+              </div>
             </div>
           </div>
-          
-          <!-- Pattern parsing options -->
-          <div class="parsing-options">
-            <!-- Configuration management -->
-            <div class="config-management">
-              <div class="config-header">
-                <h4>Pattern Configuration</h4>
-                <div class="config-actions">
-                  <select 
-                    v-model="selectedConfig" 
-                    class="config-select"
-                    @change="loadConfig"
+
+          <!-- Detected Format Display -->
+          <div v-if="detectedFormats" class="detected-format">
+            <div class="format-info">
+              <span class="format-label">Detected Row:</span>
+              <span class="format-value">{{ detectedFormats.row || 'None' }}</span>
+            </div>
+            <div class="format-info">
+              <span class="format-label">Detected Color:</span>
+              <span class="format-value">{{ detectedFormats.color || 'None' }}</span>
+            </div>
+          </div>
+
+          <!-- Configuration Management -->
+          <div class="config-section">
+            <div class="config-header">
+              <h4>Saved Configurations</h4>
+              <div class="config-actions">
+                <select 
+                  v-model="selectedConfig" 
+                  class="config-select"
+                  @change="loadConfig"
+                >
+                  <option value="">Select a configuration</option>
+                  <option 
+                    v-for="config in savedConfigs" 
+                    :key="config.name" 
+                    :value="config.name"
                   >
-                    <option value="">Select a configuration</option>
-                    <option 
-                      v-for="config in savedConfigs" 
-                      :key="config.name" 
-                      :value="config.name"
-                    >
-                      {{ config.name }}
-                    </option>
-                  </select>
-                  <button 
-                    class="save-config-btn"
-                    @click="showSaveDialog = true"
-                    title="Save current configuration"
-                  >
-                    Save As New
-                  </button>
-                  <button 
-                    v-if="selectedConfig"
-                    class="update-config-btn"
-                    @click="updateConfig"
-                    title="Update selected configuration"
-                  >
-                    Update
-                  </button>
-                  <button 
-                    v-if="selectedConfig"
-                    class="delete-config-btn"
-                    @click="deleteConfig"
-                    title="Delete selected configuration"
-                  >
-                    Delete
-                  </button>
-                </div>
+                    {{ config.name }}
+                  </option>
+                </select>
+                <button class="action-btn save-btn" @click="showSaveDialog = true">
+                  Save New
+                </button>
+                <button 
+                  v-if="selectedConfig"
+                  class="action-btn update-btn"
+                  @click="updateConfig"
+                >
+                  Update
+                </button>
               </div>
             </div>
+          </div>
 
-            <!-- Save configuration dialog -->
-            <div v-if="showSaveDialog" class="save-dialog">
-              <div class="save-dialog-content">
-                <h4>Save Configuration</h4>
-                <input 
-                  v-model="newConfigName"
-                  placeholder="Enter configuration name"
-                  class="config-name-input"
-                >
-                <div class="save-dialog-actions">
-                  <button @click="saveConfig" class="save-btn">Save</button>
-                  <button @click="showSaveDialog = false" class="cancel-btn">Cancel</button>
-                </div>
-              </div>
-            </div>
-
-            <h4>Pattern Parsing Options:</h4>
-            <div class="options-grid">
-              <label class="option-item">
-                <input 
-                  type="checkbox" 
-                  v-model="parsingOptions.ignoreStitchCounts"
-                  @change="parsePattern"
-                >
-                <span class="option-label">
-                  <span class="option-title">Ignore Stitch Counts</span>
-                  <span class="option-example">e.g., (18) at end of row</span>
-                </span>
-              </label>
-              
-              <label class="option-item">
-                <input 
-                  type="checkbox" 
-                  v-model="parsingOptions.keepRepeatParentheses"
-                  @change="parsePattern"
-                >
-                <span class="option-label">
-                  <span class="option-title">Keep Repeat Instructions</span>
-                  <span class="option-example">e.g., (1sc, 1inc) x6</span>
-                </span>
-              </label>
-
-              <label class="option-item">
-                <input 
-                  type="checkbox" 
-                  v-model="parsingOptions.ignoreStitchAbbrev"
-                  @change="parsePattern"
-                >
-                <span class="option-label">
-                  <span class="option-title">Ignore Stitch Abbreviations</span>
-                  <span class="option-example">e.g., "st", "sts" at end</span>
-                </span>
-              </label>
-
-              <label class="option-item">
-                <input 
-                  type="checkbox" 
-                  v-model="parsingOptions.ignoreTurnMarkers"
-                  @change="parsePattern"
-                >
-                <span class="option-label">
-                  <span class="option-title">Ignore Turn Markers</span>
-                  <span class="option-example">e.g., ", turn" at end</span>
-                </span>
-              </label>
-            </div>
-
-            <!-- Advanced ignore patterns -->
-            <div class="advanced-section">
-              <button 
-                class="advanced-toggle"
-                @click="showAdvanced = !showAdvanced"
-              >
-                {{ showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options' }}
-              </button>
-              
-              <div v-if="showAdvanced" class="advanced-content">
-                <p class="advanced-help">
-                  Add custom patterns to ignore. You can use regular expressions for more complex patterns.
-                  <br>
-                  Examples:
-                  <code>\\(\\d+\\)</code> - matches numbers in parentheses
-                  <code>\\b[A-Z]\\d+\\b</code> - matches capital letter followed by numbers
-                </p>
-                
-                <div class="ignore-list">
-                  <div 
-                    v-for="(pattern, index) in customIgnorePatterns" 
-                    :key="index" 
-                    class="ignore-item"
+          <!-- Advanced Options -->
+          <div class="advanced-section">
+            <button 
+              class="advanced-toggle"
+              @click="showAdvanced = !showAdvanced"
+            >
+              {{ showAdvanced ? '− Advanced Options' : '+ Advanced Options' }}
+            </button>
+            
+            <div v-if="showAdvanced" class="advanced-content">
+              <div class="advanced-options-grid">
+                <label class="option-item">
+                  <input 
+                    type="checkbox" 
+                    v-model="parsingOptions.ignoreStitchAbbrev"
+                    @change="parsePattern"
                   >
-                    <input 
-                      v-model="customIgnorePatterns[index]"
-                      placeholder="Enter pattern to ignore"
-                      class="ignore-input"
-                      @input="parsePattern"
-                    >
-                    <button 
-                      class="remove-ignore"
-                      @click="removeIgnorePattern(index)"
-                      title="Remove pattern"
-                    >×</button>
+                  <div class="option-info">
+                    <span class="option-title">Ignore Stitch Abbreviations</span>
+                    <span class="option-example">e.g., "st", "sts" at end</span>
                   </div>
-                  <button 
-                    class="add-ignore"
-                    @click="addIgnorePattern"
-                  >+ Add Pattern</button>
-                </div>
+                </label>
+
+                <label class="option-item">
+                  <input 
+                    type="checkbox" 
+                    v-model="parsingOptions.ignoreTurnMarkers"
+                    @change="parsePattern"
+                  >
+                  <div class="option-info">
+                    <span class="option-title">Ignore Turn Markers</span>
+                    <span class="option-example">e.g., ", turn" at end</span>
+                  </div>
+                </label>
               </div>
             </div>
           </div>
@@ -218,8 +162,13 @@
           
           <!-- Formatted pattern preview -->
           <div class="result-group">
-            <h4>Formatted Pattern</h4>
-            <div class="result-content">
+            <div class="section-header" @click="toggleSection('formatted')">
+              <h4>Formatted Pattern</h4>
+              <button class="toggle-btn">
+                {{ sectionStates.formatted ? '−' : '+' }}
+              </button>
+            </div>
+            <div v-show="sectionStates.formatted" class="result-content">
               <div class="formatted-pattern">
                 <p v-for="(row, index) in formattedPattern" :key="index">
                   {{ row }}
@@ -230,31 +179,48 @@
           
           <!-- Row separation -->
           <div v-if="parsedResults.rows?.length > 0" class="result-group">
-            <h4>Parsed Rows</h4>
-            <div class="result-content">
+            <div class="section-header" @click="toggleSection('rows')">
+              <h4>Parsed Rows</h4>
+              <button class="toggle-btn">
+                {{ sectionStates.rows ? '−' : '+' }}
+              </button>
+            </div>
+            <div v-show="sectionStates.rows" class="result-content">
               <div v-for="(row, index) in parsedResults.rows" :key="index" class="parsed-row">
-                <h5>Row {{ row.number }}</h5>
-                <p><strong>Raw Pattern:</strong> {{ row.rawPattern }}</p>
-                <p v-if="row.ignoredParts.length > 0">
-                  <strong>Ignored Parts:</strong>
-                  <span v-for="(part, pIndex) in row.ignoredParts" :key="pIndex" class="ignored-part">
-                    {{ part }}
-                  </span>
-                </p>
-                <p><strong>Parsed Stitches:</strong></p>
-                <ul class="stitch-list">
-                  <li v-for="(stitch, sIndex) in row.stitches" :key="sIndex">
-                    {{ stitch }}
-                  </li>
-                </ul>
+                <div class="row-header" @click="toggleRow(row.number)">
+                  <h5>Row {{ row.number }}</h5>
+                  <button class="toggle-btn small">
+                    {{ rowStates[row.number] ? '−' : '+' }}
+                  </button>
+                </div>
+                <div v-show="rowStates[row.number]" class="row-content">
+                  <p><strong>Raw Pattern:</strong> {{ row.rawPattern }}</p>
+                  <p v-if="row.ignoredParts.length > 0">
+                    <strong>Ignored Parts:</strong>
+                    <span v-for="(part, pIndex) in row.ignoredParts" :key="pIndex" class="ignored-part">
+                      {{ part }}
+                    </span>
+                  </p>
+                  <p><strong>Parsed Stitches:</strong></p>
+                  <ul class="stitch-list">
+                    <li v-for="(stitch, sIndex) in row.stitches" :key="sIndex">
+                      {{ stitch }}
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Color detection -->
           <div v-if="parsedResults.color" class="result-group">
-            <h4>Color Detection</h4>
-            <div class="result-content">
+            <div class="section-header" @click="toggleSection('color')">
+              <h4>Color Detection</h4>
+              <button class="toggle-btn">
+                {{ sectionStates.color ? '−' : '+' }}
+              </button>
+            </div>
+            <div v-show="sectionStates.color" class="result-content">
               <p><strong>Detected Color:</strong> {{ parsedResults.color }}</p>
               <p v-if="parsedResults.colorPosition"><strong>Color Position:</strong> {{ parsedResults.colorPosition }}</p>
             </div>
@@ -314,6 +280,7 @@ const patternInput = ref('')
 const parsedResults = ref(null)
 const parseError = ref(null)
 const detectedFormats = ref(null)
+const formattedPattern = ref([])
 
 // UI State
 const showAdvanced = ref(false)
@@ -394,25 +361,27 @@ const detectFormats = (input) => {
     color: null
   }
 
-  // Detect row format from first line
-  const firstLine = input.split('\n')[0]
-  
-  // If user has entered a row format, try that first
-  if (rowFormat.value) {
-    const userRowRegex = createRowRegex(rowFormat.value)
-    if (userRowRegex.test(firstLine)) {
-      formats.row = rowFormat.value
+  // Detect row format from first line that contains Round or Row
+  const lines = input.split('\n')
+  for (const line of lines) {
+    // If user has entered a row format, try that first
+    if (rowFormat.value) {
+      const userRowRegex = createRowRegex(rowFormat.value)
+      if (userRowRegex.test(line)) {
+        formats.row = rowFormat.value
+        break
+      }
     }
-  }
-  
-  // If no match with user format, try common formats
-  if (!formats.row) {
+    
+    // If no match with user format, try common formats
     for (const format of commonRowFormats) {
-      if (format.pattern.test(firstLine)) {
+      if (format.pattern.test(line)) {
         formats.row = format.format
         break
       }
     }
+    
+    if (formats.row) break
   }
 
   // Detect color format
@@ -630,6 +599,7 @@ const preprocessInput = (input) => {
 
 const parsePattern = () => {
   parseError.value = null
+  formattedPattern.value = []  // Reset formatted pattern
   
   if (!patternInput.value.trim()) {
     parsedResults.value = null
@@ -646,7 +616,8 @@ const parsePattern = () => {
     for (const line of lines) {
       if (!line.trim()) continue
       
-      const match = line.match(/Round\s+(\d+)\s+(.+)/)
+      // Use a more flexible regex that matches both Round and Row
+      const match = line.match(/(?:Round|Row)\s+(\d+)\s+(.+)/i)
       if (match) {
         const rowNum = parseInt(match[1])
         const rowContent = match[2].trim()
@@ -657,6 +628,9 @@ const parsePattern = () => {
       }
     }
 
+    // Sort rows by number to ensure they're in order
+    rows.sort((a, b) => a.number - b.number)
+
     parsedResults.value = {
       title,
       color: detectedColor || (colorFormat.value ? null : undefined),
@@ -664,25 +638,25 @@ const parsePattern = () => {
     }
 
     // Update formatted pattern
-    formattedPattern.value = rows.map(row => {
+    const formattedRows = rows.map(row => {
       let formattedRow = `Round ${row.number}`
       if (detectedColor && row.number === 1) {
         formattedRow = `Work in ${detectedColor}.\n${formattedRow}`
       }
       formattedRow += `: ${row.stitches.join(', ')}`
       
-      // Add stitch count if present
-      const stitchCount = row.ignoredParts.find(part => /^\(\d+\)$/.test(part))
-      if (stitchCount) {
-        formattedRow += ` ${stitchCount}`
+      // Add stitch count if present and not ignoring stitch counts
+      if (!parsingOptions.value.ignoreStitchCounts) {
+        const stitchCount = row.ignoredParts.find(part => /^\(\d+\)$/.test(part))
+        if (stitchCount) {
+          formattedRow += ` ${stitchCount}`
+        }
       }
       
       return formattedRow
     })
 
-    if (title) {
-      formattedPattern.value.unshift(title)
-    }
+    formattedPattern.value = title ? [title, ...formattedRows] : formattedRows
 
   } catch (error) {
     console.error('Error parsing pattern:', error)
@@ -787,31 +761,6 @@ onMounted(() => {
   }
 })
 
-// Computed property for formatted pattern
-const formattedPattern = computed(() => {
-  if (!parsedResults.value?.rows) return []
-  
-  return parsedResults.value.rows.map(row => {
-    let formattedRow = `Round ${row.number}`
-    
-    // Add color if present
-    if (parsedResults.value.color) {
-      formattedRow += `, ${parsedResults.value.color}`
-    }
-    
-    // Add stitches
-    formattedRow += `: ${row.stitches.join(', ')}`
-    
-    // Add any ignored parts that should be kept (like stitch counts)
-    const stitchCount = row.ignoredParts.find(part => /^\(\d+\)$/.test(part))
-    if (stitchCount) {
-      formattedRow += ` ${stitchCount}`
-    }
-    
-    return formattedRow
-  })
-})
-
 // Save the formatted pattern
 const saveToPattern = async () => {
   try {
@@ -856,6 +805,38 @@ const saveToPattern = async () => {
     console.error('Error saving pattern:', error)
     parseError.value = 'Error saving pattern. Please try again.'
   }
+}
+
+// Section collapse states
+const sectionStates = ref({
+  formatted: true,
+  rows: true,
+  color: true
+})
+
+// Individual row collapse states
+const rowStates = ref({})
+
+// Initialize row states when results change
+watch(() => parsedResults.value?.rows, (newRows) => {
+  if (newRows) {
+    const states = {}
+    newRows.forEach(row => {
+      // Default to expanded for first 3 rows, collapsed for the rest
+      states[row.number] = row.number <= 3
+    })
+    rowStates.value = states
+  }
+}, { immediate: true })
+
+// Toggle section visibility
+const toggleSection = (section) => {
+  sectionStates.value[section] = !sectionStates.value[section]
+}
+
+// Toggle individual row visibility
+const toggleRow = (rowNumber) => {
+  rowStates.value[rowNumber] = !rowStates.value[rowNumber]
 }
 </script>
 
@@ -945,27 +926,45 @@ const saveToPattern = async () => {
 
 .format-section {
   margin-bottom: 2rem;
-  padding: 1.5rem;
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
+  overflow: hidden;
 }
 
-.format-row {
+.quick-settings {
+  padding: 1.5rem;
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
+  gap: 2rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.format-field {
+.settings-group {
   flex: 1;
 }
 
-.format-field label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+.settings-group h4 {
+  margin: 0 0 1rem;
   color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.format-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.format-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.format-field label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .format-input {
@@ -983,20 +982,163 @@ const saveToPattern = async () => {
   border-color: var(--accent-color);
 }
 
-.format-example {
+.format-help {
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.common-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.option-item:hover {
+  background: var(--hover-bg);
+}
+
+.option-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.detected-format {
+  padding: 1rem 1.5rem;
+  background: var(--main-bg);
+  display: flex;
+  gap: 2rem;
+}
+
+.format-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.format-label {
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
-.format-example code {
-  display: block;
-  margin-top: 0.25rem;
-  padding: 0.5rem;
-  background: var(--main-bg);
-  border-radius: 4px;
-  font-family: monospace;
+.format-value {
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
+.config-section {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.config-header h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.config-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.config-select {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  min-width: 200px;
+}
+
+.action-btn {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.save-btn {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.update-btn {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.advanced-section {
+  padding: 1.5rem;
+}
+
+.advanced-toggle {
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.advanced-toggle:hover {
+  color: var(--accent-color);
+}
+
+.advanced-content {
+  margin-top: 1rem;
+}
+
+.advanced-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.option-title {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.option-example {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Results display section */
 .results-section {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -1117,39 +1259,6 @@ const saveToPattern = async () => {
   color: var(--text-secondary);
 }
 
-.detected-format {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  background: var(--main-bg);
-  border-radius: 8px;
-}
-
-.detected-format p {
-  margin: 0 0 0.5rem 0;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.format-details {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.format-details span {
-  color: var(--text-secondary);
-}
-
-.format-details strong {
-  color: var(--text-primary);
-}
-
-.format-help {
-  margin-top: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
 .parsed-row {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
@@ -1166,237 +1275,6 @@ const saveToPattern = async () => {
   margin: 0 0 0.75rem 0;
   color: var(--accent-color);
 }
-
-.parsing-options {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.parsing-options h4 {
-  margin: 0 0 1rem 0;
-  color: var(--text-primary);
-}
-
-.options-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-.option-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.option-item:hover {
-  background: var(--hover-bg);
-}
-
-.option-item input[type="checkbox"] {
-  margin-top: 0.25rem;
-}
-
-.option-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.option-title {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.option-example {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  font-style: italic;
-}
-
-.ignored-part {
-  display: inline-block;
-  margin: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  background: var(--main-bg);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  font-family: monospace;
-  font-size: 0.9rem;
-}
-
-.advanced-section {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.advanced-toggle {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--button-bg);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.advanced-toggle:hover {
-  background: var(--button-hover-bg);
-}
-
-.advanced-content {
-  margin-top: 1rem;
-}
-
-.advanced-help {
-  margin-bottom: 1rem;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.advanced-help code {
-  display: inline-block;
-  margin: 0 0.5rem;
-  padding: 0.25rem 0.5rem;
-  background: var(--main-bg);
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-.ignore-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.ignore-item {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.ignore-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-family: monospace;
-  font-size: 0.9rem;
-}
-
-.ignore-input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-}
-
-.remove-ignore {
-  padding: 0.25rem 0.5rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--error-bg);
-  color: var(--error-text);
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  transition: all 0.2s ease;
-}
-
-.remove-ignore:hover {
-  background: var(--error-hover-bg);
-}
-
-.add-ignore {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  border: 1px dashed var(--border-color);
-  border-radius: 8px;
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  width: 100%;
-  text-align: center;
-  transition: all 0.2s ease;
-}
-
-.add-ignore:hover {
-  background: var(--button-hover-bg);
-  border-color: var(--accent-color);
-  color: var(--text-primary);
-}
-
-.config-management {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-}
-
-.config-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.config-header h4 {
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.config-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.config-select {
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  min-width: 200px;
-}
-
-.save-config-btn,
-.update-config-btn,
-.delete-config-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.save-config-btn {
-  background: var(--success-bg);
-  color: var(--success-text);
-}
-
-.update-config-btn {
-  background: var(--warning-bg);
-  color: var(--warning-text);
-}
-
-.delete-config-btn {
-  background: var(--error-bg);
-  color: var(--error-text);
-}
-
-.save-config-btn:hover { background: var(--success-hover-bg); }
-.update-config-btn:hover { background: var(--warning-hover-bg); }
-.delete-config-btn:hover { background: var(--error-hover-bg); }
 
 .save-dialog {
   position: fixed;
@@ -1491,5 +1369,97 @@ const saveToPattern = async () => {
 .save-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.section-header:hover {
+  background-color: var(--hover-bg);
+}
+
+.section-header h4 {
+  margin: 0;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  background-color: var(--button-hover-bg);
+  color: var(--text-primary);
+}
+
+.toggle-btn.small {
+  font-size: 1rem;
+  width: 20px;
+  height: 20px;
+}
+
+.row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.row-header:hover {
+  background-color: var(--hover-bg);
+}
+
+.row-header h5 {
+  margin: 0;
+}
+
+.row-content {
+  padding: 0.5rem;
+  margin-left: 1rem;
+  border-left: 2px solid var(--border-color);
+}
+
+.result-content {
+  transition: all 0.3s ease-in-out;
+}
+
+.parsed-row {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.parsed-row:last-child {
+  margin-bottom: 0;
+}
+
+.ignored-part {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--tag-bg);
+  border-radius: 4px;
+  font-size: 0.9rem;
 }
 </style> 
