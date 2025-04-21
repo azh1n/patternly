@@ -62,10 +62,9 @@
 
   <!-- Pattern Notation Tester Modal -->
   <PatternNotationTester
-    v-model="showNotationTester"
+    v-model="showTester"
     :pattern-text="patternText"
-    @close="closeNotationTester"
-    @save="closeNotationTester"
+    @pattern-created="handlePatternCreated"
   />
 </template>
 
@@ -92,14 +91,14 @@ const emit = defineEmits(['update:modelValue', 'pattern-added'])
 const MAX_CHARS = 100000  // Maximum characters allowed in pattern instructions
 const patternName = ref('')  // Stores pattern name input
 const patternText = ref('')  // Stores pattern instructions input
-const showNotationTester = ref(false)  // Controls notation tester modal visibility
+const showTester = ref(false)  // Controls notation tester modal visibility
 
 // Reset form when modal is opened
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     patternName.value = ''
     patternText.value = ''
-    showNotationTester.value = false
+    showTester.value = false
   }
 })
 
@@ -115,12 +114,7 @@ const handleInput = (event) => {
 
 // Open pattern tester
 const openTester = () => {
-  showNotationTester.value = true
-}
-
-// Close notation tester
-const closeNotationTester = () => {
-  showNotationTester.value = false
+  showTester.value = true
 }
 
 // Save the pattern
@@ -130,6 +124,12 @@ const savePattern = () => {
     content: patternText.value
   })
   emit('update:modelValue', false)
+}
+
+const handlePatternCreated = (newPattern) => {
+  // You might want to update your local state or trigger a refresh
+  emit('pattern-added', newPattern)
+  showTester.value = false
 }
 </script>
 
