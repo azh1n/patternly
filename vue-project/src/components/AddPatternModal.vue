@@ -1,7 +1,7 @@
 <!-- Modal component for adding new knitting patterns -->
 <template>
   <!-- Modal overlay with click-away functionality -->
-  <div v-if="modelValue" class="modal-overlay" @click="$emit('update:modelValue', false)">
+  <div v-if="modelValue" class="modal-overlay">
     <!-- Modal container that prevents click propagation -->
     <div class="modal" @click.stop>
       <!-- Modal header with title and close button -->
@@ -37,7 +37,7 @@
 
         <!-- Formatting options toggle -->
         <div v-if="patternInput.trim()" class="formatting-toggle">
-          <button @click="toggleFormatting" class="toggle-button">
+          <button @click="toggleFormatting" class="toggle-button" :class="{ 'attention': patternInput.trim() && !parsedResults?.rows?.length }">
             <span>Formatting Options</span>
             <span class="toggle-icon">{{ showFormatting ? '−' : '+' }}</span>
           </button>
@@ -200,6 +200,11 @@
           <p class="error-message">{{ parseError }}</p>
         </div>
 
+        <!-- Add error message in template -->
+        <div v-if="patternInput.trim() && !parsedResults?.rows?.length" class="error-section">
+          <p class="error-message">Pattern must be parsed into separate rows before saving.</p>
+        </div>
+
         <!-- Modal action buttons -->
         <div class="modal-actions">
           <button 
@@ -221,6 +226,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { usePatternStore } from '../stores/pattern'
+import { useRouter } from 'vue-router'
+import { auth } from '@/firebase'
 
 // Component props
 const props = defineProps({
@@ -294,9 +301,16 @@ const showingAll = ref(false)
 
 // Computed
 const canSave = computed(() => {
-  return patternName.value.trim() && 
-         formattedPattern.value.length > 0 && 
-         !parseError.value
+  const hasValidName = patternName.value.trim()
+  const hasValidPattern = parsedResults.value?.rows?.length > 0
+  const noErrors = !parseError.value
+  
+  // If we have input but no parsed rows, set an error
+  if (patternInput.value.trim() && !hasValidPattern) {
+    parseError.value = 'Unable to parse the pattern into rows. Please check your format in the Formatting Options section and make sure each row starts with "Round" or "Row" or something similar.'
+  }
+  
+  return hasValidName && hasValidPattern && noErrors
 })
 
 // Computed property for displayed rows
@@ -439,85 +453,6 @@ const cleanPattern = (text) => {
   }
 }
 
-// Parse a single row
-const parseRow = (rowText, rowNum) => {
-  try {
-    // Clean the pattern first
-    const { text: cleanedPattern, ignoredParts } = cleanPattern(rowText)
-    let rawPattern = cleanedPattern
-    const stitches = []
-    let currentPart = ''
-    let inParentheses = 0
-    let isRepeatSection = false
-
-    // Parse stitches
-    for (let i = 0; i < rawPattern.length; i++) {
-      const char = rawPattern[i]
-      
-      // Track parentheses depth and check if it's a repeat section
-      if (char === '(') {
-        inParentheses++
-        // Check if this parenthesis is followed by a repeat marker
-        const lookAhead = rawPattern.slice(i).match(/^\([^)]+\)\s*x\d+/)
-        if (lookAhead && parsingOptions.value.keepRepeatParentheses) {
-          isRepeatSection = true
-        }
-      }
-      if (char === ')') {
-        inParentheses--
-        if (inParentheses === 0) {
-          isRepeatSection = false
-        }
-      }
-      
-      // Split on comma or semicolon if not in a repeat section
-      if ((char === ',' || char === ';') && !isRepeatSection && inParentheses === 0) {
-        if (currentPart.trim()) {
-          stitches.push(currentPart.trim())
-        }
-        currentPart = ''
-      } else {
-        currentPart += char
-      }
-    }
-    
-    if (currentPart.trim()) {
-      stitches.push(currentPart.trim())
-    }
-
-    // Clean up stitches
-    const cleanedStitches = stitches
-      .map(stitch => {
-        stitch = stitch.trim()
-        
-        // Keep repeat instructions intact
-        if (stitch.includes('x') && parsingOptions.value.keepRepeatParentheses) {
-          return stitch
-        }
-        
-        // Handle special instructions
-        if (stitch.includes('in a') || stitch.includes('into')) {
-          return stitch
-        }
-        
-        return stitch
-          .replace(/\s+/g, ' ')
-          .trim()
-      })
-      .filter(Boolean)
-
-    return {
-      number: rowNum,
-      rawPattern: rowText.trim(),
-      stitches: cleanedStitches,
-      ignoredParts
-    }
-  } catch (error) {
-    console.error('Error parsing row:', error)
-    return null
-  }
-}
-
 // Preprocess input
 const preprocessInput = (input) => {
   // Remove any standalone numbers
@@ -527,45 +462,116 @@ const preprocessInput = (input) => {
   const titleMatch = input.match(/^[A-Za-z\s]+$/m)
   const title = titleMatch ? titleMatch[0].trim() : null
 
-  // Handle color instructions
-  const colorMatch = input.match(/^Work\s+in\s+([^.]+)\./i)
-  const color = colorMatch ? colorMatch[1].trim() : null
+  // First, join lines that are part of the same row
+  processed = processed.split('\n').reduce((acc, line, index, arr) => {
+    line = line.trim()
+    if (!line) return acc
+    
+    // If line starts with "Row" or has "With Color", it's a new row
+    if (line.match(/^Row\s+\d+/) || line.match(/^With Color/)) {
+      if (acc.length) acc.push('\n')
+      acc.push(line)
+    } else {
+      // If previous line exists and doesn't end with period, this is a continuation
+      if (acc.length && !acc[acc.length - 1].endsWith('.')) {
+        acc[acc.length - 1] += ' ' + line
+      } else {
+        if (acc.length) acc.push('\n')
+        acc.push(line)
+      }
+    }
+    return acc
+  }, []).join('')
 
-  // Remove title and color instruction from input
-  if (title) {
-    processed = processed.replace(title, '')
+  // Handle color instructions at the start of rows
+  processed = processed.replace(/^(Row \d+): With Color ([A-Z]),\s*/gm, 'Row $1 [Color $2]: ')
+  processed = processed.replace(/^With Color ([A-Z]),\s*(Row \d+):/gm, 'Row $2 [Color $1]: ')
+
+  // Remove "FO." and similar ending instructions
+  processed = processed.replace(/\s*FO\.\s*/g, '')
+  processed = processed.replace(/\s*Stuff\.\s*/g, '')
+
+  // Handle stitch counts at the end of rows
+  const stitchCountRegex = /\(Stitch Count:[^)]+\)/g
+  const stitchCounts = {}
+  let match
+  while ((match = stitchCountRegex.exec(processed)) !== null) {
+    const rowMatch = processed.slice(0, match.index).match(/Row (\d+)[^\n]*$/)
+    if (rowMatch) {
+      stitchCounts[rowMatch[1]] = match[0]
+    }
   }
-  if (colorMatch) {
-    processed = processed.replace(colorMatch[0], '')
-  }
-
-  // Handle range notation (e.g., "Round 35-44")
-  processed = processed.replace(/\b(Row|Round|R|Rnd)\s*(\d+)-(\d+)\s+([^(]+)\(([^)]+)\)(\s+\d+\s+Rounds)?/gi, (match, prefix, start, end, instructions, stitches, rounds) => {
-    const count = parseInt(end) - parseInt(start) + 1
-    const repeatedRows = Array.from({ length: count }, (_, i) => {
-      const roundNum = parseInt(start) + i
-      return `${prefix} ${roundNum} ${instructions}(${stitches})`
-    }).join('\n')
-    return repeatedRows
-  })
-
-  // Replace variations of Round/Row with consistent format
-  processed = processed.replace(/\b(Round|Row|R|Rnd|Vuela)\s*(\d+)\b/gi, '\nRound $2')
-
-  // Remove "FO" and similar ending instructions
-  processed = processed.replace(/FO\..*/gi, '')
-  processed = processed.replace(/Stuff\..*/gi, '')
+  
+  // Remove the stitch counts from the main text
+  processed = processed.replace(/\s*\(Stitch Count:[^)]+\)/g, '')
 
   // Split on newlines and clean up each line
   processed = processed.split('\n')
-    .map(line => line.trim())
+    .map(line => {
+      line = line.trim()
+      if (!line) return ''
+      
+      // Extract row number
+      const rowMatch = line.match(/Row (\d+)/)
+      if (rowMatch) {
+        const rowNum = rowMatch[1]
+        // Add back stitch count if we have it
+        if (stitchCounts[rowNum]) {
+          line += ' ' + stitchCounts[rowNum]
+        }
+      }
+      return line
+    })
     .filter(Boolean)
     .join('\n')
 
   return {
     title,
-    color,
     pattern: processed
+  }
+}
+
+// Parse a single row
+const parseRow = (rowText, rowNum) => {
+  try {
+    // Extract color if present
+    let color = null
+    const colorMatch = rowText.match(/\[Color ([A-Z])\]/)
+    if (colorMatch) {
+      color = colorMatch[1]
+      rowText = rowText.replace(/\[Color [A-Z]\]:\s*/, '')
+    }
+
+    // Remove all instances of "Row X" and clean up
+    rowText = rowText.replace(/^Row\s+\d+\s*:?\s*/, '') // Remove first Row prefix
+    rowText = rowText.replace(/Row\s+\d+\s*/g, '') // Remove any remaining Row mentions
+    
+    // Extract stitch count if present
+    let stitchCount = null
+    const stitchCountMatch = rowText.match(/\(Stitch Count:[^)]+\)/)
+    if (stitchCountMatch) {
+      stitchCount = stitchCountMatch[0]
+      rowText = rowText.replace(stitchCountMatch[0], '').trim()
+    }
+
+    // Clean up any extra spaces or commas
+    rowText = rowText.replace(/\s+/g, ' ').trim()
+    rowText = rowText.replace(/,\s*,/g, ',')
+    rowText = rowText.replace(/\s*,\s*/g, ', ')
+
+    // Split into stitches
+    const stitches = rowText.split(',').map(s => s.trim()).filter(Boolean)
+
+    return {
+      number: rowNum,
+      color,
+      rawPattern: rowText,
+      stitches,
+      ignoredParts: stitchCount ? [stitchCount] : []
+    }
+  } catch (error) {
+    console.error('Error parsing row:', error)
+    return null
   }
 }
 
@@ -580,7 +586,7 @@ const parsePattern = () => {
   }
 
   try {
-    const { title, color: detectedColor, pattern } = preprocessInput(patternInput.value.trim())
+    const { title, pattern } = preprocessInput(patternInput.value.trim())
     let rows = []
 
     // Split into rows and parse each one
@@ -588,11 +594,11 @@ const parsePattern = () => {
     for (const line of lines) {
       if (!line.trim()) continue
       
-      const match = line.match(/(?:Round|Row)\s+(\d+)\s+(.+)/i)
+      // More flexible row pattern matching
+      const match = line.match(/Row\s*(\d+)(?:\s*\[Color [A-Z]\])?\s*:/)
       if (match) {
         const rowNum = parseInt(match[1])
-        const rowContent = match[2].trim()
-        const parsedRow = parseRow(rowContent, rowNum)
+        const parsedRow = parseRow(line, rowNum)
         if (parsedRow) {
           rows.push(parsedRow)
         }
@@ -604,30 +610,31 @@ const parsePattern = () => {
 
     parsedResults.value = {
       title,
-      color: detectedColor || (colorFormat.value ? null : undefined),
       rows
     }
 
     // Update formatted pattern
     const formattedRows = rows.map(row => {
-      let formattedRow = `Round ${row.number}`
-      if (detectedColor && row.number === 1) {
-        formattedRow = `Work in ${detectedColor}.\n${formattedRow}`
+      let formattedRow = `Row ${row.number}`
+      if (row.color) {
+        formattedRow += ` [Color ${row.color}]`
       }
       formattedRow += `: ${row.stitches.join(', ')}`
       
-      // Add stitch count if present and not ignoring stitch counts
-      if (!parsingOptions.value.ignoreStitchCounts) {
-        const stitchCount = row.ignoredParts.find(part => /^\(\d+\)$/.test(part))
-        if (stitchCount) {
-          formattedRow += ` ${stitchCount}`
-        }
+      // Add stitch count if present
+      const stitchCount = row.ignoredParts.find(part => part.startsWith('(Stitch Count:'))
+      if (stitchCount) {
+        formattedRow += ` ${stitchCount}`
       }
       
       return formattedRow
     })
 
     formattedPattern.value = title ? [title, ...formattedRows] : formattedRows
+
+    // Log for debugging
+    console.log('Parsed Results:', parsedResults.value)
+    console.log('Formatted Pattern:', formattedPattern.value)
 
   } catch (error) {
     console.error('Error parsing pattern:', error)
@@ -657,22 +664,58 @@ const toggleShowMore = () => {
 // Save the pattern
 const savePattern = async () => {
   try {
+    // Check if user is authenticated
+    if (!auth.currentUser) {
+      parseError.value = 'Please sign in to save patterns.'
+      return
+    }
+
+    if (!parsedResults.value?.rows?.length) {
+      parseError.value = 'No valid rows found in the pattern.'
+      return
+    }
+
+    // Format the pattern content
+    const patternContent = parsedResults.value.rows.map(row => {
+      let rowText = `Row ${row.number}`
+      if (row.color) {
+        rowText += ` [Color ${row.color}]`
+      }
+      rowText += `: ${row.stitches.join(', ')}`
+      
+      // Add stitch count if present
+      const stitchCount = row.ignoredParts.find(part => part.startsWith('(Stitch Count:'))
+      if (stitchCount) {
+        rowText += ` ${stitchCount}`
+      }
+      
+      return rowText
+    }).join('\n')
+
     const patternData = {
       title: patternName.value.trim(),
-      pattern: formattedPattern.value.join('\n'),
+      pattern: patternContent,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       description: '',
       difficulty: 'beginner',
-      status: 'draft'
+      status: 'draft',
+      userId: auth.currentUser.uid
     }
 
+    console.log('Saving pattern:', patternData) // Debug log
+
     const createdPattern = await patternStore.addPattern(patternData)
+    
+    if (!createdPattern) {
+      throw new Error('Failed to save pattern')
+    }
+
     emit('pattern-added', createdPattern)
     emit('update:modelValue', false)
   } catch (error) {
     console.error('Error saving pattern:', error)
-    parseError.value = 'Error saving pattern. Please try again.'
+    parseError.value = 'Error saving pattern: ' + (error.message || 'Please try again.')
   }
 }
 
@@ -838,18 +881,20 @@ const toggleFormatting = () => {
 }
 
 .save-button {
-  background-color: var(--success-bg);
-  color: var(--success-text);
-  border: 1px solid var(--success-border);
+  background-color: #4CAF50;
+  color: white;
+  border: 1px solid #43A047;
 }
 
 .save-button:hover:not(:disabled) {
-  background-color: var(--success-hover-bg);
+  background-color: #43A047;
 }
 
 .save-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background-color: #4CAF50;
+  color: white;
 }
 
 .cancel-button {
@@ -1264,111 +1309,6 @@ const toggleFormatting = () => {
 }
 
 /* Toggle Button */
-.toggle-btn {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-}
-
-.toggle-btn.small {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  color: var(--accent-color);
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toggle-btn.small:hover {
-  opacity: 0.8;
-}
-
-/* Error Section */
-.error-section {
-  margin-top: 2rem;
-  padding: 1rem;
-  background: var(--error-bg);
-  border: 1px solid var(--error-border);
-  border-radius: 8px;
-}
-
-.error-message {
-  margin: 0;
-  color: var(--error-color);
-  font-size: 0.95rem;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .quick-settings {
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .format-inputs {
-    flex-direction: column;
-  }
-
-  .format-field {
-    width: 100%;
-  }
-}
-
-/* Light Theme Adjustments */
-:root.light {
-  .quick-settings {
-    background: #ffffff;
-    border-color: #e0e0e0;
-  }
-
-  .option-item {
-    background: #f5f5f5;
-    border-color: #e0e0e0;
-  }
-
-  .option-item:hover {
-    background: #eeeeee;
-  }
-
-  .detected-format {
-    background: #ffffff;
-    border-color: #e0e0e0;
-  }
-
-  .results-section {
-    background: #ffffff;
-    border-color: #e0e0e0;
-  }
-
-  .parsed-row {
-    background: #ffffff;
-    border-color: #e0e0e0;
-  }
-
-  .row-content {
-    background: #f8f8f8;
-  }
-
-  .ignored-part {
-    background: #f0f0f0;
-    color: #666;
-  }
-}
-
-/* Formatting Toggle */
-.formatting-toggle {
-  margin: 1.5rem 0;
-}
-
 .toggle-button {
   display: flex;
   align-items: center;
@@ -1382,11 +1322,34 @@ const toggleFormatting = () => {
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+}
+
+.toggle-button.attention {
+  background-color: #ff980020;
+  border-color: #FF9800;
+  color: #FF9800;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
+  }
 }
 
 .toggle-button:hover {
   background: var(--hover-bg);
+}
+
+.toggle-button.attention:hover {
+  background-color: #ff980030;
 }
 
 .toggle-icon {
@@ -1402,5 +1365,23 @@ const toggleFormatting = () => {
 
 :root.light .toggle-button:hover {
   background: #f5f5f5;
+}
+
+/* Add new styles for the format helper button */
+.format-helper-button {
+  display: block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  color: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.format-helper-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 </style> 

@@ -14,12 +14,12 @@
     <div class="pattern-header">
       <h3>{{ pattern.name }}</h3>
       <span class="pattern-date" aria-label="Created on">
-        {{ new Date(pattern.timestamp.seconds * 1000).toLocaleDateString() }}
+        {{ formatDate(pattern.timestamp) }}
       </span>
     </div>
     <!-- Pattern preview showing first line of instructions -->
     <div class="pattern-preview" aria-label="Pattern preview">
-      {{ pattern.content.split('\n')[0] }}
+      {{ previewText }}
     </div>
     <!-- Card footer with completion status and view button -->
     <div class="pattern-footer">
@@ -60,8 +60,22 @@ const props = defineProps({
 // Router instance for navigation
 const router = useRouter()
 
+// Format the timestamp
+const formatDate = (timestamp) => {
+  if (!timestamp || !timestamp.seconds) return 'No date'
+  return new Date(timestamp.seconds * 1000).toLocaleDateString()
+}
+
+// Get preview text
+const previewText = computed(() => {
+  if (!props.pattern.content) return 'No pattern content'
+  const lines = props.pattern.content.split('\n')
+  return lines.length > 0 ? lines[0] : 'Empty pattern'
+})
+
 // Calculate total number of rows in pattern
 const totalRows = computed(() => {
+  if (!props.pattern.content) return 0
   return props.pattern.content.split('\n')
     .filter(line => line.trim().startsWith('Row')).length
 })
@@ -74,8 +88,9 @@ const completedRowsCount = computed(() => {
 
 // Calculate completion percentage
 const completionPercentage = computed(() => {
-  const totalRows = Object.keys(props.pattern.completedRows || {}).length
-  const completedRows = Object.values(props.pattern.completedRows || {}).filter(Boolean).length
+  if (!props.pattern.completedRows) return 0
+  const totalRows = Object.keys(props.pattern.completedRows).length
+  const completedRows = Object.values(props.pattern.completedRows).filter(Boolean).length
   return totalRows ? Math.round((completedRows / totalRows) * 100) : 0
 })
 
