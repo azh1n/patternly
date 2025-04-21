@@ -913,7 +913,14 @@ onMounted(() => {
 
 @media (max-width: 767px) {
   .pattern-view {
-    padding: 0.5rem;
+    padding: 0;
+    margin-bottom: 60px; /* Space for ad banner */
+  }
+
+  .pattern-content {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 
   .pattern-header {
@@ -1092,10 +1099,6 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .desktop-only {
-    display: none;
   }
 
   /* Update the template section for mobile view */

@@ -235,8 +235,15 @@ watch(() => user.value?.uid, async (newUserId) => {
 /* Only apply these styles when the screen is very small AND it's a mobile device */
 @media (max-width: 767px) and (max-device-width: 767px) {
   .main-content {
-    padding: 1rem;
+    width: 100%;
     max-width: 100%;
+    margin: 0;
+    padding: 8px 4px;
+  }
+
+  .home {
+    min-width: unset;
+    width: 100%;
   }
 }
 </style> 
