@@ -234,13 +234,131 @@ const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
 
+// Parse pattern rows into structured data
+const parsedRows = computed(() => {
+  if (!props.pattern?.content) return []
+  
+  try {
+    const content = props.pattern.content
+    const rows = content.split('\n').filter(row => row?.trim())
+    const parsedRows = []
+    
+    let currentRow = []
+    let currentRowNum = null
+    let currentColor = null
+    let currentPattern = ''
+    
+    // Parse each row of the pattern
+    rows.forEach(row => {
+      try {
+        const rowMatch = row.match(/Row (\d+): With (Color [A-Z])/)
+        if (rowMatch) {
+          // Process previous row if exists
+          if (currentPattern) {
+            // Clean up the pattern before processing
+            currentPattern = currentPattern.replace(/\s+/g, ' ').trim()
+            // Find the last stitch before FO. or Stitch Count
+            if (currentPattern.includes(' FO.')) {
+              currentPattern = currentPattern.substring(0, currentPattern.indexOf(' FO.'))
+            }
+            if (currentPattern.includes(' (Stitch Count')) {
+              currentPattern = currentPattern.substring(0, currentPattern.indexOf(' (Stitch Count'))
+            }
+            
+            const codes = processPattern(currentPattern)
+            if (codes.length > 0) {
+              currentRow.push(...codes)
+            }
+          }
+          
+          if (currentRow.length > 0) {
+            parsedRows.push({
+              rowNum: currentRowNum || '0',
+              color: currentColor || 'Color A',
+              codes: currentRow,
+              fullRow: currentRow.join(' ')
+            })
+          }
+          
+          // Start new row
+          currentRowNum = rowMatch[1]
+          currentColor = rowMatch[2]
+          currentRow = []
+          currentPattern = row.split(currentColor)[1]?.trim() || ''
+        } else {
+          // Just append the raw line
+          currentPattern += ' ' + row.trim()
+        }
+      } catch (e) {
+        // Silent error handling
+      }
+    })
+    
+    // Process the last row
+    if (currentPattern) {
+      // Clean up the pattern before processing
+      currentPattern = currentPattern.replace(/\s+/g, ' ').trim()
+      // Find the last stitch before FO. or Stitch Count
+      if (currentPattern.includes(' FO.')) {
+        currentPattern = currentPattern.substring(0, currentPattern.indexOf(' FO.'))
+      }
+      if (currentPattern.includes(' (Stitch Count')) {
+        currentPattern = currentPattern.substring(0, currentPattern.indexOf(' (Stitch Count'))
+      }
+      
+      const codes = processPattern(currentPattern)
+      if (codes.length > 0) {
+        currentRow.push(...codes)
+      }
+    }
+    
+    if (currentRow.length > 0) {
+      parsedRows.push({
+        rowNum: currentRowNum || '0',
+        color: currentColor || 'Color A',
+        codes: currentRow,
+        fullRow: currentRow.join(' ')
+      })
+    }
+    
+    return parsedRows
+  } catch (e) {
+    return []
+  }
+})
+
 // Process pattern codes into structured format
 const processPattern = (pattern) => {
   if (!pattern) return []
   
-  const parts = pattern.split(/,(?![^(]*\))/).map(p => p.trim())
+  // Clean up the pattern string
+  pattern = pattern.replace(/\s+/g, ' ').trim()
   
-  // First filter out any non-stitch text and handle parentheses
+  // Split by commas, but preserve parentheses content
+  const parts = []
+  let currentPart = ''
+  let inParentheses = 0
+  
+  for (let i = 0; i < pattern.length; i++) {
+    const char = pattern[i]
+    if (char === '(') inParentheses++
+    if (char === ')') inParentheses--
+    
+    if (char === ',' && inParentheses === 0) {
+      if (currentPart.trim()) {
+        parts.push(currentPart.trim())
+      }
+      currentPart = ''
+    } else {
+      currentPart += char
+    }
+  }
+  // Add the last part if it exists
+  if (currentPart.trim()) {
+    parts.push(currentPart.trim())
+  }
+  
+  // Filter and clean the parts
   const filteredParts = parts.filter(code => {
     if (!code) return false
     // Clean the code by removing any trailing period
@@ -267,7 +385,7 @@ const processPattern = (pattern) => {
         if (isNaN(repeats) || repeats < 0 || repeats > 1000) return acc // Safety check
         
         const subCodes = pattern.split(',')
-          .map(p => p.trim())
+          .map(p => p.trim().replace(/\.$/, '')) // Remove trailing periods from sub-codes
           .filter(p => p && p.match(/^\d+[a-z]+$/)) // Only include valid stitch codes
         
         if (subCodes.length === 0) return acc
@@ -276,87 +394,11 @@ const processPattern = (pattern) => {
         return acc
       }
     }
-    return [...acc, code]
+    return [...acc, code.replace(/\.$/, '')] // Remove trailing period from single stitches
   }, [])
   
   return result
 }
-
-// Parse pattern rows into structured data
-const parsedRows = computed(() => {
-  if (!props.pattern?.content) return []
-  
-  try {
-    const content = props.pattern.content
-    const rows = content.split('\n').filter(row => row?.trim())
-    const parsedRows = []
-    
-    let currentRow = []
-    let currentRowNum = null
-    let currentColor = null
-    
-    // Parse each row of the pattern
-    rows.forEach(row => {
-      try {
-        const rowMatch = row.match(/Row (\d+): With (Color [A-Z])/)
-        if (rowMatch) {
-          if (currentRow.length > 0) {
-            parsedRows.push({
-              rowNum: currentRowNum || '0',
-              color: currentColor || 'Color A',
-              codes: currentRow,
-              fullRow: currentRow.join(' ')
-            })
-          }
-          
-          currentRowNum = rowMatch[1]
-          currentColor = rowMatch[2]
-          currentRow = []
-          
-          let pattern = row.split(currentColor)[1]?.trim()
-          if (pattern) {
-            const codes = processPattern(pattern)
-            if (codes.length > 0) {
-              currentRow.push(...codes)
-            }
-          }
-        } else {
-          let pattern = row.trim()
-          
-          // Look for the last stitch before FO. or Stitch Count
-          if (pattern.includes('FO.')) {
-            const beforeFO = pattern.substring(0, pattern.indexOf('FO.')).trim()
-            pattern = beforeFO.replace(/\.$/, '')  // Remove trailing period if present
-          }
-          if (pattern.includes('(Stitch Count')) {
-            const beforeCount = pattern.substring(0, pattern.indexOf('(Stitch Count')).trim()
-            pattern = beforeCount.replace(/\.$/, '')  // Remove trailing period if present
-          }
-          
-          const codes = processPattern(pattern)
-          if (codes.length > 0) {
-            currentRow.push(...codes)
-          }
-        }
-      } catch (e) {
-        // Silent error handling
-      }
-    })
-    
-    if (currentRow.length > 0) {
-      parsedRows.push({
-        rowNum: currentRowNum || '0',
-        color: currentColor || 'Color A',
-        codes: currentRow,
-        fullRow: currentRow.join(' ')
-      })
-    }
-    
-    return parsedRows
-  } catch (e) {
-    return []
-  }
-})
 
 // Computed properties for current state
 const currentRow = computed(() => {
