@@ -109,7 +109,7 @@
           </div>
   
           <!-- Results display section - only shown when formatting is toggled -->
-          <div v-if="showFormatting && parsedResults" class="results-section">
+          <div v-if="showFormatting && parsedResults?.rows" class="results-section">
             <h3>Pattern Preview</h3>
             
             <!-- Formatted pattern preview -->
@@ -130,7 +130,7 @@
             </div>
             
             <!-- Row separation -->
-            <div v-if="parsedResults.rows?.length > 0" class="result-group">
+            <div v-if="parsedResults?.rows?.length > 0" class="result-group">
               <div class="section-header" @click="toggleSection('rows')">
                 <h4>Parsed Rows</h4>
                 <button class="toggle-btn">
@@ -154,12 +154,6 @@
                         <div class="detail-item">
                           <strong>Raw:</strong> {{ row.rawPattern }}
                         </div>
-                        <div v-if="row.ignoredParts.length > 0" class="detail-item">
-                          <strong>Ignored:</strong>
-                          <span v-for="(part, pIndex) in row.ignoredParts" :key="pIndex" class="ignored-part">
-                            {{ part }}
-                          </span>
-                        </div>
                         <div class="detail-item">
                           <strong>Stitches:</strong>
                           <span class="stitch-list">{{ row.stitches.join(', ') }}</span>
@@ -170,7 +164,7 @@
                   
                   <!-- Show More button if there are more rows -->
                   <button 
-                    v-if="parsedResults.rows.length > displayLimit" 
+                    v-if="parsedResults?.rows?.length > displayLimit" 
                     @click="toggleShowMore" 
                     class="show-more-button"
                   >
@@ -181,7 +175,7 @@
             </div>
   
             <!-- Color detection -->
-            <div v-if="parsedResults.color" class="result-group">
+            <div v-if="parsedResults?.rows?.length > 0" class="result-group">
               <div class="section-header" @click="toggleSection('color')">
                 <h4>Color Detection</h4>
                 <button class="toggle-btn">
@@ -189,8 +183,7 @@
                 </button>
               </div>
               <div v-show="sectionStates.color" class="result-content">
-                <p><strong>Detected Color:</strong> {{ parsedResults.color }}</p>
-                <p v-if="parsedResults.colorPosition"><strong>Color Position:</strong> {{ parsedResults.colorPosition }}</p>
+                <p><strong>Detected Colors:</strong> {{ Array.from(new Set(parsedResults.rows.map(r => r.color))).join(', ') }}</p>
               </div>
             </div>
           </div>
@@ -252,7 +245,7 @@
   const patternInput = ref('')
   const rowFormat = ref('')
   const colorFormat = ref('')
-  const parsedResults = ref(null)
+  const parsedResults = ref({ rows: [] })
   const parseError = ref(null)
   const detectedFormats = ref(null)
   const formattedPattern = ref([])
@@ -327,7 +320,7 @@
       patternInput.value = ''
       rowFormat.value = ''
       colorFormat.value = ''
-      parsedResults.value = null
+      parsedResults.value = { rows: [] }  // Reset to empty rows array
       parseError.value = null
       formattedPattern.value = []
       detectedFormats.value = null
@@ -531,115 +524,110 @@
     }
   }
   
-  // Parse a single row
-  const parseRow = (rowText, rowNum) => {
-    try {
-      // Extract color if present
-      let color = null
-      const colorMatch = rowText.match(/\[Color ([A-Z])\]/)
-      if (colorMatch) {
-        color = colorMatch[1]
-        rowText = rowText.replace(/\[Color [A-Z]\]:\s*/, '')
-      }
-  
-      // Remove all instances of "Row X" and clean up
-      rowText = rowText.replace(/^Row\s+\d+\s*:?\s*/, '') // Remove first Row prefix
-      rowText = rowText.replace(/Row\s+\d+\s*/g, '') // Remove any remaining Row mentions
-      
-      // Extract stitch count if present
-      let stitchCount = null
-      const stitchCountMatch = rowText.match(/\(Stitch Count:[^)]+\)/)
-      if (stitchCountMatch) {
-        stitchCount = stitchCountMatch[0]
-        rowText = rowText.replace(stitchCountMatch[0], '').trim()
-      }
-  
-      // Clean up any extra spaces or commas
-      rowText = rowText.replace(/\s+/g, ' ').trim()
-      rowText = rowText.replace(/,\s*,/g, ',')
-      rowText = rowText.replace(/\s*,\s*/g, ', ')
-  
-      // Split into stitches
-      const stitches = rowText.split(',').map(s => s.trim()).filter(Boolean)
-  
-      return {
-        number: rowNum,
-        color,
-        rawPattern: rowText,
-        stitches,
-        ignoredParts: stitchCount ? [stitchCount] : []
-      }
-    } catch (error) {
-      console.error('Error parsing row:', error)
-      return null
-    }
-  }
-  
   // Parse the entire pattern
   const parsePattern = () => {
     parseError.value = null
     formattedPattern.value = []
     
     if (!patternInput.value.trim()) {
-      parsedResults.value = null
+      parsedResults.value = { rows: [] }
       return
     }
-  
+
     try {
-      const { title, pattern } = preprocessInput(patternInput.value.trim())
+      // First, split by periods to handle rows on the same line
+      const rowSections = patternInput.value
+        .split('.')
+        .map(section => section.trim())
+        .filter(Boolean)
+
       let rows = []
-  
-      // Split into rows and parse each one
-      const lines = pattern.split('\n')
-      for (const line of lines) {
-        if (!line.trim()) continue
-        
-        // More flexible row pattern matching
-        const match = line.match(/Row\s*(\d+)(?:\s*\[Color [A-Z]\])?\s*:/)
-        if (match) {
-          const rowNum = parseInt(match[1])
-          const parsedRow = parseRow(line, rowNum)
+
+      // Process each section
+      for (const section of rowSections) {
+        // Check if section contains a row number
+        const rowMatch = section.match(/Row\s*(\d+)/i)
+        if (rowMatch) {
+          const rowNum = parseInt(rowMatch[1])
+          const parsedRow = parseRow(section, rowNum)
           if (parsedRow) {
             rows.push(parsedRow)
           }
         }
       }
-  
+
       // Sort rows by number
       rows.sort((a, b) => a.number - b.number)
-  
+
       parsedResults.value = {
-        title,
         rows
       }
-  
+
       // Update formatted pattern
-      const formattedRows = rows.map(row => {
-        let formattedRow = `Row ${row.number}`
-        if (row.color) {
-          formattedRow += ` [Color ${row.color}]`
-        }
-        formattedRow += `: ${row.stitches.join(', ')}`
-        
-        // Add stitch count if present
-        const stitchCount = row.ignoredParts.find(part => part.startsWith('(Stitch Count:'))
-        if (stitchCount) {
-          formattedRow += ` ${stitchCount}`
-        }
-        
-        return formattedRow
+      formattedPattern.value = rows.map(row => {
+        return `Row ${row.number}: With Color ${row.color}, ${row.stitches.join(', ')}`
       })
-  
-      formattedPattern.value = title ? [title, ...formattedRows] : formattedRows
-  
-      // Log for debugging
-      console.log('Parsed Results:', parsedResults.value)
-      console.log('Formatted Pattern:', formattedPattern.value)
-  
+
     } catch (error) {
       console.error('Error parsing pattern:', error)
       parseError.value = 'Unable to parse the pattern. Please check your format matches the example.'
-      parsedResults.value = null
+      parsedResults.value = { rows: [] }
+    }
+  }
+  
+  // Parse a single row
+  const parseRow = (rowText, rowNum) => {
+    try {
+      // Extract color if present - handle multiple formats
+      let color = null
+      const colorFormats = [
+        /\[Color ([A-Z])\]/,
+        /With Color ([A-Z])/,
+        /Color ([A-Z])/,
+        /MC/i,
+        /CC/i
+      ]
+      
+      for (const format of colorFormats) {
+        const match = rowText.match(format)
+        if (match) {
+          color = match[1] || (format.test('MC') ? 'A' : 'B')
+          rowText = rowText.replace(format, '').trim()
+          break
+        }
+      }
+
+      // Remove all row number references
+      rowText = rowText.replace(/Row\s*\d+\s*:?\s*/g, '')
+      
+      // Remove FO and stitch count if present
+      rowText = rowText.replace(/\s*FO\.\s*/g, '')
+      rowText = rowText.replace(/\s*\(Stitch Count:[^)]+\)\s*/g, '')
+      
+      // Clean up any extra spaces or commas
+      rowText = rowText.replace(/\s+/g, ' ').trim()
+      rowText = rowText.replace(/,\s*,/g, ',')
+      rowText = rowText.replace(/\s*,\s*/g, ', ')
+
+      // Split into stitches and clean each one
+      const stitches = rowText.split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .filter(stitch => !stitch.match(/^Row\d+$/i)) // Filter out any remaining row references
+        .map(stitch => {
+          // Standardize stitch format (e.g., "1 sc" -> "1sc")
+          return stitch.replace(/\s+/g, '')
+        })
+
+      return {
+        number: rowNum,
+        color: color || 'A', // Default to Color A if no color specified
+        rawPattern: rowText,
+        stitches
+      }
+    } catch (error) {
+      console.error('Error parsing row:', error)
+      return null
     }
   }
   
@@ -675,24 +663,17 @@
         return
       }
 
-      // Format the pattern content in the same way as AddPatternModal
+      // Format the pattern content in the requested style
       const patternContent = parsedResults.value.rows.map(row => {
-        let rowText = `Row ${row.number}`
-        if (row.color) {
-          rowText += ` [Color ${row.color}]`
-        }
-        rowText += `: ${row.stitches.join(', ')}`
-        
-        // Add stitch count if present
-        const stitchCount = row.ignoredParts.find(part => part.startsWith('(Stitch Count:'))
-        if (stitchCount) {
-          rowText += ` ${stitchCount}`
-        }
-        
-        return rowText
-      }).join('\n')
+        return `Row ${row.number}: With Color ${row.color}, ${row.stitches.join(', ')}`
+      }).join('. ')
 
-      // Emit the pattern in the same format as AddPatternModal
+      // Add a period at the end if there isn't one
+      if (!patternContent.endsWith('.')) {
+        patternContent += '.'
+      }
+
+      // Emit the pattern in the requested format
       emit('pattern-added', {
         name: patternName.value.trim(),
         content: patternContent
