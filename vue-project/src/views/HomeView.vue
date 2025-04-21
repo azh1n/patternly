@@ -210,40 +210,37 @@ watch(() => user.value?.uid, async (newUserId) => {
   flex-direction: column;
   background-color: var(--main-bg);
   color: var(--text-primary);
-  min-width: 1200px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  padding-bottom: 60px; /* Space for ad banner */
 }
 
 .main-content {
   flex: 1;
-  width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem 3rem;
+  position: relative;
 }
 
-/* Only apply these styles when the screen is actually small */
-@media (max-width: 1023px) and (max-device-width: 1023px) {
-  .home {
-    min-width: unset;
-  }
-  
+/* Tablet styles */
+@media (max-width: 1023px) {
   .main-content {
-    max-width: 90%;
+    max-width: 100%;
     padding: 1.5rem 2rem;
   }
 }
 
-/* Only apply these styles when the screen is very small AND it's a mobile device */
-@media (max-width: 767px) and (max-device-width: 767px) {
+/* Mobile styles */
+@media (max-width: 767px) {
   .main-content {
     width: 100%;
     max-width: 100%;
     margin: 0;
     padding: 8px 4px;
-  }
-
-  .home {
-    min-width: unset;
-    width: 100%;
+    -webkit-overflow-scrolling: touch;
   }
 }
 </style> 

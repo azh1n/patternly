@@ -1,5 +1,5 @@
 <template>
-  <div class="ad-banner">
+  <div class="ad-banner" :class="{ 'ad-loaded': isLoaded, 'ad-error': hasError }">
     <!-- Google AdSense Ad Unit -->
     <ins class="adsbygoogle"
          style="display:block"
@@ -11,7 +11,10 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+
+const isLoaded = ref(false)
+const hasError = ref(false)
 
 onMounted(() => {
   // Load Google AdSense script with your specific client ID
@@ -19,16 +22,34 @@ onMounted(() => {
   script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8237432847073620'
   script.async = true
   script.crossOrigin = 'anonymous'
+  
+  script.onerror = () => {
+    console.error('Failed to load AdSense script')
+    hasError.value = true
+  }
+
   document.head.appendChild(script)
 
   // Initialize ads after script loads
   script.onload = () => {
     try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({})
+      (window.adsbygoogle = window.adsbygoogle || []).push({
+        push: () => {
+          isLoaded.value = true
+        }
+      })
     } catch (e) {
       console.error('Error loading ads:', e)
+      hasError.value = true
     }
   }
+
+  // Set a timeout to mark as error if ad doesn't load
+  setTimeout(() => {
+    if (!isLoaded.value) {
+      hasError.value = true
+    }
+  }, 5000)
 })
 </script>
 
@@ -42,6 +63,19 @@ onMounted(() => {
   background-color: white;
   padding: 8px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  min-height: 50px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.ad-banner.ad-loaded {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ad-banner.ad-error {
+  display: none;
 }
 
 /* Ensure the banner doesn't interfere with content on mobile */
