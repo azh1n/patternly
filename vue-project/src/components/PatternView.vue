@@ -234,102 +234,128 @@ const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
 
+// Process pattern codes into structured format
+const processPattern = (pattern) => {
+  if (!pattern) return []
+  
+  const parts = pattern.split(/,(?![^(]*\))/).map(p => p.trim())
+  
+  // First filter out any non-stitch text and handle parentheses
+  const filteredParts = parts.filter(code => {
+    if (!code) return false
+    // Clean the code by removing any trailing period
+    const cleanCode = code.replace(/\.$/, '').trim()
+    
+    // Match standard stitch codes (e.g., "1bs", "22dc")
+    const isStandardCode = cleanCode.match(/^\d+[a-z]+$/)
+    // Match repeated patterns in parentheses (e.g., "(1dc, 2ch)x3")
+    const isRepeatedPattern = cleanCode.match(/^\([^)]+\)x\d+$/)
+    // Match border stitches specifically
+    const isBorderStitch = cleanCode.match(/^\d+bs$/)
+    
+    const keep = isStandardCode || isRepeatedPattern || isBorderStitch
+    return keep ? cleanCode : null
+  }).filter(Boolean)
+  
+  // Handle any repeated patterns by expanding them
+  const result = filteredParts.reduce((acc, code) => {
+    if (code.includes('x')) {
+      try {
+        // It's a repeated pattern
+        const [pattern, countStr] = code.slice(1, -1).split(')x')
+        const repeats = parseInt(countStr)
+        if (isNaN(repeats) || repeats < 0 || repeats > 1000) return acc // Safety check
+        
+        const subCodes = pattern.split(',')
+          .map(p => p.trim())
+          .filter(p => p && p.match(/^\d+[a-z]+$/)) // Only include valid stitch codes
+        
+        if (subCodes.length === 0) return acc
+        return [...acc, ...Array.from({ length: repeats }, () => subCodes).flat()]
+      } catch (e) {
+        return acc
+      }
+    }
+    return [...acc, code]
+  }, [])
+  
+  return result
+}
+
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
-  if (!props.pattern) return []
+  if (!props.pattern?.content) return []
   
-  const content = props.pattern.content
-  const rows = content.split('\n').filter(row => row.trim())
-  const parsedRows = []
-  
-  let currentRow = []
-  let currentRowNum = null
-  let currentColor = null
-  
-  // Process pattern codes into structured format
-  const processPattern = (pattern) => {
-    const parts = pattern.split(/,(?![^(]*\))/).map(p => p.trim())
+  try {
+    const content = props.pattern.content
+    const rows = content.split('\n').filter(row => row?.trim())
+    const parsedRows = []
     
-    // First filter out any non-stitch text and handle parentheses
-    const filteredParts = parts.filter(code => {
-      // Clean the code by removing any trailing period
-      const cleanCode = code.replace(/\.$/, '').trim()
-      
-      // Match standard stitch codes (e.g., "1bs", "22dc")
-      const isStandardCode = cleanCode.match(/^\d+[a-z]+$/)
-      // Match repeated patterns in parentheses (e.g., "(1dc, 2ch)x3")
-      const isRepeatedPattern = cleanCode.match(/^\([^)]+\)x\d+$/)
-      // Match border stitches specifically
-      const isBorderStitch = cleanCode.match(/^\d+bs$/)
-      
-      const keep = isStandardCode || isRepeatedPattern || isBorderStitch
-      return keep ? cleanCode : null
-    }).filter(Boolean)
+    let currentRow = []
+    let currentRowNum = null
+    let currentColor = null
     
-    // Handle any repeated patterns by expanding them
-    const result = filteredParts.reduce((acc, code) => {
-      if (code.includes('x')) {
-        // It's a repeated pattern
-        const [pattern, count] = code.slice(1, -1).split(')x')
-        const repeats = parseInt(count)
-        const subCodes = pattern.split(',').map(p => p.trim())
-        return [...acc, ...Array(repeats).fill(subCodes).flat()]
+    // Parse each row of the pattern
+    rows.forEach(row => {
+      try {
+        const rowMatch = row.match(/Row (\d+): With (Color [A-Z])/)
+        if (rowMatch) {
+          if (currentRow.length > 0) {
+            parsedRows.push({
+              rowNum: currentRowNum || '0',
+              color: currentColor || 'Color A',
+              codes: currentRow,
+              fullRow: currentRow.join(' ')
+            })
+          }
+          
+          currentRowNum = rowMatch[1]
+          currentColor = rowMatch[2]
+          currentRow = []
+          
+          let pattern = row.split(currentColor)[1]?.trim()
+          if (pattern) {
+            const codes = processPattern(pattern)
+            if (codes.length > 0) {
+              currentRow.push(...codes)
+            }
+          }
+        } else {
+          let pattern = row.trim()
+          
+          // Look for the last stitch before FO. or Stitch Count
+          if (pattern.includes('FO.')) {
+            const beforeFO = pattern.substring(0, pattern.indexOf('FO.')).trim()
+            pattern = beforeFO.replace(/\.$/, '')  // Remove trailing period if present
+          }
+          if (pattern.includes('(Stitch Count')) {
+            const beforeCount = pattern.substring(0, pattern.indexOf('(Stitch Count')).trim()
+            pattern = beforeCount.replace(/\.$/, '')  // Remove trailing period if present
+          }
+          
+          const codes = processPattern(pattern)
+          if (codes.length > 0) {
+            currentRow.push(...codes)
+          }
+        }
+      } catch (e) {
+        // Silent error handling
       }
-      return [...acc, code]
-    }, [])
-    return result
-  }
-  
-  // Parse each row of the pattern
-  rows.forEach(row => {
-    const rowMatch = row.match(/Row (\d+): With (Color [A-Z])/)
-    if (rowMatch) {
-      if (currentRow.length > 0) {
-        parsedRows.push({
-          rowNum: currentRowNum,
-          color: currentColor,
-          codes: currentRow,
-          fullRow: currentRow.join(' ')
-        })
-      }
-      
-      currentRowNum = rowMatch[1]
-      currentColor = rowMatch[2]
-      currentRow = []
-      
-      let pattern = row.split(currentColor)[1]?.trim()
-      if (pattern) {
-        const codes = processPattern(pattern)
-        currentRow.push(...codes)
-      }
-    } else {
-      let pattern = row.trim()
-      
-      // Look for the last stitch before FO. or Stitch Count
-      if (pattern.includes('FO.')) {
-        const beforeFO = pattern.substring(0, pattern.indexOf('FO.')).trim()
-        pattern = beforeFO.replace(/\.$/, '')  // Remove trailing period if present
-      }
-      if (pattern.includes('(Stitch Count')) {
-        const beforeCount = pattern.substring(0, pattern.indexOf('(Stitch Count')).trim()
-        pattern = beforeCount.replace(/\.$/, '')  // Remove trailing period if present
-      }
-      
-      const codes = processPattern(pattern)
-      currentRow.push(...codes)
-    }
-  })
-  
-  if (currentRow.length > 0) {
-    parsedRows.push({
-      rowNum: currentRowNum,
-      color: currentColor,
-      codes: currentRow,
-      fullRow: currentRow.join(' ')
     })
+    
+    if (currentRow.length > 0) {
+      parsedRows.push({
+        rowNum: currentRowNum || '0',
+        color: currentColor || 'Color A',
+        codes: currentRow,
+        fullRow: currentRow.join(' ')
+      })
+    }
+    
+    return parsedRows
+  } catch (e) {
+    return []
   }
-  
-  return parsedRows
 })
 
 // Computed properties for current state

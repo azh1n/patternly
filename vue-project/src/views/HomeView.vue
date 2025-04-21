@@ -73,6 +73,14 @@ watch(() => route.params.id, async (newId) => {
     const pattern = savedTexts.value.find(p => p.id === newId)
     if (pattern) {
       selectPattern(pattern, savedTexts.value.indexOf(pattern))
+    } else {
+      await fetchPatterns()
+      const refetchedPattern = savedTexts.value.find(p => p.id === newId)
+      if (refetchedPattern) {
+        selectPattern(refetchedPattern, savedTexts.value.indexOf(refetchedPattern))
+      } else {
+        console.error('Pattern not found after refetch')
+      }
     }
   } else {
     selectedPattern.value = null
@@ -80,27 +88,32 @@ watch(() => route.params.id, async (newId) => {
 })
 
 // Fetch patterns from Firestore
-async function fetchPatterns() {
+const fetchPatterns = async () => {
   if (!user.value) return
-
+  
   try {
+    isLoading.value = true
+    
     const patternsRef = collection(db, 'patterns')
     const q = query(patternsRef, where('userId', '==', user.value.uid))
     const querySnapshot = await getDocs(q)
     
-    savedTexts.value = querySnapshot.docs.map(doc => {
-      const data = doc.data()
-      return {
+    const patterns = []
+    querySnapshot.forEach((doc) => {
+      patterns.push({
         id: doc.id,
-        ...data
-      }
+        ...doc.data()
+      })
     })
+    
+    savedTexts.value = patterns
   } catch (error) {
+    console.error('Error fetching patterns:', error)
     if (error.code === 'permission-denied') {
       console.error('Permission denied. Check security rules.')
-    } else {
-      console.error('Error fetching documents:', error)
     }
+  } finally {
+    isLoading.value = false
   }
 }
 

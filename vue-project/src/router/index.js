@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { watch } from 'vue'
 import { useAuth } from '@/services/auth'
+import { auth } from '@/firebase'
 import HomeView from '../views/HomeView.vue'
 import LoginPage from '../components/LoginPage.vue'
 import ProfilePage from '../components/ProfilePage.vue'
@@ -44,29 +45,12 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach(async (to, from, next) => {
-  const { user, loading } = useAuth()
-  
-  // Wait for auth to initialize
-  if (loading.value) {
-    // You might want to show a loading screen here
-    await new Promise(resolve => {
-      const unwatch = watch(loading, (newValue) => {
-        if (!newValue) {
-          unwatch()
-          resolve()
-        }
-      })
-    })
-  }
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const currentUser = auth.currentUser
 
-  if (to.meta.requiresAuth && !user.value) {
-    // Redirect to login if trying to access a protected route while not authenticated
-    next({ name: 'login', query: { redirect: to.fullPath } })
-  } else if (to.meta.requiresGuest && user.value && to.name !== 'auth-callback') {
-    // Redirect to home if trying to access guest routes while authenticated
-    // But allow the auth callback to proceed
-    next({ name: 'home' })
+  if (requiresAuth && !currentUser) {
+    next('/login')
   } else {
     next()
   }
