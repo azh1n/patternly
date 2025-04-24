@@ -209,6 +209,14 @@
                 </div>
               </div>
             </div>
+
+            <!-- DB Storage Format Preview Section -->
+            <div v-if="parsedRows.length" class="storage-format-section">
+              <h4>Database Storage Format Preview</h4>
+              <div class="storage-format-preview">
+                <p class="storage-format-text">{{ formattedPatternForDB }}</p>
+              </div>
+            </div>
           </div>
         </div>
   
@@ -281,6 +289,18 @@ const canSave = computed(() => {
   
   // Allow saving if there's a name and pattern text, even if parsing is limited
   return hasValidName && hasInput;
+})
+
+// Add a computed property for the database format
+const formattedPatternForDB = computed(() => {
+  if (!parsedRows.value.length) return '';
+  
+  return parsedRows.value.map(row => {
+    const colorInfo = row.color ? row.color : '';
+    const stitchesInfo = Array.isArray(row.stitches) ? row.stitches.join(', ') : '';
+    
+    return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
+  }).join(', ');
 })
 
 // Common patterns for detection
@@ -953,15 +973,12 @@ const savePattern = async () => {
       return
     }
 
-    // Get pattern text - either use parsed rows or raw input if parsing failed
+    // Format the pattern using the standardized format
     let formattedPattern = patternText.value;
     
     if (parsedRows.value.length > 0) {
-      // If we successfully parsed rows, use the structured format
-      formattedPattern = parsedRows.value.map(row => {
-        const colorInfo = row.color ? `with ${row.color}, ` : ''
-        return `Row ${row.number}: ${colorInfo}${row.stitches.join(', ')}`
-      }).join('. ')
+      // Use the formatted pattern from our computed property
+      formattedPattern = formattedPatternForDB.value;
     }
 
     // Emit the pattern data
@@ -1803,5 +1820,46 @@ const applyQuickFormat = (format) => {
 :root.light .repeat-bracket,
 :root.light .repeat-count {
   color: #2979ff;
+}
+
+/* DB Storage Format Preview Styles */
+.storage-format-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #444);
+}
+
+.storage-format-section h4 {
+  margin: 0 0 1rem;
+  color: var(--text-primary, #fff);
+  font-size: 1.125rem;
+}
+
+.storage-format-preview {
+  padding: 1rem;
+  background: var(--preview-bg, #1a1a1a);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #444);
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.storage-format-text {
+  margin: 0;
+  font-family: monospace;
+  color: var(--text-primary, #fff);
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.875rem;
+}
+
+/* Light theme override */
+:root.light .storage-format-preview {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .storage-format-text {
+  color: #333;
 }
 </style> 
