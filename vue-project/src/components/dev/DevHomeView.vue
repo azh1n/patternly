@@ -12,6 +12,7 @@
         <PatternGrid
           :patterns="savedTexts"
           :is-loading="isLoading"
+          :is-dev-mode="true"
           @select-pattern="selectPattern"
           @add-pattern="showAddPattern = true"
         />

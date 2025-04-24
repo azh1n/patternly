@@ -45,6 +45,7 @@
           v-for="(pattern, index) in paginatedPatterns"
           :key="pattern.id"
           :pattern="pattern"
+          :is-dev-mode="isDevMode"
           @select="$emit('select-pattern', pattern, index + (currentPage - 1) * patternsPerPage)"
         />
       </div>
@@ -93,6 +94,10 @@ const props = defineProps({
   isLoading: {
     type: Boolean,
     default: false  // Loading state indicator
+  },
+  isDevMode: {
+    type: Boolean,
+    default: false  // Flag to indicate if this is being used in dev mode
   }
 })
 
