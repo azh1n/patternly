@@ -8,7 +8,7 @@
       <div class="left-section"></div>
       <!-- App title with click navigation to home -->
       <h1 
-        @click="router.push('/')"
+        @click="navigateHome"
         class="clickable"
       >
         Patternly
@@ -40,6 +40,10 @@ const props = defineProps({
   showNav: {
     type: Boolean,
     default: false  // Controls visibility of navigation elements
+  },
+  isDevMode: {
+    type: Boolean,
+    default: false  // Indicates if the app is in dev mode
   }
 })
 
@@ -48,6 +52,15 @@ const router = useRouter()
 
 // Get experimental features state
 const { experimentalFeatures } = useUserSettings()
+
+// Navigate to appropriate home page based on dev mode
+const navigateHome = () => {
+  if (props.isDevMode) {
+    router.push('/dev')
+  } else {
+    router.push('/')
+  }
+}
 </script>
 
 <style scoped>

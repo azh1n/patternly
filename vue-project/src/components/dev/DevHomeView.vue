@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <AppHeader :show-nav="true" />
+    <AppHeader :show-nav="true" :is-dev-mode="true" />
 
     <main class="main-content">
       <div class="experimental-banner">

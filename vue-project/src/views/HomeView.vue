@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <AppHeader :show-nav="true" />
+    <AppHeader :show-nav="true" :is-dev-mode="false" />
 
     <main class="main-content">
       <div v-if="!selectedPattern" class="home-view">

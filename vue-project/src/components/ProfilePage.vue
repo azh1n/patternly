@@ -2,7 +2,7 @@
 <template>
   <!-- Main profile container -->
   <div class="profile-container">
-    <AppHeader />
+    <AppHeader :is-dev-mode="isDevMode" />
 
     <!-- Profile content wrapper -->
     <div class="profile-content">
@@ -135,18 +135,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useAuth } from '@/services/auth'
 import { useTheme } from '@/services/theme'
 import { useUserSettings } from '@/services/userSettings'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 
 // Initialize router and services
 const router = useRouter()
+const route = useRoute()
 const { user, loading, updateProfile, updatePassword, logout } = useAuth()
 const { isDarkMode, toggleTheme } = useTheme()
 const { experimentalFeatures, toggleExperimentalFeatures, initSettings } = useUserSettings()
+
+// Check if we're in dev mode based on the current route
+const isDevMode = computed(() => route.path.includes('/dev'))
 
 // Form state management
 const form = reactive({
