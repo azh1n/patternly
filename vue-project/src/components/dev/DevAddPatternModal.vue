@@ -755,12 +755,62 @@ const extractStitches = (text) => {
       }
     }
     
+    // Common pattern format: "Round X (1sc, 1inc) x6 (18)"
+    // Try to directly match this pattern first
+    const fullPattern = text.match(/^Round\s+(\d+)\s+\(([^)]+)\)\s*x(\d+)\s*\(\d+\)$/i);
+    if (fullPattern) {
+      const rowNum = fullPattern[1];
+      const content = fullPattern[2];
+      const repeatCount = fullPattern[3];
+      
+      // Process the content inside parentheses
+      const parts = content.split(',').map(p => p.trim());
+      const extractedStitches = [];
+      
+      for (const part of parts) {
+        const scMatch = part.match(/(\d+)\s*sc/i);
+        if (scMatch) {
+          extractedStitches.push(`${scMatch[1]}sc`);
+          continue;
+        }
+        
+        const incMatch = part.match(/(\d+)?\s*inc/i);
+        if (incMatch) {
+          const count = incMatch[1] || '1';
+          extractedStitches.push(`${count}inc`);
+          continue;
+        }
+        
+        const decMatch = part.match(/(\d+)?\s*dec/i);
+        if (decMatch) {
+          const count = decMatch[1] || '1';
+          extractedStitches.push(`${count}dec`);
+          continue;
+        }
+      }
+      
+      if (extractedStitches.length > 0) {
+        return {
+          repeated: extractedStitches,
+          beforeRepeat: [],
+          afterRepeat: []
+        };
+      }
+    }
+    
     // Strip out the "Round X" prefix and trailing stitch count in parentheses
     let cleanedText = text.replace(/^Round \d+\s+/, '').trim();
-    // Remove the stitch count in parentheses at the end, e.g. "(24)"
-    cleanedText = cleanedText.replace(/\s*\(\d+\)\s*$/, '').trim();
     
-    // Check for repeating patterns with parentheses and 'x' notation: (1sc, 1inc) x6
+    // Check for the pattern count at the end e.g., "(30)" or "(36)"
+    const endCountMatch = cleanedText.match(/\((\d+)\)$/);
+    let stitchCount = 0;
+    if (endCountMatch) {
+      stitchCount = parseInt(endCountMatch[1]);
+      // Remove the stitch count in parentheses at the end
+      cleanedText = cleanedText.replace(/\s*\(\d+\)\s*$/, '').trim();
+    }
+    
+    // Look for repeated pattern like "(1sc, 1inc) x6"
     const repeatPatternMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
     
     if (repeatPatternMatch) {
@@ -768,15 +818,68 @@ const extractStitches = (text) => {
       const repeatContent = repeatPatternMatch[1].trim();
       const repeatCount = parseInt(repeatPatternMatch[2]);
       
+      // Get the position of the repeat pattern in the text
+      const repeatIndex = cleanedText.indexOf(repeatPatternMatch[0]);
+      const repeatLength = repeatPatternMatch[0].length;
+      
       // Process the stitches within the repeating pattern
-      const repeatStitches = extractStitchesFromText(repeatContent);
+      const repeatStitches = [];
+      const parts = repeatContent.split(',').map(p => p.trim());
+      
+      for (const part of parts) {
+        const scMatch = part.match(/(\d+)\s*sc/i);
+        if (scMatch) {
+          repeatStitches.push(`${scMatch[1]}sc`);
+          continue;
+        }
+        
+        const incMatch = part.match(/(\d+)?\s*inc/i);
+        if (incMatch) {
+          const count = incMatch[1] || '1';
+          repeatStitches.push(`${count}inc`);
+          continue;
+        }
+        
+        const decMatch = part.match(/(\d+)?\s*dec/i);
+        if (decMatch) {
+          const count = decMatch[1] || '1';
+          repeatStitches.push(`${count}dec`);
+          continue;
+        }
+      }
+      
       result.repeated = repeatStitches;
       
       // Process text before the repeat
       if (repeatIndex > 0) {
         const beforeText = cleanedText.substring(0, repeatIndex).trim();
         if (beforeText) {
-          result.beforeRepeat = extractStitchesFromText(beforeText);
+          const beforeParts = beforeText.split(',').map(p => p.trim());
+          const beforeStitches = [];
+          
+          for (const part of beforeParts) {
+            const scMatch = part.match(/(\d+)\s*sc/i);
+            if (scMatch) {
+              beforeStitches.push(`${scMatch[1]}sc`);
+              continue;
+            }
+            
+            const incMatch = part.match(/(\d+)?\s*inc/i);
+            if (incMatch) {
+              const count = incMatch[1] || '1';
+              beforeStitches.push(`${count}inc`);
+              continue;
+            }
+            
+            const decMatch = part.match(/(\d+)?\s*dec/i);
+            if (decMatch) {
+              const count = decMatch[1] || '1';
+              beforeStitches.push(`${count}dec`);
+              continue;
+            }
+          }
+          
+          result.beforeRepeat = beforeStitches;
         }
       }
       
@@ -787,20 +890,91 @@ const extractStitches = (text) => {
                           .replace(/\(\d+\)/g, '')
                           .trim();
         if (afterText) {
-          result.afterRepeat = extractStitchesFromText(afterText);
+          const afterParts = afterText.split(',').map(p => p.trim());
+          const afterStitches = [];
+          
+          for (const part of afterParts) {
+            const scMatch = part.match(/(\d+)\s*sc/i);
+            if (scMatch) {
+              afterStitches.push(`${scMatch[1]}sc`);
+              continue;
+            }
+            
+            const incMatch = part.match(/(\d+)?\s*inc/i);
+            if (incMatch) {
+              const count = incMatch[1] || '1';
+              afterStitches.push(`${count}inc`);
+              continue;
+            }
+            
+            const decMatch = part.match(/(\d+)?\s*dec/i);
+            if (decMatch) {
+              const count = decMatch[1] || '1';
+              afterStitches.push(`${count}dec`);
+              continue;
+            }
+          }
+          
+          result.afterRepeat = afterStitches;
         }
       }
 
-      return {
-        repeated: result.repeated,
-        beforeRepeat: result.beforeRepeat,
-        afterRepeat: result.afterRepeat
-      };
-    } else {
-      // No repeating pattern, just extract all stitches
-      const allStitches = extractStitchesFromText(cleanedText);
-      return allStitches;
+      if (result.repeated.length > 0 || result.beforeRepeat.length > 0 || result.afterRepeat.length > 0) {
+        return {
+          repeated: result.repeated,
+          beforeRepeat: result.beforeRepeat,
+          afterRepeat: result.afterRepeat
+        };
+      }
     }
+    
+    // Try an alternate approach for patterns like "3sc, 1inc"
+    // Simple pattern like "6 sc" or "6 inc"
+    const simplePattern = cleanedText.match(/^(\d+)\s+(sc|inc|dec)$/i);
+    if (simplePattern) {
+      return [`${simplePattern[1]}${simplePattern[2].toLowerCase()}`];
+    }
+    
+    // Special handling for formats like "1sc, 1inc, (2sc, 1inc) x5, 1sc"
+    // Split by commas
+    const parts = cleanedText.split(',').map(p => p.trim()).filter(Boolean);
+    const extractedStitches = [];
+    
+    for (const part of parts) {
+      // Skip parts that have repeat patterns - we handle those separately
+      if (part.includes(')') || part.includes('x')) continue;
+      
+      // Handle "5sc" or "5 sc" format
+      const scMatch = part.match(/(\d+)\s*sc/i);
+      if (scMatch) {
+        extractedStitches.push(`${scMatch[1]}sc`);
+        continue;
+      }
+      
+      // Handle "1inc" or "1 inc" format
+      const incMatch = part.match(/(\d+)?\s*inc/i);
+      if (incMatch) {
+        const count = incMatch[1] || '1';
+        extractedStitches.push(`${count}inc`);
+        continue;
+      }
+      
+      // Handle "1dec" or "1 dec" format
+      const decMatch = part.match(/(\d+)?\s*dec/i);
+      if (decMatch) {
+        const count = decMatch[1] || '1';
+        extractedStitches.push(`${count}dec`);
+        continue;
+      }
+    }
+    
+    // If we found stitches with this approach, return them
+    if (extractedStitches.length > 0) {
+      return extractedStitches;
+    }
+    
+    // If we got here, try our original approach with extractStitchesFromText
+    return extractStitchesFromText(cleanedText);
   } catch (error) {
     return []; // Return empty array on error
   }
@@ -811,55 +985,116 @@ const extractStitchesFromText = (text) => {
   try {
     const foundStitches = [];
     
-    // Remove any parenthesized stitch counts like (18), (24)
-    const cleanedText = text.replace(/\(\d+\)/g, '').trim();
+    // Try to handle specific formats like "Round 3 (1sc, 1inc) x6 (18)"
+    // First, extract the pattern without the Round X and final count
+    const cleanedText = text.replace(/^Round \d+\s+/, '').replace(/\s*\(\d+\)\s*$/, '').trim();
     
-    // Skip processing row markers which aren't stitches
-    const rowMarkerText = detectedRowFormat.value || userRowFormat.value || 'Round #';
-    const rowPattern = createRowRegex(rowMarkerText);
-    const cleanedTextWithoutRowMarkers = cleanedText.replace(rowPattern, '').trim();
-    
-    // Split by commas to process individual stitches
-    const stitchParts = cleanedTextWithoutRowMarkers.split(',').map(part => part.trim()).filter(Boolean);
-    
-    // Process each stitch part
-    for (const part of stitchParts) {
-      // Common patterns to extract
-      // Handle patterns like "6sc", "1inc", "3dec"
-      const scMatch = part.match(/(\d+)\s*sc\b/i);
-      const incMatch = part.match(/(\d+)?\s*inc\b/i);
-      const decMatch = part.match(/(\d+)?\s*dec\b/i);
+    // Check for formats with specific patterns
+    // Format: "(1sc, 1inc) x6"
+    const repeatFormat = cleanedText.match(/^\(([^)]+)\)\s*x(\d+)$/);
+    if (repeatFormat) {
+      const content = repeatFormat[1];
+      const count = parseInt(repeatFormat[2]);
       
-      if (scMatch) {
-        foundStitches.push(`${scMatch[1]}sc`);
-        continue;
-      }
-      if (incMatch) {
-        const count = incMatch[1] || '1';
-        foundStitches.push(`${count}inc`);
-        continue;
-      }
-      if (decMatch) {
-        const count = decMatch[1] || '1';
-        foundStitches.push(`${count}dec`);
-        continue;
-      }
-      
-      // For other stitch types, try our standard patterns
-      let matched = false;
-      for (const pattern of stitchPatterns) {
-        const match = part.match(pattern.pattern);
-        if (match) {
-          const count = match[1] || '1';
-          foundStitches.push(`${count}${pattern.name}`);
-          matched = true;
-          break;
+      // Split the content by commas
+      const parts = content.split(',').map(p => p.trim());
+      for (const part of parts) {
+        const scMatch = part.match(/(\d+)\s*sc/i);
+        if (scMatch) {
+          foundStitches.push(`${scMatch[1]}sc`);
+          continue;
+        }
+        
+        const incMatch = part.match(/(\d+)?\s*inc/i);
+        if (incMatch) {
+          const num = incMatch[1] || '1';
+          foundStitches.push(`${num}inc`);
+          continue;
+        }
+        
+        const decMatch = part.match(/(\d+)?\s*dec/i);
+        if (decMatch) {
+          const num = decMatch[1] || '1';
+          foundStitches.push(`${num}dec`);
+          continue;
         }
       }
       
-      // If no match but we have what looks like a stitch, add it anyway
-      if (!matched && part.match(/\d+/)) {
-        foundStitches.push(part);
+      return foundStitches;
+    }
+    
+    // Format: "1sc, 1inc, (2sc, 1inc) x5, 1sc"
+    // Split by all commas first
+    const allParts = cleanedText.split(',').map(p => p.trim()).filter(Boolean);
+    
+    for (const part of allParts) {
+      // Check if this part contains a repeat pattern
+      if (part.includes(')') && part.includes('x')) {
+        // This is a repeat pattern, handle it separately
+        const repeatMatch = part.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          const innerContent = repeatMatch[1];
+          const innerParts = innerContent.split(',').map(p => p.trim());
+          
+          for (const innerPart of innerParts) {
+            const scMatch = innerPart.match(/(\d+)\s*sc/i);
+            const incMatch = innerPart.match(/(\d+)?\s*inc/i);
+            const decMatch = innerPart.match(/(\d+)?\s*dec/i);
+            
+            if (scMatch) {
+              foundStitches.push(`${scMatch[1]}sc`);
+            } else if (incMatch) {
+              const count = incMatch[1] || '1';
+              foundStitches.push(`${count}inc`);
+            } else if (decMatch) {
+              const count = decMatch[1] || '1';
+              foundStitches.push(`${count}dec`);
+            }
+          }
+        }
+        continue;
+      }
+      
+      // For non-repeat patterns
+      const scMatch = part.match(/(\d+)\s*sc/i);
+      const incMatch = part.match(/(\d+)?\s*inc/i);
+      const decMatch = part.match(/(\d+)?\s*dec/i);
+      
+      if (scMatch) {
+        foundStitches.push(`${scMatch[1]}sc`);
+      } else if (incMatch) {
+        const count = incMatch[1] || '1';
+        foundStitches.push(`${count}inc`);
+      } else if (decMatch) {
+        const count = decMatch[1] || '1';
+        foundStitches.push(`${count}dec`);
+      }
+    }
+    
+    // If we found stitches, return them
+    if (foundStitches.length > 0) {
+      return foundStitches;
+    }
+    
+    // Last resort: try to match individual stitch patterns
+    // This code is unlikely to be reached with our improved formats above
+    const patterns = [
+      /(\d+)\s*sc\b/gi,
+      /(\d+)?\s*inc\b/gi,
+      /(\d+)?\s*dec\b/gi,
+      /(\d+)\s*dc\b/gi,
+      /(\d+)\s*hdc\b/gi,
+      /(\d+)\s*tr\b/gi,
+      /(\d+)\s*dtr\b/gi,
+      /(\d+)\s*sl\s*st\b/gi
+    ];
+    
+    for (const pattern of patterns) {
+      const matches = Array.from(text.matchAll(pattern));
+      for (const match of matches) {
+        const count = match[1] || '1';
+        const stitchType = match[0].replace(/\d+\s*/g, '').trim().toLowerCase();
+        foundStitches.push(`${count}${stitchType}`);
       }
     }
     
