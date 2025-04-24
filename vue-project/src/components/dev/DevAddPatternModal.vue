@@ -124,6 +124,33 @@
                 </div>
               </div>
             </div>
+            
+            <!-- Pattern Preview Section -->
+            <div v-if="parsedRows.length" class="pattern-preview-section">
+              <h4>Pattern Preview</h4>
+              <div class="pattern-preview">
+                <div v-for="(row, index) in parsedRows" :key="index" class="preview-row">
+                  <div class="preview-row-header">
+                    <span class="preview-row-number">Row {{ row.number }}</span>
+                    <div v-if="row.color" class="color-indicator" :style="{ backgroundColor: getColorHex(row.color) }"></div>
+                  </div>
+                  <div class="preview-row-content">
+                    <div class="preview-stitches">
+                      <template v-for="(stitch, i) in row.stitches" :key="i">
+                        <div 
+                          class="preview-stitch" 
+                          :class="getStitchClass(stitch)"
+                          :title="stitch"
+                        >
+                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -191,13 +218,18 @@ const parsedRows = ref([])
 
 // Computed properties
 const canSave = computed(() => {
-  return patternName.value.trim() && parsedRows.value.length > 0 && !errorMessage.value
+  const hasValidName = patternName.value.trim().length > 0;
+  const hasInput = patternText.value.trim().length > 0;
+  
+  // Allow saving if there's a name and pattern text, even if parsing is limited
+  return hasValidName && hasInput;
 })
 
 // Common patterns for detection
 const commonRowPatterns = [
   { pattern: /^Row\s+(\d+)/i, format: 'Row #' },
   { pattern: /^Round\s+(\d+)/i, format: 'Round #' },
+  { pattern: /^Round\s+(\d+)\s+\(/i, format: 'Round #' }, // Format like "Round 57 (3sc, 1dec)"
   { pattern: /^R\s*(\d+)/i, format: 'R#' },
   { pattern: /^Rnd\s*(\d+)/i, format: 'Rnd #' }
 ]
@@ -211,7 +243,10 @@ const commonColorPatterns = [
 
 // Common crochet stitch patterns
 const stitchPatterns = [
+  { pattern: /\b(\d+)sc\b/i, name: 'sc' },  // single crochet with no space
   { pattern: /\b(\d+)\s*sc\b/i, name: 'sc' },  // single crochet
+  { pattern: /\b(\d+)dec\b/i, name: 'dec' },  // decrease with no space
+  { pattern: /\b(\d+)\s*dec\b/i, name: 'dec' },  // decrease
   { pattern: /\b(\d+)\s*dc\b/i, name: 'dc' },  // double crochet
   { pattern: /\b(\d+)\s*hdc\b/i, name: 'hdc' }, // half double crochet
   { pattern: /\b(\d+)\s*tr\b/i, name: 'tr' },  // treble crochet
@@ -222,7 +257,6 @@ const stitchPatterns = [
   { pattern: /\bst\b/i, name: 'st' },          // stitch
   { pattern: /\bsts\b/i, name: 'sts' },        // stitches
   { pattern: /\binc\b/i, name: 'inc' },        // increase
-  { pattern: /\bdec\b/i, name: 'dec' },        // decrease
   { pattern: /\bsp\b/i, name: 'sp' }           // space
 ]
 
@@ -340,6 +374,31 @@ const detectStitches = () => {
   const text = patternText.value
   const stitches = new Set()
   
+  // Handle pattern with parentheses like "Round 57 (3sc, 1dec) x8 (32)"
+  const parenthesesMatches = text.match(/\(([^)]+)\)/g);
+  if (parenthesesMatches) {
+    for (const parenthesesMatch of parenthesesMatches) {
+      const stitchesInParentheses = parenthesesMatch.replace(/[()]/g, '');
+      // Skip if it's just a number (likely stitch count)
+      if (/^\d+$/.test(stitchesInParentheses.trim())) continue;
+      
+      // Split by commas and process each stitch
+      const stitchParts = stitchesInParentheses.split(',').map(part => part.trim());
+      
+      stitchParts.forEach(part => {
+        // Check against all stitch patterns
+        for (const pattern of stitchPatterns) {
+          const match = part.match(pattern.pattern);
+          if (match) {
+            stitches.add(pattern.name);
+            break; // Found a match, move to next stitch
+          }
+        }
+      });
+    }
+  }
+  
+  // Also try the regular approach
   for (const pattern of stitchPatterns) {
     const matches = text.match(new RegExp(pattern.pattern, 'gi'))
     if (matches) {
@@ -382,8 +441,13 @@ const parseRows = () => {
   
   // If no row format is detected and user hasn't defined one, we can't parse
   if (!detectedRowFormat.value && !userRowFormat.value) {
-    parsedRows.value = []
-    return
+    // Set default for Round format seen in the screenshot
+    if (patternText.value.includes('Round')) {
+      detectedRowFormat.value = 'Round #'
+    } else {
+      parsedRows.value = []
+      return
+    }
   }
   
   const rowRegex = createRowRegex(detectedRowFormat.value || userRowFormat.value)
@@ -428,6 +492,26 @@ const parseRows = () => {
     })
   }
   
+  // If still no rows parsed but we have pattern text, try a more aggressive approach
+  if (rows.length === 0 && patternText.value.trim()) {
+    // Look for potential rows that might be formatted differently
+    const roundMatches = patternText.value.match(/Round\s+(\d+)[^\n]*/g);
+    if (roundMatches) {
+      roundMatches.forEach(match => {
+        const numberMatch = match.match(/Round\s+(\d+)/);
+        if (numberMatch) {
+          const rowNum = parseInt(numberMatch[1]);
+          rows.push({
+            number: rowNum,
+            text: match.trim(),
+            color: '',
+            stitches: extractStitches(match)
+          });
+        }
+      });
+    }
+  }
+  
   // Sort rows by number
   rows.sort((a, b) => a.number - b.number)
   
@@ -463,17 +547,46 @@ const extractColor = (text) => {
 
 // Extract stitches from row text
 const extractStitches = (text) => {
-  const foundStitches = []
+  const foundStitches = [];
   
-  for (const pattern of stitchPatterns) {
-    const matches = text.matchAll(new RegExp(pattern.pattern, 'gi'))
-    for (const match of matches) {
-      const count = match[1] || '1'
-      foundStitches.push(`${count}${pattern.name}`)
+  // Handle pattern with parentheses like "Round 57 (3sc, 1dec) x8 (32)"
+  const insideParentheses = text.match(/\(([^)]+)\)/);
+  if (insideParentheses && !/^\d+$/.test(insideParentheses[1].trim())) {
+    // Get content inside first parentheses that doesn't just contain a number
+    const stitchContent = insideParentheses[1].trim();
+    
+    // Split by commas and process each part
+    const parts = stitchContent.split(',');
+    for (const part of parts) {
+      const trimmedPart = part.trim();
+      
+      // Try to match against stitch patterns
+      for (const pattern of stitchPatterns) {
+        const match = trimmedPart.match(pattern.pattern);
+        if (match) {
+          const count = match[1] || '1';
+          foundStitches.push(`${count}${pattern.name}`);
+          break;
+        }
+      }
+    }
+    
+    // If we found stitches inside parentheses, return them
+    if (foundStitches.length > 0) {
+      return foundStitches;
     }
   }
   
-  return foundStitches
+  // If no stitches found inside parentheses, check the entire text
+  for (const pattern of stitchPatterns) {
+    const matches = Array.from(text.matchAll(new RegExp(pattern.pattern, 'gi')));
+    for (const match of matches) {
+      const count = match[1] || '1';
+      foundStitches.push(`${count}${pattern.name}`);
+    }
+  }
+  
+  return foundStitches;
 }
 
 // Apply user-defined row format
@@ -510,16 +623,16 @@ const savePattern = async () => {
       return
     }
 
-    if (!parsedRows.value.length) {
-      errorMessage.value = 'No valid rows found in the pattern.'
-      return
+    // Get pattern text - either use parsed rows or raw input if parsing failed
+    let formattedPattern = patternText.value;
+    
+    if (parsedRows.value.length > 0) {
+      // If we successfully parsed rows, use the structured format
+      formattedPattern = parsedRows.value.map(row => {
+        const colorInfo = row.color ? `with ${row.color}, ` : ''
+        return `Row ${row.number}: ${colorInfo}${row.stitches.join(', ')}`
+      }).join('. ')
     }
-
-    // Format pattern as text
-    const formattedPattern = parsedRows.value.map(row => {
-      const colorInfo = row.color ? `with ${row.color}, ` : ''
-      return `Row ${row.number}: ${colorInfo}${row.stitches.join(', ')}`
-    }).join('. ')
 
     // Emit the pattern data
     emit('pattern-added', {
@@ -533,6 +646,66 @@ const savePattern = async () => {
     console.error('Error saving pattern:', error)
     errorMessage.value = 'Error saving pattern: ' + error.message
   }
+}
+
+// Pattern preview helper methods
+const getStitchCount = (stitch) => {
+  // Extract the count from stitch notation (e.g., "3sc" -> "3")
+  const match = stitch.match(/^(\d+)/)
+  return match ? match[1] : '1'
+}
+
+const getStitchType = (stitch) => {
+  // Extract the stitch type from notation (e.g., "3sc" -> "sc")
+  const match = stitch.match(/\D+$/)
+  return match ? match[0] : stitch
+}
+
+const getStitchClass = (stitch) => {
+  // Return a CSS class based on stitch type
+  const type = getStitchType(stitch)
+  return {
+    'stitch-sc': type.includes('sc'),
+    'stitch-dc': type.includes('dc'),
+    'stitch-hdc': type.includes('hdc'),
+    'stitch-tr': type.includes('tr'),
+    'stitch-dtr': type.includes('dtr'),
+    'stitch-ch': type.includes('ch'),
+    'stitch-sl': type.includes('sl'),
+    'stitch-inc': type.includes('inc'),
+    'stitch-dec': type.includes('dec')
+  }
+}
+
+const getColorHex = (color) => {
+  // Map color identifiers to hex values
+  const colorMap = {
+    'A': '#ff5252', // Red
+    'B': '#4caf50', // Green
+    'C': '#2196f3', // Blue
+    'D': '#ffc107', // Yellow
+    'E': '#9c27b0', // Purple
+    'F': '#ff9800', // Orange
+    'MC': '#333333', // Main Color (dark)
+    'CC': '#e91e63', // Contrast Color (pink)
+    'CC1': '#e91e63', // Contrast Color 1
+    'CC2': '#00bcd4', // Contrast Color 2
+    'Red': '#ff5252',
+    'Green': '#4caf50',
+    'Blue': '#2196f3',
+    'Yellow': '#ffc107',
+    'Purple': '#9c27b0',
+    'Orange': '#ff9800',
+    'Pink': '#e91e63',
+    'Turquoise': '#00bcd4'
+  }
+  
+  // If we can match the color to our map, return the hex
+  const colorKey = Object.keys(colorMap).find(key => 
+    color.toLowerCase().includes(key.toLowerCase())
+  )
+  
+  return colorKey ? colorMap[colorKey] : '#888888' // Default gray
 }
 </script>
 
@@ -997,5 +1170,155 @@ const savePattern = async () => {
 
 :root.light .cancel-button:hover {
   background: #d0d0d0;
+}
+
+/* Pattern Preview Styles */
+.pattern-preview-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #444);
+}
+
+.pattern-preview-section h4 {
+  margin: 0 0 1rem;
+  color: var(--text-primary, #fff);
+  font-size: 1.125rem;
+}
+
+.pattern-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--preview-bg, #1a1a1a);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #444);
+}
+
+.preview-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preview-row-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.preview-row-number {
+  font-weight: 600;
+  color: var(--accent-color, #4f87ff);
+}
+
+.color-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.preview-row-content {
+  padding-left: 1.5rem;
+}
+
+.preview-stitches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.preview-stitch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--stitch-bg, #333);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border-color, #444);
+  font-size: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.stitch-count {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.stitch-type {
+  font-size: 0.625rem;
+  opacity: 0.8;
+}
+
+/* Different stitch styles */
+.stitch-sc {
+  background: #4caf50;
+  color: white;
+}
+
+.stitch-dc {
+  background: #2196f3;
+  color: white;
+}
+
+.stitch-hdc {
+  background: #673ab7;
+  color: white;
+}
+
+.stitch-tr {
+  background: #ff5722;
+  color: white;
+}
+
+.stitch-dtr {
+  background: #e91e63;
+  color: white;
+}
+
+.stitch-ch {
+  background: #ffc107;
+  color: #333;
+}
+
+.stitch-sl {
+  background: #9e9e9e;
+  color: white;
+}
+
+.stitch-inc {
+  background: #8bc34a;
+  color: white;
+}
+
+.stitch-dec {
+  background: #f44336;
+  color: white;
+}
+
+/* Light theme overrides for preview */
+:root.light .pattern-preview {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .preview-row-number {
+  color: #2979ff;
+}
+
+:root.light .preview-stitch {
+  background: #e0e0e0;
+  color: #333;
+  border: 1px solid #d0d0d0;
+}
+
+:root.light .color-indicator {
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 </style> 
