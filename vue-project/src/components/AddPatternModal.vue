@@ -36,15 +36,6 @@
 
         <!-- Modal action buttons -->
         <div class="modal-actions">
-          <div class="left-buttons">
-            <button 
-              @click="openTester"
-              class="advanced-button"
-              :disabled="!patternText"
-            >
-              Test Pattern Format
-            </button>
-          </div>
           <div class="right-buttons">
             <button @click="$emit('update:modelValue', false)" class="cancel-button">Cancel</button>
             <button 
@@ -59,19 +50,10 @@
       </div>
     </div>
   </div>
-
-  <!-- Pattern Notation Tester Modal -->
-  <PatternNotationTester
-    v-model="showNotationTester"
-    :pattern-text="patternText"
-    @close="closeNotationTester"
-    @save="closeNotationTester"
-  />
 </template>
 
 <script setup>
 import { ref, watch } from 'vue'
-import PatternNotationTester from './PatternNotationTester.vue'
 
 // Component props
 const props = defineProps({
@@ -92,14 +74,12 @@ const emit = defineEmits(['update:modelValue', 'pattern-added'])
 const MAX_CHARS = 100000  // Maximum characters allowed in pattern instructions
 const patternName = ref('')  // Stores pattern name input
 const patternText = ref('')  // Stores pattern instructions input
-const showNotationTester = ref(false)  // Controls notation tester modal visibility
 
 // Reset form when modal is opened
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     patternName.value = ''
     patternText.value = ''
-    showNotationTester.value = false
   }
 })
 
@@ -113,16 +93,6 @@ const handleInput = (event) => {
   }
 }
 
-// Open pattern tester
-const openTester = () => {
-  showNotationTester.value = true
-}
-
-// Close notation tester
-const closeNotationTester = () => {
-  showNotationTester.value = false
-}
-
 // Save the pattern
 const savePattern = () => {
   emit('pattern-added', {
@@ -131,12 +101,6 @@ const savePattern = () => {
   })
   emit('update:modelValue', false)
 }
-
-
-
-
-
-
 </script>
 
 <style scoped>
@@ -285,15 +249,10 @@ const savePattern = () => {
 /* Modal action buttons container */
 .modal-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 1rem;
   margin-top: 2rem;
-}
-
-.left-buttons {
-  display: flex;
-  gap: 1rem;
 }
 
 .right-buttons {
@@ -340,30 +299,6 @@ const savePattern = () => {
 .save-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* Advanced button styles */
-.advanced-button {
-  padding: 0.8rem 1.5rem;
-  background-color: var(--button-bg);
-  color: var(--accent-color);
-  border: 1px solid var(--accent-color);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.advanced-button:hover:not(:disabled) {
-  background-color: var(--accent-color);
-  color: white;
-}
-
-.advanced-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  border-color: var(--button-border);
-  color: var(--text-secondary);
 }
 
 /* Responsive styles for larger screens */

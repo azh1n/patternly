@@ -27,7 +27,7 @@
       />
     </main>
 
-    <AddPatternModal
+    <DevAddPatternModal
       v-model="showAddPattern"
       :is-loading="isLoading"
       @pattern-added="handlePatternAdded"
@@ -43,7 +43,7 @@ import { db } from '@/firebase'
 import { useAuth } from '@/services/auth'
 import DevPatternView from '@/components/dev/DevPatternView.vue'
 import PatternGrid from '@/components/PatternGrid.vue'
-import AddPatternModal from '@/components/AddPatternModal.vue'
+import DevAddPatternModal from '@/components/dev/DevAddPatternModal.vue'
 import AppHeader from '@/components/AppHeader.vue'
 
 const route = useRoute()
