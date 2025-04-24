@@ -2,36 +2,36 @@
 <template>
   <div v-if="modelValue" class="pattern-modal-overlay" @click="closeModal">
     <div class="pattern-modal" @click.stop>
-      <div class="modal-header">
+        <div class="modal-header">
         <h2>Add Pattern</h2>
         <button class="close-button" @click="closeModal">×</button>
-      </div>
+        </div>
       
       <div class="modal-body">
         <!-- Pattern Name -->
         <div class="form-group">
-          <label for="patternName">Pattern Name</label>
-          <input 
-            type="text" 
-            id="patternName" 
-            v-model="patternName" 
+            <label for="patternName">Pattern Name</label>
+            <input
+              type="text"
+              id="patternName"
+              v-model="patternName"
             placeholder="Enter pattern name"
             class="form-input"
-          />
-        </div>
-        
+            />
+          </div>
+  
         <!-- Pattern Input -->
         <div class="form-group">
           <label for="patternText">Pattern Instructions</label>
-          <textarea 
+            <textarea
             id="patternText" 
             v-model="patternText" 
             placeholder="Paste your pattern here..."
             class="form-textarea"
             @input="analyzePattern"
-          ></textarea>
-        </div>
-        
+            ></textarea>
+          </div>
+  
         <!-- Analysis Results -->
         <div v-if="patternText" class="analysis-section">
           <h3 class="section-title">
@@ -49,23 +49,18 @@
                 <span class="value">{{ detectedRowFormat || 'Not detected' }}</span>
                 <button v-if="!detectedRowFormat" class="action-button" @click="showRowConfig = true">
                   Define
-                </button>
-              </div>
-              
+            </button>
+          </div>
+  
               <div class="detection-item">
                 <span class="label">Colors:</span>
                 <span class="value">{{ detectedColors.length ? detectedColors.join(', ') : 'Not detected' }}</span>
                 <button v-if="!detectedColors.length" class="action-button" @click="showColorConfig = true">
                   Define
                 </button>
+                  </div>
               </div>
-              
-              <div class="detection-item">
-                <span class="label">Stitches:</span>
-                <span class="value">{{ detectedStitches.length ? detectedStitches.join(', ') : 'Not detected' }}</span>
-              </div>
-            </div>
-            
+  
             <!-- Configuration Panel -->
             <div v-if="showRowConfig || showColorConfig" class="config-panel">
               <!-- Row Format Configuration -->
@@ -73,7 +68,7 @@
                 <h4>Define Row Format</h4>
                 <p class="help-text">Enter the pattern used to identify rows (use # for row number)</p>
                 <div class="input-group">
-                  <input 
+                    <input 
                     type="text" 
                     v-model="userRowFormat" 
                     placeholder="Example: Row #, Round #, R#" 
@@ -81,11 +76,15 @@
                   />
                   <button @click="applyRowFormat" class="apply-button">Apply</button>
                 </div>
+                <div class="quick-options">
+                  <button @click="applyQuickFormat('Round #')" class="option-button">Use Round #</button>
+                  <button @click="applyQuickFormat('Row #')" class="option-button">Use Row #</button>
+                </div>
                 <div class="examples">
                   <p>Examples: "Row #", "Round #", "R#", "Rnd #"</p>
-                </div>
               </div>
-              
+            </div>
+  
               <!-- Color Configuration -->
               <div v-if="showColorConfig" class="config-section">
                 <h4>Define Color Format</h4>
@@ -98,16 +97,16 @@
                     class="form-input"
                   />
                   <button @click="applyColorFormat" class="apply-button">Apply</button>
-                </div>
+              </div>
                 <div class="examples">
                   <p>Examples: "Color A", "MC", "Pink", etc.</p>
-                </div>
               </div>
             </div>
-            
+          </div>
+  
             <!-- Parsed Rows -->
-            <div v-if="parsedRows.length" class="parsed-rows">
-              <h4>Parsed Rows</h4>
+            <div v-if="parsedRows.length > 0" class="parsed-rows">
+              <h4>Parsed Rows ({{ parsedRows.length }})</h4>
               <div class="rows-list">
                 <div v-for="(row, index) in parsedRows" :key="index" class="parsed-row">
                   <div class="row-header" @click="toggleRowDetails(index)">
@@ -117,14 +116,49 @@
                   </div>
                   <div v-if="expandedRows[index]" class="row-details">
                     <p class="row-text">{{ row.text }}</p>
+                    <div v-if="row.stitches && row.stitches.length" class="stitch-list">
+                      <span v-for="(stitch, i) in Array.isArray(row.stitches) ? row.stitches : []" 
+                            :key="i" 
+                            class="stitch-text">
+                        {{ stitch }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            
+                  
+            <!-- Fallback for when rows couldn't be parsed -->
+            <div v-else-if="patternText.trim()" class="parsed-rows">
+              <h4>Pattern Text</h4>
+              <div class="help-text">No rows were detected in your pattern. Please check if your pattern follows the standard format (Row 1: ... or Round 1: ...), or manually define a row format below.</div>
+              <div class="config-panel">
+                <div class="config-section">
+                  <h4>Define Row Format</h4>
+                  <p class="help-text">Enter the pattern used to identify rows (use # for row number)</p>
+                  <div class="input-group">
+                    <input 
+                      type="text" 
+                      v-model="userRowFormat" 
+                      placeholder="Example: Row #, Round #, R#" 
+                      class="form-input"
+                    />
+                    <button @click="applyRowFormat" class="apply-button">Apply</button>
+                  </div>
+                  <div class="quick-options">
+                    <button @click="applyQuickFormat('Round #')" class="option-button">Use Round #</button>
+                    <button @click="applyQuickFormat('Row #')" class="option-button">Use Row #</button>
+                  </div>
+                  <div class="examples">
+                    <p>Examples: "Row #", "Round #", "R#", "Rnd #"</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+                  
             <!-- Pattern Preview Section -->
             <div v-if="parsedRows.length" class="pattern-preview-section">
-              <h4>Pattern Preview</h4>
+              <h4>Pattern Preview ({{ parsedRows.length }} rows)</h4>
               <div class="pattern-preview">
                 <div v-for="(row, index) in parsedRows" :key="index" class="preview-row">
                   <div class="preview-row-header">
@@ -132,16 +166,67 @@
                     <div v-if="row.color" class="color-indicator" :style="{ backgroundColor: getColorHex(row.color) }"></div>
                   </div>
                   <div class="preview-row-content">
-                    <div class="preview-stitches">
-                      <template v-for="(stitch, i) in row.stitches" :key="i">
-                        <div 
-                          class="preview-stitch" 
-                          :class="getStitchClass(stitch)"
-                          :title="stitch"
-                        >
-                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                    <div v-if="!row.stitches || (Array.isArray(row.stitches) && row.stitches.length === 0)" class="no-stitches-message">
+                      No stitches detected. Original text: {{ row.text }}
+                    </div>
+                    <div v-else class="preview-stitches">
+                      <template v-if="typeof row.stitches === 'object' && row.stitches.repeated">
+                        <!-- Show stitches before the repeat -->
+                        <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
+                          <div 
+                            class="preview-stitch" 
+                            :class="getStitchClass(stitch)"
+                            :title="stitch"
+                          >
+                            <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                            <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                          </div>
+                        </template>
+                        
+                        <!-- Show the repeat group -->
+                        <div class="repeat-group">
+                          <div class="repeat-bracket">(</div>
+                          
+                          <template v-for="(stitch, i) in row.stitches.repeated" :key="`rep-${i}`">
+                            <div 
+                              class="preview-stitch" 
+                              :class="getStitchClass(stitch)"
+                              :title="stitch"
+                            >
+                              <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                              <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                            </div>
+                          </template>
+                          
+                          <div class="repeat-bracket">)</div>
+                          <div class="repeat-count">
+                            x{{ getRepeatCount(row.text) }}
+                          </div>
                         </div>
+                        
+                        <!-- Show stitches after the repeat -->
+                        <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
+                          <div 
+                            class="preview-stitch" 
+                            :class="getStitchClass(stitch)"
+                            :title="stitch"
+                          >
+                            <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                            <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                          </div>
+                        </template>
+                      </template>
+                      <template v-else>
+                        <template v-for="(stitch, i) in row.stitches" :key="i">
+                          <div 
+                            class="preview-stitch" 
+                            :class="getStitchClass(stitch)"
+                            :title="stitch"
+                          >
+                            <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                            <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                </div>
+                        </template>
                       </template>
                     </div>
                   </div>
@@ -149,53 +234,53 @@
               </div>
             </div>
           </div>
-        </div>
-        
+          </div>
+  
         <!-- Error Messages -->
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
-        </div>
-        
+          </div>
+  
         <!-- Action Buttons -->
         <div class="action-buttons">
-          <button 
-            @click="savePattern" 
-            class="save-button" 
+            <button 
+              @click="savePattern"
+              class="save-button"
             :disabled="!canSave"
-          >
-            {{ isLoading ? 'Saving...' : 'Save Pattern' }}
-          </button>
+            >
+              {{ isLoading ? 'Saving...' : 'Save Pattern' }}
+            </button>
           <button @click="closeModal" class="cancel-button">Cancel</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</template>
-
-<script setup>
+  </template>
+  
+  <script setup>
 import { ref, computed, watch, reactive } from 'vue'
 import { usePatternStore } from '@/stores/pattern'
-import { auth } from '@/firebase'
-
+  import { auth } from '@/firebase'
+  
 // Props and emits
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
+  const props = defineProps({
+    modelValue: {
+      type: Boolean,
     required: true
-  },
-  isLoading: {
-    type: Boolean,
+    },
+    isLoading: {
+      type: Boolean,
     default: false
-  }
-})
-
-const emit = defineEmits(['update:modelValue', 'pattern-added'])
-
-// Store
-const patternStore = usePatternStore()
-
+    }
+  })
+  
+  const emit = defineEmits(['update:modelValue', 'pattern-added'])
+  
+  // Store
+  const patternStore = usePatternStore()
+  
 // Form state
-const patternName = ref('')
+  const patternName = ref('')
 const patternText = ref('')
 const errorMessage = ref('')
 
@@ -231,7 +316,7 @@ const commonRowPatterns = [
   { pattern: /^Rnd\s*(\d+)/i, format: 'Rnd #' }
 ]
 
-const commonColorPatterns = [
+  const commonColorPatterns = [
   { pattern: /with\s+color\s+([A-Za-z]+)/i, format: 'color' },
   { pattern: /\bMC\b/i, format: 'MC' },
   { pattern: /\bCC\d*\b/i, format: 'CC' },
@@ -271,7 +356,7 @@ watch(() => props.modelValue, (newVal) => {
 
 // Reset form to initial state
 const resetForm = () => {
-  patternName.value = ''
+      patternName.value = ''
   patternText.value = ''
   errorMessage.value = ''
   detectedRowFormat.value = ''
@@ -293,6 +378,8 @@ const closeModal = () => {
 
 // Analyze the pattern text
 const analyzePattern = () => {
+  console.log('Analyzing pattern text:', patternText.value); // Added debug log
+  
   if (!patternText.value.trim()) {
     parsedRows.value = []
     return
@@ -304,15 +391,20 @@ const analyzePattern = () => {
     
     // Detect row format
     detectRowFormat()
+    console.log('Detected row format:', detectedRowFormat.value); // Added debug log
     
     // Detect colors
     detectColors()
+    console.log('Detected colors:', detectedColors.value); // Added debug log
     
     // Detect stitches
     detectStitches()
+    console.log('Detected stitches:', detectedStitches.value); // Added debug log
     
     // Parse rows based on detected or user-defined format
     parseRows()
+    console.log('Parsed rows results:', parsedRows.value); // Added debug log
+    console.log('Parsed rows length:', parsedRows.value.length); // Added debug log
   } catch (error) {
     console.error('Error analyzing pattern:', error)
     errorMessage.value = 'Error analyzing pattern: ' + error.message
@@ -321,25 +413,47 @@ const analyzePattern = () => {
 
 // Detect row format in the pattern
 const detectRowFormat = () => {
+  console.log('Detecting row format');
+  
   if (userRowFormat.value) {
     // User has already defined a format
     detectedRowFormat.value = userRowFormat.value
+    console.log('Using user-defined row format:', detectedRowFormat.value);
     return
   }
   
   const lines = patternText.value.split('\n')
+  console.log('Line count for pattern:', lines.length);
   
+  // Check each line against our known patterns
+  let foundFormat = false;
   for (const line of lines) {
+    if (!line.trim()) continue; // Skip empty lines
+    
+    console.log('Checking line:', line);
     for (const pattern of commonRowPatterns) {
       if (pattern.pattern.test(line)) {
         detectedRowFormat.value = pattern.format
-        return
+        console.log('Found row format:', pattern.format, 'from line:', line);
+        foundFormat = true;
+        break;
       }
     }
+    if (foundFormat) break;
   }
   
-  // No format detected
-  detectedRowFormat.value = ''
+  // If format not found, add a default based on content
+  if (!detectedRowFormat.value) {
+    // Look for indicators to guess format
+    const fullText = patternText.value.toLowerCase();
+    if (fullText.includes('round') || fullText.includes('rnd')) {
+      detectedRowFormat.value = 'Round #';
+      console.log('Setting default to Round format');
+    } else {
+      detectedRowFormat.value = 'Row #';
+      console.log('Setting default to Row format');
+    }
+  }
 }
 
 // Detect colors in the pattern
@@ -354,8 +468,8 @@ const detectColors = () => {
   
   for (const pattern of commonColorPatterns) {
     const matches = text.match(new RegExp(pattern.pattern, 'gi'))
-    if (matches) {
-      matches.forEach(match => {
+      if (matches) {
+        matches.forEach(match => {
         const colorMatch = match.match(pattern.pattern)
         if (colorMatch && colorMatch[1]) {
           colors.add(colorMatch[1])
@@ -374,23 +488,33 @@ const detectStitches = () => {
   const text = patternText.value
   const stitches = new Set()
   
+  console.log('Detecting stitches in pattern text');
+  
   // Handle pattern with parentheses like "Round 57 (3sc, 1dec) x8 (32)"
   const parenthesesMatches = text.match(/\(([^)]+)\)/g);
   
   if (parenthesesMatches && parenthesesMatches.length > 0) {
+    console.log('Found parentheses matches:', parenthesesMatches);
+    
     // Find the first set of parentheses that doesn't just contain a number
     for (const parenthesesMatch of parenthesesMatches) {
       const content = parenthesesMatch.replace(/[()]/g, '').trim();
+      console.log('Checking content:', content);
       
       // Skip if it's just a number (likely stitch count)
-      if (/^\d+$/.test(content)) continue;
+      if (/^\d+$/.test(content)) {
+        console.log('Skipping number-only content');
+        continue;
+      }
       
       // If there's an "x" with a number (like "x6"), it means we need to repeat these stitches
       const repeatMatch = text.match(/\([^)]+\)\s*x(\d+)/);
       const repeatCount = repeatMatch ? parseInt(repeatMatch[1]) : 1;
+      console.log('Repeat count:', repeatCount);
       
       // Split by commas and process each stitch
       const stitchParts = content.split(',').map(part => part.trim());
+      console.log('Stitch parts:', stitchParts);
       
       // For each stitch instruction
       for (const part of stitchParts) {
@@ -402,6 +526,7 @@ const detectStitches = () => {
         if (scMatch) {
           stitches.add(`${scMatch[1]}sc`);
           matched = true;
+          console.log('Added sc stitch:', `${scMatch[1]}sc`);
         }
         
         // Check for "1inc" or "inc" pattern
@@ -410,6 +535,7 @@ const detectStitches = () => {
           const count = incMatch[1] || '1';
           stitches.add(`${count}inc`);
           matched = true;
+          console.log('Added inc stitch:', `${count}inc`);
         }
         
         // Check for "1dec" or "dec" pattern
@@ -418,6 +544,7 @@ const detectStitches = () => {
           const count = decMatch[1] || '1';
           stitches.add(`${count}dec`);
           matched = true;
+          console.log('Added dec stitch:', `${count}dec`);
         }
         
         // If we didn't match any specific pattern, try the general patterns
@@ -427,6 +554,7 @@ const detectStitches = () => {
             if (match) {
               const count = match[1] || '1';
               stitches.add(`${count}${pattern.name}`);
+              console.log('Added pattern stitch:', `${count}${pattern.name}`);
               break;
             }
           }
@@ -442,43 +570,49 @@ const detectStitches = () => {
   
   // If no stitches found inside parentheses, check the entire text
   if (stitches.size === 0) {
+    console.log('No stitches found in parentheses, checking entire text');
     for (const pattern of stitchPatterns) {
       const matches = Array.from(text.matchAll(new RegExp(pattern.pattern, 'gi')));
       for (const match of matches) {
         const count = match[1] || '1';
         stitches.add(`${count}${pattern.name}`);
+        console.log('Added full text stitch:', `${count}${pattern.name}`);
       }
     }
   }
   
   detectedStitches.value = Array.from(stitches)
+  console.log('Final detected stitches:', detectedStitches.value);
 }
 
 // Create regex for row format
 const createRowRegex = (format) => {
+  console.log('Creating regex from format:', format);
+  
   // Replace known keywords with their regex equivalents
   let regexFormat = format
-    .replace(/Row/i, '(?:Row|R)')
-    .replace(/Round/i, '(?:Round|Rnd)')
-    .replace(/R(?!ound)/i, '(?:Row|R)')
-    .replace(/Rnd/i, '(?:Round|Rnd)')
+    .replace(/Round/i, 'Round')
+    .replace(/Row/i, 'Row')
+    .replace(/R(?!ound)/i, 'R')
+    .replace(/Rnd/i, 'Rnd')
   
-  // Escape special regex characters except those we just added
+  // Escape special regex characters
   regexFormat = regexFormat
     .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    // Restore our special patterns
-    .replace(/\\\(\\\?:\\\w+\\\|\\\w+\\\)/g, match => {
-      return match.replace(/\\/g, '')
-    })
   
   // Replace # with capture group for row number
   regexFormat = regexFormat.replace(/#/g, '(\\d+)')
   
-  return new RegExp(regexFormat, 'i')
+  const finalRegex = new RegExp(regexFormat, 'i');
+  console.log('Final regex pattern string:', finalRegex.toString());
+  
+  return finalRegex;
 }
 
-// Parse the rows in the pattern
+// Update the parseRows function to handle poorly formatted rows
 const parseRows = () => {
+  console.log('Starting parseRows with text:', patternText.value);
+
   if (!patternText.value.trim()) {
     parsedRows.value = []
     return
@@ -489,85 +623,146 @@ const parseRows = () => {
     // Set default for Round format seen in the screenshot
     if (patternText.value.includes('Round')) {
       detectedRowFormat.value = 'Round #'
+      console.log('Set default row format to "Round #"');
+    } else if (patternText.value.includes('Row')) {
+      detectedRowFormat.value = 'Row #'
+      console.log('Set default row format to "Row #"');
     } else {
+      console.log('No row format detected or defined');
       parsedRows.value = []
       return
     }
   }
   
-  const rowRegex = createRowRegex(detectedRowFormat.value || userRowFormat.value)
-  const text = patternText.value
-  const lines = text.split('\n').filter(line => line.trim())
+  // First, preprocess the text to handle multiple rounds on the same line
+  const text = patternText.value.trim();
   
-  const rows = []
-  let currentRow = null
-  let currentRowText = ''
+  // Replace "Round X" with a newline before it if it's not at the beginning of a line
+  // This separates rounds that are on the same line
+  const preprocessedText = text.replace(/(\S)(Round \d+)/g, '$1\n$2');
+  console.log('Preprocessed text to separate rounds on same line:', preprocessedText);
   
-  // First pass - identify row boundaries
-  for (const line of lines) {
-    const rowMatch = line.match(rowRegex)
+  const lines = preprocessedText.split('\n');
+  console.log('Total lines to parse:', lines.length);
+  
+  // Try a simpler approach - match "Round X" directly
+  const rowRegex = /Round (\d+)/i;
+  
+  // Find all rows with "Round X" format
+  const foundRows = [];
+  
+  lines.forEach(line => {
+    const matches = [...line.matchAll(new RegExp(rowRegex, 'gi'))];
     
-    if (rowMatch) {
-      // Save previous row if exists
-      if (currentRow !== null && currentRowText) {
-        rows.push({
-          number: currentRow,
-          text: currentRowText.trim(),
-          color: extractColor(currentRowText),
-          stitches: extractStitches(currentRowText)
-        })
-      }
+    // If there are multiple Round matches in one line, split them
+    if (matches.length > 1) {
+      console.log(`Found multiple rounds in one line: ${matches.length} rounds`);
       
-      // Start new row
-      currentRow = parseInt(rowMatch[1])
-      currentRowText = line
-    } else if (currentRow !== null) {
-      // Continue current row
-      currentRowText += ' ' + line
-    }
-  }
-  
-  // Add the last row
-  if (currentRow !== null && currentRowText) {
-    rows.push({
-      number: currentRow,
-      text: currentRowText.trim(),
-      color: extractColor(currentRowText),
-      stitches: extractStitches(currentRowText)
-    })
-  }
-  
-  // If still no rows parsed but we have pattern text, try a more aggressive approach
-  if (rows.length === 0 && patternText.value.trim()) {
-    // Look for potential rows that might be formatted differently
-    const roundMatches = patternText.value.match(/Round\s+(\d+)[^\n]*/g);
-    if (roundMatches) {
-      roundMatches.forEach(match => {
-        const numberMatch = match.match(/Round\s+(\d+)/);
-        if (numberMatch) {
-          const rowNum = parseInt(numberMatch[1]);
-          rows.push({
-            number: rowNum,
-            text: match.trim(),
-            color: '',
-            stitches: extractStitches(match)
-          });
-        }
+      let prevIndex = 0;
+      matches.forEach((match, index) => {
+        const rowNum = parseInt(match[1]);
+        const startPos = match.index;
+        const endPos = (index < matches.length - 1) ? matches[index + 1].index : line.length;
+        
+        const rowText = line.substring(startPos, endPos).trim();
+        console.log(`Split round ${rowNum}: "${rowText}"`);
+        
+        foundRows.push({
+          number: rowNum,
+          text: rowText,
+          color: extractColor(rowText),
+          stitches: extractStitches(rowText)
+        });
+      });
+    } 
+    // Single round in line
+    else if (matches.length === 1) {
+      const match = matches[0];
+      const rowNum = parseInt(match[1]);
+      console.log(`Found Round ${rowNum} in line: ${line}`);
+      
+      foundRows.push({
+        number: rowNum,
+        text: line.trim(),
+        color: extractColor(line),
+        stitches: extractStitches(line)
       });
     }
+  });
+  
+  console.log('Found rows with Round pattern:', foundRows.length);
+  
+  if (foundRows.length === 0) {
+    // Fallback to the more complex regex approach
+    console.log('Falling back to complex regex approach');
+    const rowPattern = createRowRegex(detectedRowFormat.value || userRowFormat.value);
+    console.log('Row pattern regex:', rowPattern);
+    
+    // Get all text content, normalize line breaks and spaces for regex
+    const normalizedText = text.replace(/\s+/g, ' ').trim();
+    
+    // Find all row patterns in the entire text
+    const allRowMatches = [...normalizedText.matchAll(new RegExp(rowPattern, 'gi'))];
+    console.log('Row matches found with complex regex:', allRowMatches.length, allRowMatches);
+    
+    // If no matches, we can't parse
+    if (allRowMatches.length === 0) {
+      console.log('No rows matched the pattern');
+      parsedRows.value = [];
+      return;
+    }
+    
+    // For each match, extract the row number and position
+    const rowPositions = allRowMatches.map((match, index) => {
+      return {
+        number: parseInt(match[1]),
+        start: match.index,
+        // End position is either the start of the next row or the end of text
+        end: (index < allRowMatches.length - 1) ? allRowMatches[index + 1].index : normalizedText.length
+      };
+    });
+    
+    // Create row objects from the positions
+    const rowsFromRegex = rowPositions.map(pos => {
+      // Get the text for this row
+      const rowText = normalizedText.substring(pos.start, pos.end).trim();
+      
+      try {
+        const extractedStitches = extractStitches(rowText);
+        return {
+          number: pos.number,
+          text: rowText,
+          color: extractColor(rowText),
+          stitches: extractedStitches
+        };
+      } catch (err) {
+        console.error(`Error extracting stitches for row ${pos.number}:`, err);
+        return {
+          number: pos.number,
+          text: rowText,
+          color: extractColor(rowText),
+          stitches: [] // Fallback to empty stitches
+        };
+      }
+    });
+    
+    // Sort rows by number and add to foundRows
+    rowsFromRegex.sort((a, b) => a.number - b.number);
+    foundRows.push(...rowsFromRegex);
   }
   
-  // Sort rows by number
-  rows.sort((a, b) => a.number - b.number)
+  // Sort the final combined rows by number
+  foundRows.sort((a, b) => a.number - b.number);
   
   // Initialize expanded state for first 3 rows
-  const expanded = {}
-  rows.forEach((row, index) => {
-    expanded[index] = index < 3
-  })
-  expandedRows.value = expanded
+  const expanded = {};
+  foundRows.forEach((row, index) => {
+    expanded[index] = index < 3;
+  });
+  expandedRows.value = expanded;
   
-  parsedRows.value = rows
+  console.log("Final parsed rows:", foundRows.length, foundRows);
+  parsedRows.value = foundRows;
 }
 
 // Extract color from row text
@@ -582,7 +777,7 @@ const extractColor = (text) => {
   // Otherwise use detected patterns
   for (const pattern of commonColorPatterns) {
     const match = text.match(pattern.pattern)
-    if (match) {
+        if (match) {
       return match[1] || pattern.format
     }
   }
@@ -592,95 +787,182 @@ const extractColor = (text) => {
 
 // Extract stitches from row text
 const extractStitches = (text) => {
-  const foundStitches = [];
-  
-  // Handle pattern with parentheses like "Round 3 (1sc, 1inc) x6 (18)"
-  const parenthesesMatches = text.match(/\(([^)]+)\)/g);
-  
-  if (parenthesesMatches && parenthesesMatches.length > 0) {
-    // Find the first set of parentheses that doesn't just contain a number
-    for (const parenthesesMatch of parenthesesMatches) {
-      const content = parenthesesMatch.replace(/[()]/g, '').trim();
+  try {
+    console.log('Extracting stitches from:', text);
+    // Create a more structured result object
+    const result = {
+      repeated: [],
+      beforeRepeat: [],
+      afterRepeat: [],
+      allStitches: []
+    };
+    
+    // If there's another "Round X" in the text, truncate it to only include the current row
+    const nextRoundMatch = text.match(/Round \d+/g);
+    if (nextRoundMatch && nextRoundMatch.length > 1) {
+      // Find the position of the second "Round X"
+      const firstRoundPos = text.indexOf(nextRoundMatch[0]);
+      const secondRoundPos = text.indexOf(nextRoundMatch[1]);
       
-      // Skip if it's just a number (likely stitch count)
-      if (/^\d+$/.test(content)) continue;
-      
-      // If there's an "x" with a number (like "x6"), it means we need to repeat these stitches
-      const repeatMatch = text.match(/\([^)]+\)\s*x(\d+)/);
-      const repeatCount = repeatMatch ? parseInt(repeatMatch[1]) : 1;
-      
-      // Split by commas and process each stitch
-      const stitchParts = content.split(',').map(part => part.trim());
-      
-      // For each stitch instruction
-      for (const part of stitchParts) {
-        // Try to match directly with our common patterns
-        let matched = false;
-        
-        // Check for "1sc" or "3sc" pattern
-        const scMatch = part.match(/(\d+)sc/i);
-        if (scMatch) {
-          foundStitches.push(`${scMatch[1]}sc`);
-          matched = true;
-        }
-        
-        // Check for "1inc" or "inc" pattern
-        const incMatch = part.match(/(?:(\d+)inc|inc)/i);
-        if (incMatch) {
-          const count = incMatch[1] || '1';
-          foundStitches.push(`${count}inc`);
-          matched = true;
-        }
-        
-        // Check for "1dec" or "dec" pattern
-        const decMatch = part.match(/(?:(\d+)dec|dec)/i);
-        if (decMatch) {
-          const count = decMatch[1] || '1';
-          foundStitches.push(`${count}dec`);
-          matched = true;
-        }
-        
-        // If we didn't match any specific pattern, try the general patterns
-        if (!matched) {
-          for (const pattern of stitchPatterns) {
-            const match = part.match(pattern.pattern);
-            if (match) {
-              const count = match[1] || '1';
-              foundStitches.push(`${count}${pattern.name}`);
-              break;
-            }
-          }
-        }
-      }
-      
-      // If we found stitches in this set of parentheses, no need to check others
-      if (foundStitches.length > 0) {
-        break;
+      if (firstRoundPos >= 0 && secondRoundPos > firstRoundPos) {
+        console.log('Found another round in the text, truncating');
+        text = text.substring(0, secondRoundPos).trim();
+        console.log('Truncated text:', text);
       }
     }
+    
+    // Strip out the "Round X" prefix and trailing stitch count in parentheses
+    let cleanedText = text.replace(/^Round \d+\s+/, '').trim();
+    // Remove the stitch count in parentheses at the end, e.g. "(24)"
+    cleanedText = cleanedText.replace(/\s*\(\d+\)\s*$/, '').trim();
+    
+    console.log('Cleaned text for stitch extraction:', cleanedText);
+    
+    // Check for repeating patterns with parentheses and 'x' notation: (1sc, 1inc) x6
+    const repeatPatternMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
+    
+    if (repeatPatternMatch) {
+      // Get the repeat content and count
+      const repeatContent = repeatPatternMatch[1].trim();
+      const repeatCount = parseInt(repeatPatternMatch[2]);
+      
+      console.log('Found repeat pattern:', repeatContent, 'x', repeatCount);
+      
+      // Get the position of the repeat pattern in the text
+      const repeatIndex = cleanedText.indexOf(repeatPatternMatch[0]);
+      const repeatLength = repeatPatternMatch[0].length;
+      
+      // Process the stitches within the repeating pattern
+      const repeatStitches = extractStitchesFromText(repeatContent);
+      result.repeated = repeatStitches;
+      
+      // Process text before the repeat
+      if (repeatIndex > 0) {
+        const beforeText = cleanedText.substring(0, repeatIndex).trim();
+        if (beforeText) {
+          result.beforeRepeat = extractStitchesFromText(beforeText);
+        }
+      }
+      
+      // Process text after the repeat
+      if (repeatIndex + repeatLength < cleanedText.length) {
+        // Skip any text in parentheses that contains just a number (like (24))
+        const afterText = cleanedText.substring(repeatIndex + repeatLength)
+                          .replace(/\(\d+\)/g, '')
+                          .trim();
+        if (afterText) {
+          result.afterRepeat = extractStitchesFromText(afterText);
+        }
+      }
+
+      return {
+        repeated: result.repeated,
+        beforeRepeat: result.beforeRepeat,
+        afterRepeat: result.afterRepeat
+      };
+    } else {
+      // No repeating pattern, just extract all stitches
+      const allStitches = extractStitchesFromText(cleanedText);
+      console.log('Extracted non-repeated stitches:', allStitches);
+      return allStitches;
+    }
+  } catch (error) {
+    console.error("Error in extractStitches:", error);
+    return []; // Return empty array on error
   }
-  
-  // If no stitches found inside parentheses, check the entire text
-  if (foundStitches.length === 0) {
-    for (const pattern of stitchPatterns) {
-      const matches = Array.from(text.matchAll(new RegExp(pattern.pattern, 'gi')));
-      for (const match of matches) {
-        const count = match[1] || '1';
-        foundStitches.push(`${count}${pattern.name}`);
+}
+
+// Helper function to extract stitch patterns from a given text
+const extractStitchesFromText = (text) => {
+  try {
+    console.log('Extracting stitches from text:', text);
+    const foundStitches = [];
+    
+    // Remove any parenthesized stitch counts like (18), (24)
+    const cleanedText = text.replace(/\(\d+\)/g, '').trim();
+    
+    // Skip processing row markers which aren't stitches
+    const rowMarkerText = detectedRowFormat.value || userRowFormat.value || 'Round #';
+    const rowPattern = createRowRegex(rowMarkerText);
+    const cleanedTextWithoutRowMarkers = cleanedText.replace(rowPattern, '').trim();
+    
+    // Split by commas to process individual stitches
+    const stitchParts = cleanedTextWithoutRowMarkers.split(',').map(part => part.trim()).filter(Boolean);
+    console.log('Stitch parts after comma splitting:', stitchParts);
+    
+    // Process each stitch part
+    for (const part of stitchParts) {
+      // Common patterns to extract
+      // Handle patterns like "6sc", "1inc", "3dec"
+      const scMatch = part.match(/(\d+)\s*sc\b/i);
+      const incMatch = part.match(/(\d+)?\s*inc\b/i);
+      const decMatch = part.match(/(\d+)?\s*dec\b/i);
+      
+      if (scMatch) {
+        foundStitches.push(`${scMatch[1]}sc`);
+        continue;
+      }
+      if (incMatch) {
+        const count = incMatch[1] || '1';
+        foundStitches.push(`${count}inc`);
+        continue;
+      }
+      if (decMatch) {
+        const count = decMatch[1] || '1';
+        foundStitches.push(`${count}dec`);
+        continue;
+      }
+      
+      // For other stitch types, try our standard patterns
+      let matched = false;
+      for (const pattern of stitchPatterns) {
+        const match = part.match(pattern.pattern);
+        if (match) {
+          const count = match[1] || '1';
+          foundStitches.push(`${count}${pattern.name}`);
+          matched = true;
+          break;
+        }
+      }
+      
+      // If no match but we have what looks like a stitch, add it anyway
+      if (!matched && part.match(/\d+/)) {
+        console.log('Adding unmatched potential stitch:', part);
+        foundStitches.push(part);
       }
     }
+    
+    console.log('Final extracted stitches:', foundStitches);
+    return foundStitches;
+  } catch (error) {
+    console.error("Error in extractStitchesFromText:", error, "for text:", text);
+    return [];
   }
-  
-  // Remove duplicates and return
-  return [...new Set(foundStitches)];
 }
 
 // Apply user-defined row format
 const applyRowFormat = () => {
+  console.log('Applying user row format:', userRowFormat.value);
+  
   if (userRowFormat.value) {
-    detectedRowFormat.value = userRowFormat.value
-    showRowConfig.value = false
-    parseRows()
+    detectedRowFormat.value = userRowFormat.value;
+    showRowConfig.value = false;
+    
+    // If the user format doesn't contain a '#', add it
+    if (!detectedRowFormat.value.includes('#')) {
+      detectedRowFormat.value += ' #';
+      console.log('Added # to row format:', detectedRowFormat.value);
+    }
+    
+    // For testing: Add a sample format that will match the example
+    if (userRowFormat.value.toLowerCase() === 'round') {
+      userRowFormat.value = 'Round #';
+      detectedRowFormat.value = 'Round #';
+      console.log('Set to default Round # format');
+    }
+    
+    console.log('Final row format to use:', detectedRowFormat.value);
+    parseRows();
   }
 }
 
@@ -698,16 +980,16 @@ const toggleRowDetails = (index) => {
     ...expandedRows.value,
     [index]: !expandedRows.value[index]
   }
-}
-
-// Save the pattern
-const savePattern = async () => {
-  try {
-    // Check if user is authenticated
-    if (!auth.currentUser) {
+  }
+  
+  // Save the pattern
+  const savePattern = async () => {
+    try {
+      // Check if user is authenticated
+      if (!auth.currentUser) {
       errorMessage.value = 'Please sign in to save patterns.'
-      return
-    }
+        return
+      }
 
     // Get pattern text - either use parsed rows or raw input if parsing failed
     let formattedPattern = patternText.value;
@@ -718,18 +1000,18 @@ const savePattern = async () => {
         const colorInfo = row.color ? `with ${row.color}, ` : ''
         return `Row ${row.number}: ${colorInfo}${row.stitches.join(', ')}`
       }).join('. ')
-    }
+      }
 
     // Emit the pattern data
-    emit('pattern-added', {
-      name: patternName.value.trim(),
+      emit('pattern-added', {
+        name: patternName.value.trim(),
       content: formattedPattern
-    })
+      })
     
     // Close the modal
     closeModal()
-  } catch (error) {
-    console.error('Error saving pattern:', error)
+    } catch (error) {
+      console.error('Error saving pattern:', error)
     errorMessage.value = 'Error saving pattern: ' + error.message
   }
 }
@@ -792,22 +1074,44 @@ const getColorHex = (color) => {
   )
   
   return colorKey ? colorMap[colorKey] : '#888888' // Default gray
-}
-</script>
+  }
 
-<style scoped>
+const extractRepeatPattern = (text) => {
+  // Look for patterns like (1sc, 1inc) x6
+  const repeatMatch = text.match(/\(([^)]+)\)\s*x(\d+)/);
+  if (repeatMatch) {
+    return `(${repeatMatch[1]}) x${repeatMatch[2]}`;
+  }
+  return text;
+}
+
+const getRepeatCount = (text) => {
+  const repeatMatch = text.match(/\([^)]+\)\s*x(\d+)/);
+  return repeatMatch ? repeatMatch[1] : "";
+  }
+
+const applyQuickFormat = (format) => {
+  console.log('Applying quick format:', format);
+  userRowFormat.value = format;
+  detectedRowFormat.value = format;
+  showRowConfig.value = false;
+  parseRows();
+}
+  </script>
+  
+  <style scoped>
 /* Modal Overlay */
 .pattern-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
   padding: 1rem;
 }
 
@@ -815,7 +1119,7 @@ const getColorHex = (color) => {
 .pattern-modal {
   width: 100%;
   max-width: 700px;
-  max-height: 90vh;
+    max-height: 90vh;
   overflow-y: auto;
   background: var(--card-bg, #2a2a2a);
   border-radius: 12px;
@@ -823,77 +1127,77 @@ const getColorHex = (color) => {
 }
 
 /* Modal Header */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color, #444);
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
+  }
+  
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
   color: var(--text-primary, #fff);
   font-weight: 600;
-}
-
-.close-button {
-  background: none;
-  border: none;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
   color: var(--text-secondary, #aaa);
   font-size: 1.75rem;
-  cursor: pointer;
+    cursor: pointer;
   padding: 0;
   line-height: 1;
-}
-
-.close-button:hover {
+  }
+  
+  .close-button:hover {
   color: var(--text-primary, #fff);
 }
 
 /* Modal Body */
 .modal-body {
-  padding: 1.5rem;
-}
-
+    padding: 1.5rem;
+  }
+  
 /* Form Elements */
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
   color: var(--text-primary, #fff);
-  font-weight: 500;
-}
-
+    font-weight: 500;
+  }
+  
 .form-input {
-  width: 100%;
-  padding: 0.75rem;
+    width: 100%;
+    padding: 0.75rem;
   border: 1px solid var(--border-color, #444);
   border-radius: 6px;
   background: var(--input-bg, #333);
   color: var(--text-primary, #fff);
-  font-size: 1rem;
-}
-
+    font-size: 1rem;
+  }
+  
 .form-input:focus {
-  outline: none;
+    outline: none;
   border-color: var(--accent-color, #4f87ff);
-}
-
+  }
+  
 .form-textarea {
-  width: 100%;
+    width: 100%;
   min-height: 120px;
   padding: 0.75rem;
   border: 1px solid var(--border-color, #444);
   border-radius: 6px;
   background: var(--input-bg, #333);
   color: var(--text-primary, #fff);
-  font-size: 1rem;
-  resize: vertical;
+    font-size: 1rem;
+    resize: vertical;
 }
 
 .form-textarea:focus {
@@ -910,7 +1214,7 @@ const getColorHex = (color) => {
 }
 
 .section-title {
-  display: flex;
+    display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 0;
@@ -928,7 +1232,7 @@ const getColorHex = (color) => {
   color: var(--accent-color, #4f87ff);
   font-size: 1.25rem;
   font-weight: bold;
-  cursor: pointer;
+    cursor: pointer;
   padding: 0;
   width: 24px;
   height: 24px;
@@ -1004,9 +1308,9 @@ const getColorHex = (color) => {
 }
 
 .config-section:last-child {
-  margin-bottom: 0;
-}
-
+    margin-bottom: 0;
+  }
+  
 .config-section h4 {
   margin: 0 0 0.75rem;
   color: var(--text-primary, #fff);
@@ -1020,7 +1324,7 @@ const getColorHex = (color) => {
 }
 
 .input-group {
-  display: flex;
+    display: flex;
   gap: 0.5rem;
 }
 
@@ -1028,9 +1332,9 @@ const getColorHex = (color) => {
   padding: 0.75rem 1rem;
   background: var(--accent-color, #4f87ff);
   color: #fff;
-  border: none;
+    border: none;
   border-radius: 6px;
-  cursor: pointer;
+    cursor: pointer;
   white-space: nowrap;
 }
 
@@ -1045,9 +1349,42 @@ const getColorHex = (color) => {
   font-style: italic;
 }
 
+.quick-options {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.option-button {
+  padding: 0.5rem 0.75rem;
+  background: var(--button-bg, #444);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border-color, #555);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.option-button:hover {
+  background: var(--button-hover-bg, #555);
+  border-color: var(--accent-color, #4f87ff);
+}
+
+:root.light .option-button {
+  background: #e8e8e8;
+  color: #333;
+  border: 1px solid #d0d0d0;
+}
+
+:root.light .option-button:hover {
+  background: #d8d8d8;
+  border-color: #2979ff;
+}
+
 /* Parsed Rows */
 .parsed-rows {
-  margin-top: 1.5rem;
+    margin-top: 1.5rem;
 }
 
 .parsed-rows h4 {
@@ -1057,12 +1394,12 @@ const getColorHex = (color) => {
 }
 
 .rows-list {
-  display: flex;
+    display: flex;
   flex-direction: column;
   gap: 0.75rem;
-}
-
-.parsed-row {
+  }
+  
+  .parsed-row {
   border: 1px solid var(--border-color, #444);
   border-radius: 6px;
   overflow: hidden;
@@ -1097,9 +1434,9 @@ const getColorHex = (color) => {
   margin: 0 0 0.75rem;
   color: var(--text-primary, #fff);
   font-size: 0.875rem;
-}
-
-.stitch-list {
+  }
+  
+  .stitch-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -1276,7 +1613,7 @@ const getColorHex = (color) => {
 }
 
 .pattern-preview {
-  display: flex;
+    display: flex;
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
@@ -1286,14 +1623,14 @@ const getColorHex = (color) => {
 }
 
 .preview-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
 .preview-row-header {
-  display: flex;
-  align-items: center;
+    display: flex;
+    align-items: center;
   gap: 0.75rem;
 }
 
@@ -1314,16 +1651,32 @@ const getColorHex = (color) => {
 }
 
 .preview-stitches {
-  display: flex;
+    display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+    gap: 0.5rem;
   align-items: center;
+}
+  
+.no-stitches-message {
+  padding: 0.5rem;
+  color: var(--text-secondary, #aaa);
+  font-style: italic;
+  font-size: 0.875rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  border: 1px dashed var(--border-color, #444);
+}
+
+:root.light .no-stitches-message {
+  color: #666;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #ddd;
 }
 
 .preview-stitch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   flex-direction: column;
   width: 40px;
   height: 40px;
@@ -1343,9 +1696,9 @@ const getColorHex = (color) => {
 
 .stitch-type {
   font-size: 0.625rem;
-  opacity: 0.8;
-}
-
+    opacity: 0.8;
+  }
+  
 /* Different stitch styles - these are for the preview buttons */
 .stitch-sc {
   background: #4caf50;
@@ -1428,5 +1781,54 @@ const getColorHex = (color) => {
   background: #e0e0e0;
   color: #333;
   border: 1px solid #d0d0d0;
+  }
+
+/* Repeat Pattern Styles */
+.repeat-pattern {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--stitch-bg, #2d2d2d);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #444);
 }
-</style> 
+
+.repeat-notation {
+  font-weight: 500;
+  color: var(--text-primary, #fff);
+}
+
+:root.light .repeat-pattern {
+  background: #e8e8e8;
+  border: 1px solid #d0d0d0;
+}
+
+:root.light .repeat-notation {
+  color: #333;
+}
+
+/* Repeat Group Styles */
+.repeat-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.repeat-bracket {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--accent-color, #4f87ff);
+}
+
+.repeat-count {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent-color, #4f87ff);
+  margin-left: 0.25rem;
+}
+
+:root.light .repeat-bracket,
+:root.light .repeat-count {
+  color: #2979ff;
+  }
+  </style> 
