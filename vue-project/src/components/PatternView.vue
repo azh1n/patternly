@@ -593,6 +593,30 @@ const completionPercentage = computed(() => {
   return Math.round((completedRows.value / totalRows.value) * 100)
 })
 
+// Save the total row count to the pattern object in Firestore
+const saveRowCount = async () => {
+  if (!props.pattern?.id || totalRows.value === 0) return
+  
+  try {
+    // Only update if the row count has changed or doesn't exist
+    if (props.pattern.totalRows !== totalRows.value) {
+      await updateDoc(doc(db, 'patterns', props.pattern.id), {
+        totalRows: totalRows.value
+      })
+      console.log(`Updated row count to ${totalRows.value} for pattern ${props.pattern.name}`)
+    }
+  } catch (error) {
+    console.error('Error updating row count:', error)
+  }
+}
+
+// Watch for changes in row count and update the database
+watch(totalRows, (newCount) => {
+  if (newCount > 0) {
+    saveRowCount()
+  }
+})
+
 // Current stitches display
 const currentStitches = computed(() => {
   if (!currentRow.value) return []
@@ -670,6 +694,9 @@ onMounted(() => {
   if (firstIncompleteRowIndex !== -1) {
     currentRowIndex.value = firstIncompleteRowIndex
   }
+  
+  // Save the row count when component mounts
+  saveRowCount()
 })
 </script>
 

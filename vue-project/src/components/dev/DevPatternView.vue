@@ -380,6 +380,43 @@ const expandRepeatedSections = (pattern) => {
   return expandedPattern;
 }
 
+// Process pattern text into individual stitch codes
+const processPattern = (pattern) => {
+  if (!pattern) return [];
+  
+  // Expand any repeated sections like "(1sc, 1inc) x6"
+  const expandedPattern = expandRepeatedSections(pattern);
+  
+  // Split the pattern by commas
+  const parts = expandedPattern.split(',').map(part => part.trim());
+  
+  // Process each part into a standardized stitch code
+  return parts.map(part => {
+    // Handle space between number and stitch type (e.g., "1 sc" -> "1sc")
+    const spaceMatch = part.match(/^(\d+)\s+([a-z]+)$/i);
+    if (spaceMatch) {
+      return `${spaceMatch[1]}${spaceMatch[2]}`;
+    }
+    
+    // Handle single-letter codes (e.g., "sc" -> "1sc")
+    const singleCodeMatch = part.match(/^([a-z]{1,3})$/i);
+    if (singleCodeMatch) {
+      return `1${singleCodeMatch[1]}`;
+    }
+    
+    // Remove trailing periods if any
+    return part.replace(/\.$/, '');
+  }).filter(Boolean); // Remove any empty entries
+}
+
+// Process pattern with repeats preserved for newer format parsing
+const processPatternWithRepeats = (pattern) => {
+  if (!pattern) return [];
+  
+  // We use a different approach when we want to preserve repeat patterns
+  return processPatternPreservingRepeats(pattern);
+}
+
 // For debugging parsed patterns
 const logPattern = (pattern) => {
   console.log('Pattern:', pattern);
@@ -702,6 +739,30 @@ const completionPercentage = computed(() => {
   return Math.round((completedRows.value / totalRows.value) * 100)
 })
 
+// Save the total row count to the pattern object in Firestore
+const saveRowCount = async () => {
+  if (!props.pattern?.id || totalRows.value === 0) return
+  
+  try {
+    // Only update if the row count has changed or doesn't exist
+    if (props.pattern.totalRows !== totalRows.value) {
+      await updateDoc(doc(db, 'patterns', props.pattern.id), {
+        totalRows: totalRows.value
+      })
+      console.log(`Updated row count to ${totalRows.value} for pattern ${props.pattern.name}`)
+    }
+  } catch (error) {
+    console.error('Error updating row count:', error)
+  }
+}
+
+// Watch for changes in row count and update the database
+watch(totalRows, (newCount) => {
+  if (newCount > 0) {
+    saveRowCount()
+  }
+})
+
 // Current stitches display
 const currentStitches = computed(() => {
   if (!currentRow.value) return [];
@@ -785,6 +846,9 @@ onMounted(() => {
     patternCard.addEventListener('touchmove', handleTouchMove)
     patternCard.addEventListener('touchend', handleTouchEnd)
   }
+  
+  // Save the row count when component mounts
+  saveRowCount()
   
   // Clean up event listeners
   return () => {

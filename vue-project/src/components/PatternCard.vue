@@ -72,16 +72,42 @@ const formatDate = (timestamp) => {
 
 // Get preview text
 const previewText = computed(() => {
-  if (!props.pattern.content) return 'No pattern content'
-  const lines = props.pattern.content.split('\n')
-  return lines.length > 0 ? lines[0] : 'Empty pattern'
+  if (!props.pattern.content) return 'No pattern content';
+  
+  // Check if this is the new format (with Row: X, Color: Y, Stitches: Z)
+  if (props.pattern.content.includes('Row:') && 
+      props.pattern.content.includes('Color:') && 
+      props.pattern.content.includes('Stitches:')) {
+    
+    // Extract the row number and color from the first row
+    const rowMatch = props.pattern.content.match(/Row:\s*(\d+)/);
+    const colorMatch = props.pattern.content.match(/Color:\s*([^,]*)/);
+    
+    const rowNum = rowMatch ? rowMatch[1] : '';
+    const color = colorMatch ? colorMatch[1].trim() : '';
+    
+    // Create a readable preview
+    if (rowNum && color) {
+      return `Row ${rowNum}: With Color ${color}...`;
+    }
+  }
+  
+  // For older format, use the first line
+  const lines = props.pattern.content.split('\n');
+  return lines.length > 0 ? lines[0] : 'Empty pattern';
 })
 
 // Calculate total number of rows in pattern
 const totalRows = computed(() => {
-  if (!props.pattern.content) return 0
+  // First, check if totalRows is already stored in the database
+  if (props.pattern.totalRows) {
+    return props.pattern.totalRows;
+  }
+  
+  // Fallback to calculation from content if not available in database
+  if (!props.pattern.content) return 0;
   return props.pattern.content.split('\n')
-    .filter(line => line.trim().startsWith('Row')).length
+    .filter(line => line.trim().startsWith('Row')).length;
 })
 
 // Calculate number of completed rows
@@ -92,10 +118,10 @@ const completedRowsCount = computed(() => {
 
 // Calculate completion percentage
 const completionPercentage = computed(() => {
-  if (!props.pattern.completedRows) return 0
-  const totalRows = Object.keys(props.pattern.completedRows).length
-  const completedRows = Object.values(props.pattern.completedRows).filter(Boolean).length
-  return totalRows ? Math.round((completedRows / totalRows) * 100) : 0
+  if (!props.pattern.completedRows) return 0;
+  
+  const completedRows = Object.values(props.pattern.completedRows).filter(Boolean).length;
+  return totalRows.value > 0 ? Math.round((completedRows / totalRows.value) * 100) : 0;
 })
 
 // Navigate to pattern detail view
@@ -198,7 +224,7 @@ const handleClick = () => {
 /* Progress bar fill */
 .completion-progress {
   height: 100%;
-  background-color: var(--button-bg);
+  background-color: #4CAF50;
   transition: width 0.3s ease;
 }
 
