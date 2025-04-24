@@ -2,10 +2,10 @@
 <template>
   <div v-if="modelValue" class="pattern-modal-overlay" @click="closeModal">
     <div class="pattern-modal" @click.stop>
-        <div class="modal-header">
+      <div class="modal-header">
         <h2>Add Pattern</h2>
         <button class="close-button" @click="closeModal">×</button>
-        </div>
+      </div>
       
       <div class="modal-body">
         <!-- Pattern Name -->
@@ -15,22 +15,22 @@
               type="text"
               id="patternName"
               v-model="patternName"
-            placeholder="Enter pattern name"
-            class="form-input"
+              placeholder="Enter pattern name"
+              class="form-input"
             />
-          </div>
+        </div>
   
         <!-- Pattern Input -->
         <div class="form-group">
           <label for="patternText">Pattern Instructions</label>
-            <textarea
+          <textarea
             id="patternText" 
             v-model="patternText" 
             placeholder="Paste your pattern here..."
             class="form-textarea"
             @input="analyzePattern"
-            ></textarea>
-          </div>
+          ></textarea>
+        </div>
   
         <!-- Analysis Results -->
         <div v-if="patternText" class="analysis-section">
@@ -49,8 +49,8 @@
                 <span class="value">{{ detectedRowFormat || 'Not detected' }}</span>
                 <button v-if="!detectedRowFormat" class="action-button" @click="showRowConfig = true">
                   Define
-            </button>
-          </div>
+                </button>
+              </div>
   
               <div class="detection-item">
                 <span class="label">Colors:</span>
@@ -58,8 +58,8 @@
                 <button v-if="!detectedColors.length" class="action-button" @click="showColorConfig = true">
                   Define
                 </button>
-                  </div>
               </div>
+            </div>
   
             <!-- Configuration Panel -->
             <div v-if="showRowConfig || showColorConfig" class="config-panel">
@@ -68,7 +68,7 @@
                 <h4>Define Row Format</h4>
                 <p class="help-text">Enter the pattern used to identify rows (use # for row number)</p>
                 <div class="input-group">
-                    <input 
+                  <input 
                     type="text" 
                     v-model="userRowFormat" 
                     placeholder="Example: Row #, Round #, R#" 
@@ -82,8 +82,8 @@
                 </div>
                 <div class="examples">
                   <p>Examples: "Row #", "Round #", "R#", "Rnd #"</p>
+                </div>
               </div>
-            </div>
   
               <!-- Color Configuration -->
               <div v-if="showColorConfig" class="config-section">
@@ -97,39 +97,15 @@
                     class="form-input"
                   />
                   <button @click="applyColorFormat" class="apply-button">Apply</button>
-              </div>
+                </div>
                 <div class="examples">
                   <p>Examples: "Color A", "MC", "Pink", etc.</p>
-              </div>
-            </div>
-          </div>
-  
-            <!-- Parsed Rows -->
-            <div v-if="parsedRows.length > 0" class="parsed-rows">
-              <h4>Parsed Rows ({{ parsedRows.length }})</h4>
-              <div class="rows-list">
-                <div v-for="(row, index) in parsedRows" :key="index" class="parsed-row">
-                  <div class="row-header" @click="toggleRowDetails(index)">
-                    <span class="row-number">Row {{ row.number }}</span>
-                    <span class="row-color" v-if="row.color">{{ row.color }}</span>
-                    <button class="toggle-button small">{{ expandedRows[index] ? '−' : '+' }}</button>
-                  </div>
-                  <div v-if="expandedRows[index]" class="row-details">
-                    <p class="row-text">{{ row.text }}</p>
-                    <div v-if="row.stitches && row.stitches.length" class="stitch-list">
-                      <span v-for="(stitch, i) in Array.isArray(row.stitches) ? row.stitches : []" 
-                            :key="i" 
-                            class="stitch-text">
-                        {{ stitch }}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
-                  
+            
             <!-- Fallback for when rows couldn't be parsed -->
-            <div v-else-if="patternText.trim()" class="parsed-rows">
+            <div v-if="patternText.trim() && !parsedRows.length" class="parsed-rows">
               <h4>Pattern Text</h4>
               <div class="help-text">No rows were detected in your pattern. Please check if your pattern follows the standard format (Row 1: ... or Round 1: ...), or manually define a row format below.</div>
               <div class="config-panel">
@@ -155,7 +131,7 @@
                 </div>
               </div>
             </div>
-                  
+                    
             <!-- Pattern Preview Section -->
             <div v-if="parsedRows.length" class="pattern-preview-section">
               <h4>Pattern Preview ({{ parsedRows.length }} rows)</h4>
@@ -225,7 +201,7 @@
                           >
                             <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
                             <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                </div>
+                          </div>
                         </template>
                       </template>
                     </div>
@@ -234,53 +210,53 @@
               </div>
             </div>
           </div>
-          </div>
+        </div>
   
         <!-- Error Messages -->
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
-          </div>
+        </div>
   
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <button 
-              @click="savePattern"
-              class="save-button"
+          <button 
+            @click="savePattern"
+            class="save-button"
             :disabled="!canSave"
-            >
-              {{ isLoading ? 'Saving...' : 'Save Pattern' }}
-            </button>
+          >
+            {{ isLoading ? 'Saving...' : 'Save Pattern' }}
+          </button>
           <button @click="closeModal" class="cancel-button">Cancel</button>
-          </div>
         </div>
       </div>
     </div>
-  </template>
+  </div>
+</template>
   
-  <script setup>
+<script setup>
 import { ref, computed, watch, reactive } from 'vue'
 import { usePatternStore } from '@/stores/pattern'
-  import { auth } from '@/firebase'
-  
+import { auth } from '@/firebase'
+
 // Props and emits
-  const props = defineProps({
-    modelValue: {
-      type: Boolean,
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
     required: true
-    },
-    isLoading: {
-      type: Boolean,
+  },
+  isLoading: {
+    type: Boolean,
     default: false
-    }
-  })
-  
-  const emit = defineEmits(['update:modelValue', 'pattern-added'])
-  
-  // Store
-  const patternStore = usePatternStore()
-  
+  }
+})
+
+const emit = defineEmits(['update:modelValue', 'pattern-added'])
+
+// Store
+const patternStore = usePatternStore()
+
 // Form state
-  const patternName = ref('')
+const patternName = ref('')
 const patternText = ref('')
 const errorMessage = ref('')
 
@@ -316,7 +292,7 @@ const commonRowPatterns = [
   { pattern: /^Rnd\s*(\d+)/i, format: 'Rnd #' }
 ]
 
-  const commonColorPatterns = [
+const commonColorPatterns = [
   { pattern: /with\s+color\s+([A-Za-z]+)/i, format: 'color' },
   { pattern: /\bMC\b/i, format: 'MC' },
   { pattern: /\bCC\d*\b/i, format: 'CC' },
@@ -356,7 +332,7 @@ watch(() => props.modelValue, (newVal) => {
 
 // Reset form to initial state
 const resetForm = () => {
-      patternName.value = ''
+  patternName.value = ''
   patternText.value = ''
   errorMessage.value = ''
   detectedRowFormat.value = ''
@@ -1139,16 +1115,16 @@ const toggleRowDetails = (index) => {
     ...expandedRows.value,
     [index]: !expandedRows.value[index]
   }
-  }
+}
   
-  // Save the pattern
-  const savePattern = async () => {
-    try {
-      // Check if user is authenticated
-      if (!auth.currentUser) {
+// Save the pattern
+const savePattern = async () => {
+  try {
+    // Check if user is authenticated
+    if (!auth.currentUser) {
       errorMessage.value = 'Please sign in to save patterns.'
-        return
-      }
+      return
+    }
 
     // Get pattern text - either use parsed rows or raw input if parsing failed
     let formattedPattern = patternText.value;
@@ -1159,18 +1135,18 @@ const toggleRowDetails = (index) => {
         const colorInfo = row.color ? `with ${row.color}, ` : ''
         return `Row ${row.number}: ${colorInfo}${row.stitches.join(', ')}`
       }).join('. ')
-      }
+    }
 
     // Emit the pattern data
-      emit('pattern-added', {
-        name: patternName.value.trim(),
+    emit('pattern-added', {
+      name: patternName.value.trim(),
       content: formattedPattern
-      })
+    })
     
     // Close the modal
     closeModal()
-    } catch (error) {
-      console.error('Error saving pattern:', error)
+  } catch (error) {
+    console.error('Error saving pattern:', error)
     errorMessage.value = 'Error saving pattern: ' + error.message
   }
 }
@@ -1233,7 +1209,7 @@ const getColorHex = (color) => {
   )
   
   return colorKey ? colorMap[colorKey] : '#888888' // Default gray
-  }
+}
 
 const extractRepeatPattern = (text) => {
   // Look for patterns like (1sc, 1inc) x6
@@ -1247,7 +1223,7 @@ const extractRepeatPattern = (text) => {
 const getRepeatCount = (text) => {
   const repeatMatch = text.match(/\([^)]+\)\s*x(\d+)/);
   return repeatMatch ? repeatMatch[1] : "";
-  }
+}
 
 const applyQuickFormat = (format) => {
   userRowFormat.value = format;
@@ -1255,9 +1231,9 @@ const applyQuickFormat = (format) => {
   showRowConfig.value = false;
   parseRows();
 }
-  </script>
+</script>
   
-  <style scoped>
+<style scoped>
 /* Modal Overlay */
 .pattern-modal-overlay {
     position: fixed;
@@ -1989,4 +1965,4 @@ const applyQuickFormat = (format) => {
 :root.light .repeat-count {
   color: #2979ff;
   }
-  </style> 
+</style> 
