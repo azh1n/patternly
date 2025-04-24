@@ -378,8 +378,6 @@ const closeModal = () => {
 
 // Analyze the pattern text
 const analyzePattern = () => {
-  console.log('Analyzing pattern text:', patternText.value); // Added debug log
-  
   if (!patternText.value.trim()) {
     parsedRows.value = []
     return
@@ -391,20 +389,15 @@ const analyzePattern = () => {
     
     // Detect row format
     detectRowFormat()
-    console.log('Detected row format:', detectedRowFormat.value); // Added debug log
     
     // Detect colors
     detectColors()
-    console.log('Detected colors:', detectedColors.value); // Added debug log
     
     // Detect stitches
     detectStitches()
-    console.log('Detected stitches:', detectedStitches.value); // Added debug log
     
     // Parse rows based on detected or user-defined format
     parseRows()
-    console.log('Parsed rows results:', parsedRows.value); // Added debug log
-    console.log('Parsed rows length:', parsedRows.value.length); // Added debug log
   } catch (error) {
     console.error('Error analyzing pattern:', error)
     errorMessage.value = 'Error analyzing pattern: ' + error.message
@@ -413,28 +406,22 @@ const analyzePattern = () => {
 
 // Detect row format in the pattern
 const detectRowFormat = () => {
-  console.log('Detecting row format');
-  
   if (userRowFormat.value) {
     // User has already defined a format
     detectedRowFormat.value = userRowFormat.value
-    console.log('Using user-defined row format:', detectedRowFormat.value);
     return
   }
   
   const lines = patternText.value.split('\n')
-  console.log('Line count for pattern:', lines.length);
   
   // Check each line against our known patterns
   let foundFormat = false;
   for (const line of lines) {
     if (!line.trim()) continue; // Skip empty lines
     
-    console.log('Checking line:', line);
     for (const pattern of commonRowPatterns) {
       if (pattern.pattern.test(line)) {
         detectedRowFormat.value = pattern.format
-        console.log('Found row format:', pattern.format, 'from line:', line);
         foundFormat = true;
         break;
       }
@@ -448,10 +435,8 @@ const detectRowFormat = () => {
     const fullText = patternText.value.toLowerCase();
     if (fullText.includes('round') || fullText.includes('rnd')) {
       detectedRowFormat.value = 'Round #';
-      console.log('Setting default to Round format');
     } else {
       detectedRowFormat.value = 'Row #';
-      console.log('Setting default to Row format');
     }
   }
 }
@@ -488,33 +473,24 @@ const detectStitches = () => {
   const text = patternText.value
   const stitches = new Set()
   
-  console.log('Detecting stitches in pattern text');
-  
   // Handle pattern with parentheses like "Round 57 (3sc, 1dec) x8 (32)"
   const parenthesesMatches = text.match(/\(([^)]+)\)/g);
   
   if (parenthesesMatches && parenthesesMatches.length > 0) {
-    console.log('Found parentheses matches:', parenthesesMatches);
-    
-    // Find the first set of parentheses that doesn't just contain a number
     for (const parenthesesMatch of parenthesesMatches) {
       const content = parenthesesMatch.replace(/[()]/g, '').trim();
-      console.log('Checking content:', content);
       
       // Skip if it's just a number (likely stitch count)
       if (/^\d+$/.test(content)) {
-        console.log('Skipping number-only content');
         continue;
       }
       
       // If there's an "x" with a number (like "x6"), it means we need to repeat these stitches
       const repeatMatch = text.match(/\([^)]+\)\s*x(\d+)/);
       const repeatCount = repeatMatch ? parseInt(repeatMatch[1]) : 1;
-      console.log('Repeat count:', repeatCount);
       
       // Split by commas and process each stitch
       const stitchParts = content.split(',').map(part => part.trim());
-      console.log('Stitch parts:', stitchParts);
       
       // For each stitch instruction
       for (const part of stitchParts) {
@@ -526,7 +502,6 @@ const detectStitches = () => {
         if (scMatch) {
           stitches.add(`${scMatch[1]}sc`);
           matched = true;
-          console.log('Added sc stitch:', `${scMatch[1]}sc`);
         }
         
         // Check for "1inc" or "inc" pattern
@@ -535,7 +510,6 @@ const detectStitches = () => {
           const count = incMatch[1] || '1';
           stitches.add(`${count}inc`);
           matched = true;
-          console.log('Added inc stitch:', `${count}inc`);
         }
         
         // Check for "1dec" or "dec" pattern
@@ -544,7 +518,6 @@ const detectStitches = () => {
           const count = decMatch[1] || '1';
           stitches.add(`${count}dec`);
           matched = true;
-          console.log('Added dec stitch:', `${count}dec`);
         }
         
         // If we didn't match any specific pattern, try the general patterns
@@ -554,7 +527,6 @@ const detectStitches = () => {
             if (match) {
               const count = match[1] || '1';
               stitches.add(`${count}${pattern.name}`);
-              console.log('Added pattern stitch:', `${count}${pattern.name}`);
               break;
             }
           }
@@ -570,25 +542,20 @@ const detectStitches = () => {
   
   // If no stitches found inside parentheses, check the entire text
   if (stitches.size === 0) {
-    console.log('No stitches found in parentheses, checking entire text');
     for (const pattern of stitchPatterns) {
       const matches = Array.from(text.matchAll(new RegExp(pattern.pattern, 'gi')));
       for (const match of matches) {
         const count = match[1] || '1';
         stitches.add(`${count}${pattern.name}`);
-        console.log('Added full text stitch:', `${count}${pattern.name}`);
       }
     }
   }
   
   detectedStitches.value = Array.from(stitches)
-  console.log('Final detected stitches:', detectedStitches.value);
 }
 
 // Create regex for row format
 const createRowRegex = (format) => {
-  console.log('Creating regex from format:', format);
-  
   // Replace known keywords with their regex equivalents
   let regexFormat = format
     .replace(/Round/i, 'Round')
@@ -604,15 +571,12 @@ const createRowRegex = (format) => {
   regexFormat = regexFormat.replace(/#/g, '(\\d+)')
   
   const finalRegex = new RegExp(regexFormat, 'i');
-  console.log('Final regex pattern string:', finalRegex.toString());
   
   return finalRegex;
 }
 
 // Update the parseRows function to handle poorly formatted rows
 const parseRows = () => {
-  console.log('Starting parseRows with text:', patternText.value);
-
   if (!patternText.value.trim()) {
     parsedRows.value = []
     return
@@ -623,12 +587,9 @@ const parseRows = () => {
     // Set default for Round format seen in the screenshot
     if (patternText.value.includes('Round')) {
       detectedRowFormat.value = 'Round #'
-      console.log('Set default row format to "Round #"');
     } else if (patternText.value.includes('Row')) {
       detectedRowFormat.value = 'Row #'
-      console.log('Set default row format to "Row #"');
     } else {
-      console.log('No row format detected or defined');
       parsedRows.value = []
       return
     }
@@ -640,10 +601,8 @@ const parseRows = () => {
   // Replace "Round X" with a newline before it if it's not at the beginning of a line
   // This separates rounds that are on the same line
   const preprocessedText = text.replace(/(\S)(Round \d+)/g, '$1\n$2');
-  console.log('Preprocessed text to separate rounds on same line:', preprocessedText);
   
   const lines = preprocessedText.split('\n');
-  console.log('Total lines to parse:', lines.length);
   
   // Try a simpler approach - match "Round X" directly
   const rowRegex = /Round (\d+)/i;
@@ -656,8 +615,6 @@ const parseRows = () => {
     
     // If there are multiple Round matches in one line, split them
     if (matches.length > 1) {
-      console.log(`Found multiple rounds in one line: ${matches.length} rounds`);
-      
       let prevIndex = 0;
       matches.forEach((match, index) => {
         const rowNum = parseInt(match[1]);
@@ -665,7 +622,6 @@ const parseRows = () => {
         const endPos = (index < matches.length - 1) ? matches[index + 1].index : line.length;
         
         const rowText = line.substring(startPos, endPos).trim();
-        console.log(`Split round ${rowNum}: "${rowText}"`);
         
         foundRows.push({
           number: rowNum,
@@ -679,7 +635,6 @@ const parseRows = () => {
     else if (matches.length === 1) {
       const match = matches[0];
       const rowNum = parseInt(match[1]);
-      console.log(`Found Round ${rowNum} in line: ${line}`);
       
       foundRows.push({
         number: rowNum,
@@ -690,24 +645,18 @@ const parseRows = () => {
     }
   });
   
-  console.log('Found rows with Round pattern:', foundRows.length);
-  
   if (foundRows.length === 0) {
     // Fallback to the more complex regex approach
-    console.log('Falling back to complex regex approach');
     const rowPattern = createRowRegex(detectedRowFormat.value || userRowFormat.value);
-    console.log('Row pattern regex:', rowPattern);
     
     // Get all text content, normalize line breaks and spaces for regex
     const normalizedText = text.replace(/\s+/g, ' ').trim();
     
     // Find all row patterns in the entire text
     const allRowMatches = [...normalizedText.matchAll(new RegExp(rowPattern, 'gi'))];
-    console.log('Row matches found with complex regex:', allRowMatches.length, allRowMatches);
     
     // If no matches, we can't parse
     if (allRowMatches.length === 0) {
-      console.log('No rows matched the pattern');
       parsedRows.value = [];
       return;
     }
@@ -736,7 +685,6 @@ const parseRows = () => {
           stitches: extractedStitches
         };
       } catch (err) {
-        console.error(`Error extracting stitches for row ${pos.number}:`, err);
         return {
           number: pos.number,
           text: rowText,
@@ -761,7 +709,6 @@ const parseRows = () => {
   });
   expandedRows.value = expanded;
   
-  console.log("Final parsed rows:", foundRows.length, foundRows);
   parsedRows.value = foundRows;
 }
 
@@ -788,7 +735,6 @@ const extractColor = (text) => {
 // Extract stitches from row text
 const extractStitches = (text) => {
   try {
-    console.log('Extracting stitches from:', text);
     // Create a more structured result object
     const result = {
       repeated: [],
@@ -805,9 +751,7 @@ const extractStitches = (text) => {
       const secondRoundPos = text.indexOf(nextRoundMatch[1]);
       
       if (firstRoundPos >= 0 && secondRoundPos > firstRoundPos) {
-        console.log('Found another round in the text, truncating');
         text = text.substring(0, secondRoundPos).trim();
-        console.log('Truncated text:', text);
       }
     }
     
@@ -816,8 +760,6 @@ const extractStitches = (text) => {
     // Remove the stitch count in parentheses at the end, e.g. "(24)"
     cleanedText = cleanedText.replace(/\s*\(\d+\)\s*$/, '').trim();
     
-    console.log('Cleaned text for stitch extraction:', cleanedText);
-    
     // Check for repeating patterns with parentheses and 'x' notation: (1sc, 1inc) x6
     const repeatPatternMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
     
@@ -825,12 +767,6 @@ const extractStitches = (text) => {
       // Get the repeat content and count
       const repeatContent = repeatPatternMatch[1].trim();
       const repeatCount = parseInt(repeatPatternMatch[2]);
-      
-      console.log('Found repeat pattern:', repeatContent, 'x', repeatCount);
-      
-      // Get the position of the repeat pattern in the text
-      const repeatIndex = cleanedText.indexOf(repeatPatternMatch[0]);
-      const repeatLength = repeatPatternMatch[0].length;
       
       // Process the stitches within the repeating pattern
       const repeatStitches = extractStitchesFromText(repeatContent);
@@ -863,11 +799,9 @@ const extractStitches = (text) => {
     } else {
       // No repeating pattern, just extract all stitches
       const allStitches = extractStitchesFromText(cleanedText);
-      console.log('Extracted non-repeated stitches:', allStitches);
       return allStitches;
     }
   } catch (error) {
-    console.error("Error in extractStitches:", error);
     return []; // Return empty array on error
   }
 }
@@ -875,7 +809,6 @@ const extractStitches = (text) => {
 // Helper function to extract stitch patterns from a given text
 const extractStitchesFromText = (text) => {
   try {
-    console.log('Extracting stitches from text:', text);
     const foundStitches = [];
     
     // Remove any parenthesized stitch counts like (18), (24)
@@ -888,7 +821,6 @@ const extractStitchesFromText = (text) => {
     
     // Split by commas to process individual stitches
     const stitchParts = cleanedTextWithoutRowMarkers.split(',').map(part => part.trim()).filter(Boolean);
-    console.log('Stitch parts after comma splitting:', stitchParts);
     
     // Process each stitch part
     for (const part of stitchParts) {
@@ -927,23 +859,18 @@ const extractStitchesFromText = (text) => {
       
       // If no match but we have what looks like a stitch, add it anyway
       if (!matched && part.match(/\d+/)) {
-        console.log('Adding unmatched potential stitch:', part);
         foundStitches.push(part);
       }
     }
     
-    console.log('Final extracted stitches:', foundStitches);
     return foundStitches;
   } catch (error) {
-    console.error("Error in extractStitchesFromText:", error, "for text:", text);
     return [];
   }
 }
 
 // Apply user-defined row format
 const applyRowFormat = () => {
-  console.log('Applying user row format:', userRowFormat.value);
-  
   if (userRowFormat.value) {
     detectedRowFormat.value = userRowFormat.value;
     showRowConfig.value = false;
@@ -951,17 +878,14 @@ const applyRowFormat = () => {
     // If the user format doesn't contain a '#', add it
     if (!detectedRowFormat.value.includes('#')) {
       detectedRowFormat.value += ' #';
-      console.log('Added # to row format:', detectedRowFormat.value);
     }
     
     // For testing: Add a sample format that will match the example
     if (userRowFormat.value.toLowerCase() === 'round') {
       userRowFormat.value = 'Round #';
       detectedRowFormat.value = 'Round #';
-      console.log('Set to default Round # format');
     }
     
-    console.log('Final row format to use:', detectedRowFormat.value);
     parseRows();
   }
 }
@@ -1091,7 +1015,6 @@ const getRepeatCount = (text) => {
   }
 
 const applyQuickFormat = (format) => {
-  console.log('Applying quick format:', format);
   userRowFormat.value = format;
   detectedRowFormat.value = format;
   showRowConfig.value = false;
