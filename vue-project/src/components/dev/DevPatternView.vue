@@ -201,6 +201,10 @@
       <div class="experimental-features">
         <h3>Experimental Features</h3>
         <div class="feature-section">
+          <button class="feature-button" @click="showRawPattern = !showRawPattern">
+            <font-awesome-icon icon="code" />
+            {{ showRawPattern ? 'Hide Raw Pattern' : 'View Raw Pattern' }}
+          </button>
           <button class="feature-button">
             <font-awesome-icon icon="magic" />
             Pattern Analysis
@@ -213,6 +217,12 @@
             <font-awesome-icon icon="chart-line" />
             Progress Stats
           </button>
+        </div>
+        
+        <!-- Raw Pattern Display for Debugging -->
+        <div v-if="showRawPattern" class="raw-pattern">
+          <h4>Raw Pattern Data:</h4>
+          <pre>{{ props.pattern.content }}</pre>
         </div>
       </div>
     </div>
@@ -253,13 +263,21 @@ const isSwiping = ref(false)  // Touch swipe state
 const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
+const showRawPattern = ref(false)  // New state for showing raw pattern
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
   if (!props.pattern?.content) return []
   
   try {
-    const content = props.pattern.content
+    const content = props.pattern.content;
+    
+    // Check if this is a new format from DevAddPatternModal (comma-separated "Row: X, Color: Y, Stitches: Z" format)
+    if (content.includes('Row:') && content.includes('Color:') && content.includes('Stitches:')) {
+      return parseFormattedPattern(content);
+    }
+    
+    // Legacy format parsing (for backward compatibility)
     const rows = content.split('\n').filter(row => row?.trim())
     const parsedRows = []
     
@@ -318,6 +336,113 @@ const parsedRows = computed(() => {
   }
 })
 
+// Helper to expand repeated sections in pattern string
+const expandRepeatedSections = (pattern) => {
+  if (!pattern) return '';
+  
+  // Look for patterns like "(1sc, 1inc) x6"
+  const repeatRegex = /\(([^)]+)\)\s*x(\d+)/g;
+  let expandedPattern = pattern;
+  let match;
+  
+  // Keep track of matches to avoid infinite loops with global regex
+  const matches = [];
+  while ((match = repeatRegex.exec(pattern)) !== null) {
+    matches.push({
+      fullMatch: match[0],
+      repeatedContent: match[1],
+      repeatCount: parseInt(match[2]),
+      index: match.index
+    });
+  }
+  
+  // Process matches in reverse order to avoid affecting positions
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { fullMatch, repeatedContent, repeatCount } = matches[i];
+    const repeatedItems = repeatedContent.split(',').map(item => item.trim());
+    
+    // Create the expanded content
+    let expandedContent = '';
+    for (let j = 0; j < repeatCount; j++) {
+      if (j > 0) expandedContent += ', ';
+      expandedContent += repeatedItems.join(', ');
+    }
+    
+    // Replace the repeated section with the expanded content
+    expandedPattern = expandedPattern.replace(fullMatch, expandedContent);
+  }
+  
+  return expandedPattern;
+}
+
+// For debugging parsed patterns
+const logPattern = (pattern) => {
+  console.log('Pattern:', pattern);
+  console.log('Expanded:', expandRepeatedSections(pattern));
+  const codes = processPatternWithRepeats(pattern);
+  console.log('Codes:', codes);
+  return pattern;
+}
+
+// Parse the new formatted pattern from DevAddPatternModal
+const parseFormattedPattern = (content) => {
+  try {
+    console.log('Parsing formatted pattern:', content);
+    
+    // Split by rows if separated by commas followed by "Row:"
+    const rowEntries = content.split(/,\s*Row:/);
+    
+    // For the first entry, we need to clean up the "Row:" prefix
+    if (rowEntries.length > 0 && rowEntries[0].startsWith('Row:')) {
+      rowEntries[0] = rowEntries[0].replace(/^Row:/, '').trim();
+    }
+    
+    return rowEntries.map(entry => {
+      // Add "Row:" back for consistent parsing
+      const fullEntry = entry.startsWith(' ') ? `Row:${entry}` : entry;
+      
+      // Extract row number
+      const rowMatch = fullEntry.match(/Row:\s*(\d+)/);
+      const rowNum = rowMatch ? rowMatch[1] : '0';
+      
+      // Extract color
+      const colorMatch = fullEntry.match(/Color:\s*([^,]*)/);
+      const color = colorMatch ? colorMatch[1].trim() : 'No color';
+      
+      // Extract stitches section
+      const stitchesMatch = fullEntry.match(/Stitches:\s*(.*?)(?:$|,\s*Row:)/);
+      const stitchesText = stitchesMatch ? stitchesMatch[1].trim() : '';
+      
+      // Process pattern text to extract individual stitch codes
+      const codes = processPatternWithRepeats(stitchesText);
+      
+      // Debug log for testing
+      console.log(`Row ${rowNum}: ${stitchesText} -> ${codes.length} codes`);
+      
+      return {
+        rowNum,
+        color,
+        pattern: stitchesText,
+        codes
+      };
+    });
+  } catch (error) {
+    console.error('Error parsing formatted pattern:', error);
+    return [];
+  }
+}
+
+// Enhanced pattern processing that handles repeats directly
+const processPatternWithRepeats = (pattern) => {
+  if (!pattern) return [];
+  
+  // First, look for repeat patterns in the format "(X, Y) xN"
+  const expandedPattern = expandRepeatedSections(pattern);
+  
+  // Process the expanded pattern normally
+  return processPattern(expandedPattern);
+}
+
 // Process pattern string into stitch codes
 const processPattern = (pattern) => {
   if (!pattern) return []
@@ -325,7 +450,45 @@ const processPattern = (pattern) => {
   // Clean up the pattern string
   pattern = pattern.replace(/\s+/g, ' ').trim()
   
-  // Split by commas, but preserve parentheses content
+  // Handle the special format from DevAddPatternModal where patterns include parentheses
+  // Format example: "(1sc, 1inc) x6"
+  if (pattern.includes('(') && pattern.includes(')') && pattern.includes('x')) {
+    // Extract parts before, within, and after the repeat pattern
+    const beforeRepeatMatch = pattern.match(/^(.*?)\s*\(/);
+    const beforeRepeat = beforeRepeatMatch ? beforeRepeatMatch[1].trim() : '';
+    
+    const repeatMatch = pattern.match(/\(([^)]+)\)\s*x(\d+)/);
+    
+    // If there's no repeat pattern, process normally
+    if (!repeatMatch) return processParts(pattern.split(','));
+    
+    const repeatedContent = repeatMatch[1].trim();
+    const repeatCount = parseInt(repeatMatch[2]);
+    
+    const afterRepeatMatch = pattern.match(/x\d+\s*(.*?)$/);
+    const afterRepeat = afterRepeatMatch ? afterRepeatMatch[1].trim() : '';
+    
+    // Process each section
+    const beforeParts = beforeRepeat ? processParts(beforeRepeat.split(',')) : [];
+    const repeatedParts = repeatedContent ? processParts(repeatedContent.split(',')) : [];
+    const afterParts = afterRepeat ? processParts(afterRepeat.split(',')) : [];
+    
+    // Combine all parts with repeated content expanded
+    let result = [...beforeParts];
+    for (let i = 0; i < repeatCount; i++) {
+      result = [...result, ...repeatedParts];
+    }
+    result = [...result, ...afterParts];
+    
+    return result;
+  }
+  
+  // Standard processing for comma-separated patterns
+  return processParts(splitByCommas(pattern));
+}
+
+// Helper to split a pattern string by commas, preserving parentheses content
+const splitByCommas = (pattern) => {
   const parts = []
   let currentPart = ''
   let inParentheses = 0
@@ -344,44 +507,44 @@ const processPattern = (pattern) => {
       currentPart += char
     }
   }
+  
   // Add the last part if it exists
   if (currentPart.trim()) {
     parts.push(currentPart.trim())
   }
   
-  // Filter and clean the parts
-  const filteredParts = parts.filter(code => {
-    if (!code) return false
-    // Clean the code by removing any trailing period
-    const cleanCode = code.replace(/\.$/, '').trim()
-    
-    // Match standard stitch codes (e.g., "1bs", "22dc")
-    const isStandardCode = cleanCode.match(/^\d+[a-z]+$/)
-    // Match repeated patterns in parentheses (e.g., "(1dc, 2ch)x3")
-    const isRepeatedPattern = cleanCode.match(/^\([^)]+\)x\d+$/)
-    // Match border stitches specifically
-    const isBorderStitch = cleanCode.match(/^\d+bs$/)
-    
-    const keep = isStandardCode || isRepeatedPattern || isBorderStitch
-    return keep ? cleanCode : null
-  }).filter(Boolean)
+  return parts;
+}
+
+// Process parts into normalized stitch codes
+const processParts = (parts) => {
+  if (!parts || !parts.length) return [];
   
-  // Handle any repeated patterns by expanding them
-  const expandedParts = []
-  for (const part of filteredParts) {
-    const repeatMatch = part.match(/^\(([^)]+)\)x(\d+)$/)
-    if (repeatMatch) {
-      const [_, pattern, count] = repeatMatch
-      const subParts = pattern.split(',').map(p => p.trim()).filter(Boolean)
-      for (let i = 0; i < parseInt(count); i++) {
-        expandedParts.push(...subParts)
-      }
-    } else {
-      expandedParts.push(part)
+  // Filter and normalize the parts
+  return parts.filter(part => {
+    const cleanPart = part.trim();
+    return cleanPart.length > 0;
+  }).map(part => {
+    // Clean the part
+    const cleanPart = part.replace(/\.$/, '').trim();
+    
+    // Handle space between number and stitch type (e.g., "1 sc" -> "1sc")
+    const spaceMatch = cleanPart.match(/^(\d+)\s+([a-z]+)$/);
+    if (spaceMatch) {
+      return `${spaceMatch[1]}${spaceMatch[2]}`;
     }
-  }
-  
-  return expandedParts
+    
+    // Handle single-letter codes (e.g., "sc" -> "1sc")
+    const singleCodeMatch = cleanPart.match(/^([a-z]{1,3})$/);
+    if (singleCodeMatch) {
+      return `1${singleCodeMatch[1]}`;
+    }
+    
+    return cleanPart;
+  }).filter(code => {
+    // Only keep valid stitch codes
+    return /^\d+[a-z]+$/.test(code) || /^\([^)]+\)x\d+$/.test(code);
+  });
 }
 
 // Current row data based on index
@@ -1087,5 +1250,39 @@ onMounted(() => {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Raw pattern display */
+.raw-pattern {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--card-bg);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.raw-pattern h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.raw-pattern pre {
+  margin: 0;
+  padding: 1rem;
+  background-color: var(--code-bg, #1a1a1a);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Light theme override */
+:root.light .raw-pattern pre {
+  background-color: #f0f0f0;
+  color: #333;
 }
 </style> 
