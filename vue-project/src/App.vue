@@ -40,17 +40,6 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-#app {
-  min-height: 100vh;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
 /* Always keep login page light */
 body.login-page {
   background-color: white !important;
@@ -71,12 +60,23 @@ body:not(.login-page) #app {
 </style>
 
 <script setup>
+import { onMounted } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 import { auth } from './firebase'
+import { useTheme } from './services/theme'
+import { useUserSettings } from './services/userSettings'
 import AdBanner from './components/AdBanner.vue'
 
 const router = useRouter()
+const { initTheme } = useTheme()
+const { initSettings } = useUserSettings()
+
+// Initialize app settings
+onMounted(async () => {
+  await initTheme()
+  await initSettings()
+})
 
 // Handle auth state changes
 onAuthStateChanged(auth, (user) => {

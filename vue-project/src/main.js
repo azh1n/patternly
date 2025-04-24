@@ -26,7 +26,13 @@ import {
   faSignInAlt,
   faUserPlus,
   faSun,
-  faMoon
+  faMoon,
+  faFlask,
+  faToggleOn,
+  faToggleOff,
+  faMagic,
+  faHistory,
+  faChartLine
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -50,7 +56,13 @@ library.add(
   faSignInAlt,
   faUserPlus,
   faSun,
-  faMoon
+  faMoon,
+  faFlask,
+  faToggleOn,
+  faToggleOff,
+  faMagic,
+  faHistory,
+  faChartLine
 )
 
 const app = createApp(App)

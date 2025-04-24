@@ -35,6 +35,23 @@
               Switch to {{ isDarkMode ? 'Light' : 'Dark' }} Mode
             </button>
           </div>
+          
+          <!-- Experimental features toggle -->
+          <div class="form-group theme-toggle">
+            <label>
+              <font-awesome-icon icon="flask" class="field-icon" />
+              Experimental Features
+            </label>
+            <button 
+              type="button"
+              class="theme-button"
+              :class="{ 'active': experimentalFeatures }"
+              @click="toggleExperimentalFeatures"
+            >
+              <font-awesome-icon :icon="experimentalFeatures ? 'toggle-on' : 'toggle-off'" class="theme-icon" />
+              {{ experimentalFeatures ? 'Enabled' : 'Disabled' }}
+            </button>
+          </div>
 
           <!-- Display name input group -->
           <div class="form-group">
@@ -121,6 +138,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useAuth } from '@/services/auth'
 import { useTheme } from '@/services/theme'
+import { useUserSettings } from '@/services/userSettings'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 
@@ -128,6 +146,7 @@ import AppHeader from '@/components/AppHeader.vue'
 const router = useRouter()
 const { user, loading, updateProfile, updatePassword, logout } = useAuth()
 const { isDarkMode, toggleTheme } = useTheme()
+const { experimentalFeatures, toggleExperimentalFeatures, initSettings } = useUserSettings()
 
 // Form state management
 const form = reactive({
@@ -139,6 +158,15 @@ const form = reactive({
 const error = ref('')
 const success = ref('')
 const isSubmitting = ref(false)
+
+// Initialize user settings
+onMounted(async () => {
+  try {
+    await initSettings()
+  } catch (err) {
+    console.error('Error loading user settings:', err)
+  }
+})
 
 // Handle form submission for profile updates
 async function handleSubmit() {
@@ -417,6 +445,13 @@ button:disabled {
 .theme-icon {
   font-size: 1.2rem;
   color: var(--accent-color);
+}
+
+/* Feature toggle button styles */
+.theme-button.active {
+  background-color: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
 }
 
 /* Tablet styles */

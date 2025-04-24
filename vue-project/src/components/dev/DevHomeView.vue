@@ -3,14 +3,12 @@
     <AppHeader :show-nav="true" />
 
     <main class="main-content">
+      <div class="experimental-banner">
+        <span class="badge">Experimental</span>
+        <span>You're viewing an experimental version of the app</span>
+      </div>
+
       <div v-if="!selectedPattern" class="home-view">
-        <div v-if="experimentalFeatures" class="experimental-banner">
-          <span>Try our experimental features!</span>
-          <router-link to="/dev" class="experimental-link">
-            <font-awesome-icon icon="flask" /> Go to experimental version
-          </router-link>
-        </div>
-        
         <PatternGrid
           :patterns="savedTexts"
           :is-loading="isLoading"
@@ -19,7 +17,7 @@
         />
       </div>
 
-      <PatternView
+      <DevPatternView
         v-else
         :pattern="selectedPattern"
         :patterns="savedTexts"
@@ -43,8 +41,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { collection, addDoc, getDocs, query, orderBy, where, getDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useAuth } from '@/services/auth'
-import { useUserSettings } from '@/services/userSettings'
-import PatternView from '@/components/PatternView.vue'
+import DevPatternView from '@/components/dev/DevPatternView.vue'
 import PatternGrid from '@/components/PatternGrid.vue'
 import AddPatternModal from '@/components/AddPatternModal.vue'
 import AppHeader from '@/components/AppHeader.vue'
@@ -52,7 +49,6 @@ import AppHeader from '@/components/AppHeader.vue'
 const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
-const { experimentalFeatures } = useUserSettings()
 
 const savedTexts = ref([])
 const isLoading = ref(false)
@@ -129,7 +125,7 @@ const fetchPatterns = async () => {
 const selectPattern = (pattern, index) => {
   selectedPattern.value = pattern
   currentTextIndex.value = index
-  router.push(`/pattern/${pattern.id}`)
+  router.push(`/dev/pattern/${pattern.id}`)
 }
 
 // Add new pattern
@@ -245,32 +241,24 @@ watch(() => user.value?.uid, async (newUserId) => {
 }
 
 .experimental-banner {
-  background-color: var(--card-bg);
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.experimental-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
   background-color: var(--accent-color);
   color: white;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  text-decoration: none;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 500;
-  transition: all 0.2s ease;
 }
 
-.experimental-link:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
+.badge {
+  background-color: rgba(255, 255, 255, 0.3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Tablet styles */
@@ -288,15 +276,10 @@ watch(() => user.value?.uid, async (newUserId) => {
   }
   
   .experimental-banner {
-    flex-direction: column;
-    gap: 0.75rem;
     margin-bottom: 1rem;
-    padding: 0.75rem;
-  }
-  
-  .experimental-link {
-    width: 100%;
-    justify-content: center;
+    border-radius: 0;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.9rem;
   }
 }
 </style> 

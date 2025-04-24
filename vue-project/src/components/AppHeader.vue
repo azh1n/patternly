@@ -17,6 +17,14 @@
       <div class="right-section">
         <nav v-if="showNav">
           <router-link to="/profile" class="profile-link">Profile</router-link>
+          <router-link 
+            v-if="experimentalFeatures" 
+            to="/dev" 
+            class="dev-link"
+            title="Experimental Features"
+          >
+            <font-awesome-icon icon="flask" />
+          </router-link>
         </nav>
       </div>
     </div>
@@ -25,6 +33,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { useUserSettings } from '@/services/userSettings'
 
 // Component props
 const props = defineProps({
@@ -36,6 +45,9 @@ const props = defineProps({
 
 // Router instance for programmatic navigation
 const router = useRouter()
+
+// Get experimental features state
+const { experimentalFeatures } = useUserSettings()
 </script>
 
 <style scoped>
@@ -71,103 +83,79 @@ const router = useRouter()
 
 /* Right section styles with navigation */
 .right-section {
-  width: 20px; /* Reduced width for mobile */
+  width: auto;
   flex-shrink: 0; /* Prevent shrinking */
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
 }
 
-/* App title styles with gradient effect */
-.header h1 {
+/* App title styles */
+h1 {
   margin: 0;
-  font-size: 1.1rem; /* Slightly smaller font for mobile */
-  font-weight: 600;
-  cursor: pointer;
-  background-image: linear-gradient(90deg, 
-    #81C784 0%,
-    #2E7D32 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 1.5rem; /* Reduced font size for mobile */
+  font-weight: 700;
   color: var(--accent-color);
-  transition: all 0.2s;
-  padding-bottom: 2px;
-  white-space: nowrap; /* Prevent text wrapping */
-  overflow: hidden; /* Hide overflow */
-  text-overflow: ellipsis; /* Show ellipsis if text overflows */
-  max-width: calc(100% - 40px); /* Account for side sections */
+  cursor: pointer;
 }
 
-/* Hover effects for app title */
-.header h1:hover {
-  transform: translateY(-1px);
-  text-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
-  border-bottom: 2px solid var(--accent-color);
+/* Navigation styles */
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 /* Profile link styles */
 .profile-link {
-  color: var(--button-text);
+  color: var(--text-primary);
   text-decoration: none;
   font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: all 0.2s;
-  background-color: var(--button-bg);
-  border: 1px solid var(--button-border);
-  font-size: 0.75rem; /* Smaller font size for mobile */
-  white-space: nowrap; /* Prevent text wrapping */
+  transition: color 0.2s ease;
 }
 
-/* Hover effects for profile link */
 .profile-link:hover {
-  background-color: var(--button-hover-bg);
-  border-color: var(--accent-color);
+  color: var(--accent-color);
 }
 
-/* Tablet styles */
+/* Dev link for experimental features */
+.dev-link {
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--accent-color);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.dev-link:hover {
+  transform: scale(1.1);
+  background-color: var(--accent-hover);
+}
+
+/* Generic clickable element styles */
+.clickable {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Desktop styles for larger screens */
 @media (min-width: 768px) {
-  .header {
-    height: var(--header-height);
-    padding: 0; /* Remove padding for larger screens */
-  }
-
   .header-content {
-    padding: 0 2rem;
     max-width: 1200px;
+    padding: 0 2rem;
   }
-
-  .left-section,
-  .right-section {
-    width: 75px;
+  
+  .left-section {
+    width: 40px;
   }
-
-  .header h1 {
+  
+  h1 {
     font-size: 1.8rem;
-    padding-bottom: 4px;
-    max-width: none; /* Remove max-width constraint */
-  }
-
-  .profile-link {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-  }
-}
-
-/* Desktop styles */
-@media (min-width: 1024px) {
-  .header-content {
-    padding: 0 4rem;
-  }
-
-  .left-section,
-  .right-section {
-    width: 100px;
-  }
-
-  .header h1 {
-    font-size: 2.2rem;
   }
 }
 </style> 
