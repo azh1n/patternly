@@ -157,7 +157,7 @@
                       
                       <!-- Show the repeat group -->
                       <div class="repeat-group">
-                        <div class="repeat-bracket">(</div>
+                        <span class="repeat-bracket left-bracket">(</span>
                         
                         <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
                           <div 
@@ -170,10 +170,8 @@
                           </div>
                         </template>
                         
-                        <div class="repeat-bracket">)</div>
-                        <div class="repeat-count">
-                          x{{ row.stitches.repeatCount }}
-                        </div>
+                        <span class="repeat-bracket right-bracket">)</span>
+                        <span class="repeat-count">x{{ row.stitches.repeatCount }}</span>
                       </div>
                       
                       <!-- Show stitches after the repeat -->
@@ -313,6 +311,7 @@ const formattedPatternForDB = computed(() => {
         stitchesParts.push(beforeRepeat);
       }
       
+      // Format the repeat part with consistent spacing
       if (repeatedPart) {
         stitchesParts.push(`(${repeatedPart}) x${repeatCount}`);
       }
@@ -321,7 +320,7 @@ const formattedPatternForDB = computed(() => {
         stitchesParts.push(afterRepeat);
       }
       
-      // Join the parts that have content
+      // Join the parts that have content with consistent spacing
       stitchesInfo = stitchesParts.join(', ');
     } else if (Array.isArray(row.stitches)) {
       // Regular stitch array
@@ -336,7 +335,15 @@ const formattedPatternForDB = computed(() => {
       const repeatMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
       if (repeatMatch) {
         // Preserve the repeat pattern as is
-        stitchesInfo = cleanedText;
+        const beforeRepeatMatch = cleanedText.match(/^(.*?)\s*\(/);
+        const afterRepeatMatch = cleanedText.match(/x\d+\s*(.*?)$/);
+        
+        const beforeRepeat = beforeRepeatMatch && beforeRepeatMatch[1].trim() ? beforeRepeatMatch[1].trim() + ', ' : '';
+        const repeatedPart = repeatMatch[1].trim();
+        const repeatCount = repeatMatch[2];
+        const afterRepeat = afterRepeatMatch && afterRepeatMatch[1].trim() ? ', ' + afterRepeatMatch[1].trim() : '';
+        
+        stitchesInfo = `${beforeRepeat}(${repeatedPart}) x${repeatCount}${afterRepeat}`;
       } else {
         stitchesInfo = cleanedText;
       }
@@ -855,7 +862,7 @@ const extractStitches = (text) => {
     // Remove any "With Color X" prefix
     cleanedText = cleanedText.replace(/With\s+Color\s+[A-Za-z]+,?\s*/i, '').trim();
     
-    // Check for repeat pattern like "(1sc, 1inc) x6 (18)" and preserve it
+    // Check for repeat pattern like "(1sc, 1inc) x6" and preserve it
     const repeatPatternMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
     
     if (repeatPatternMatch) {
@@ -1686,16 +1693,23 @@ const applyQuickFormat = (format) => {
 }
 
 .preview-row-content {
-  padding-left: 1.5rem;
+  padding-left: 0rem;
 }
 
 .preview-stitches {
     display: flex;
-  flex-wrap: wrap;
+    flex-wrap: wrap;
     gap: 0.5rem;
-  align-items: center;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.1);
 }
-  
+
+:root.light .preview-stitches {
+    background: rgba(0, 0, 0, 0.05);
+}
+
 .no-stitches-message {
   padding: 0.5rem;
   color: var(--text-secondary, #aaa);
@@ -1860,20 +1874,57 @@ const applyQuickFormat = (format) => {
 .repeat-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.25rem;
+  margin: 0 0.5rem;
+  position: relative;
+  padding: 0 0.5rem;
+  background-color: rgba(79, 135, 255, 0.08);
+  border-radius: 8px;
+  height: 40px;
+  overflow: visible;
 }
 
 .repeat-bracket {
-  font-size: 1.5rem;
-  font-weight: 500;
+  font-size: 2.5rem;
+  font-weight: 400;
   color: var(--accent-color, #4f87ff);
+  margin: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding-bottom: 7px;
+}
+
+.left-bracket {
+  margin-right: 0.25rem;
+}
+
+.right-bracket {
+  margin-left: 0.25rem;
+  margin-right: 0.125rem;
 }
 
 .repeat-count {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--accent-color, #4f87ff);
-  margin-left: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  background: rgba(79, 135, 255, 0.15);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.125rem;
+  height: 24px;
+  position: relative;
+}
+
+/* Light theme overrides */
+:root.light .repeat-group {
+  background-color: rgba(41, 121, 255, 0.08);
 }
 
 :root.light .repeat-bracket,
