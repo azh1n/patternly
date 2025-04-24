@@ -100,7 +100,10 @@
               <span 
                 v-for="(stitch, index) in currentStitches" 
                 :key="index"
-                :class="{ 'completed-stitch': stitch.isCompleted }"
+                :class="[
+                  { 'completed-stitch': stitch.isCompleted },
+                  { 'repeat-pattern': stitch.isRepeatPattern }
+                ]"
               >
                 {{ stitch.code }}
               </span>
@@ -134,7 +137,8 @@
                   { 'completed-stitch': item.status === 'completed' },
                   { 'current-stitch': item.status === 'current' },
                   { 'next-stitch': item.status === 'next' },
-                  { 'border-stitch': item.code.endsWith('bs') }
+                  { 'border-stitch': item.code.endsWith('bs') },
+                  { 'repeat-pattern': item.isRepeatPattern }
                 ]"
               >
                 {{ item.code }}
@@ -148,7 +152,8 @@
                   'preview-stitch',
                   { 'completed-stitch': item.isCompleted },
                   { 'current-stitch': index >= currentStitchIndex && index < currentStitchIndex + stitchesPerView },
-                  { 'border-stitch': item.code.endsWith('bs') }
+                  { 'border-stitch': item.code.endsWith('bs') },
+                  { 'repeat-pattern': item.isRepeatPattern }
                 ]"
               >
                 {{ item.code }}
@@ -414,7 +419,8 @@ const parseFormattedPattern = (content) => {
       const stitchesText = stitchesMatch ? stitchesMatch[1].trim() : '';
       
       // Process pattern text to extract individual stitch codes
-      const codes = processPatternWithRepeats(stitchesText);
+      // We now want to preserve the repeat patterns, not expand them
+      const codes = processPatternPreservingRepeats(stitchesText);
       
       // Debug log for testing
       console.log(`Row ${rowNum}: ${stitchesText} -> ${codes.length} codes`);
@@ -432,59 +438,52 @@ const parseFormattedPattern = (content) => {
   }
 }
 
-// Enhanced pattern processing that handles repeats directly
-const processPatternWithRepeats = (pattern) => {
+// Process pattern while preserving repeat patterns
+const processPatternPreservingRepeats = (pattern) => {
   if (!pattern) return [];
   
-  // First, look for repeat patterns in the format "(X, Y) xN"
-  const expandedPattern = expandRepeatedSections(pattern);
+  // Clean up the pattern string
+  pattern = pattern.replace(/\s+/g, ' ').trim();
   
-  // Process the expanded pattern normally
-  return processPattern(expandedPattern);
+  // Split the pattern by commas, preserving repeat sections
+  const parts = splitByCommas(pattern);
+  
+  // Process each part
+  return parts.map(part => {
+    const trimmedPart = part.trim();
+    
+    // Check if this is a repeat pattern like "(1sc, 1inc) x6"
+    const repeatMatch = trimmedPart.match(/^\(([^)]+)\)\s*x(\d+)$/);
+    if (repeatMatch) {
+      // Keep the repeat pattern as is
+      return trimmedPart;
+    }
+    
+    // Otherwise normalize the individual stitch codes
+    return normalizeStitchCode(trimmedPart);
+  }).filter(Boolean); // Remove any empty or undefined entries
 }
 
-// Process pattern string into stitch codes
-const processPattern = (pattern) => {
-  if (!pattern) return []
+// Normalize a single stitch code
+const normalizeStitchCode = (code) => {
+  if (!code) return '';
   
-  // Clean up the pattern string
-  pattern = pattern.replace(/\s+/g, ' ').trim()
+  // Clean the code
+  const cleanCode = code.replace(/\.$/, '').trim();
   
-  // Handle the special format from DevAddPatternModal where patterns include parentheses
-  // Format example: "(1sc, 1inc) x6"
-  if (pattern.includes('(') && pattern.includes(')') && pattern.includes('x')) {
-    // Extract parts before, within, and after the repeat pattern
-    const beforeRepeatMatch = pattern.match(/^(.*?)\s*\(/);
-    const beforeRepeat = beforeRepeatMatch ? beforeRepeatMatch[1].trim() : '';
-    
-    const repeatMatch = pattern.match(/\(([^)]+)\)\s*x(\d+)/);
-    
-    // If there's no repeat pattern, process normally
-    if (!repeatMatch) return processParts(pattern.split(','));
-    
-    const repeatedContent = repeatMatch[1].trim();
-    const repeatCount = parseInt(repeatMatch[2]);
-    
-    const afterRepeatMatch = pattern.match(/x\d+\s*(.*?)$/);
-    const afterRepeat = afterRepeatMatch ? afterRepeatMatch[1].trim() : '';
-    
-    // Process each section
-    const beforeParts = beforeRepeat ? processParts(beforeRepeat.split(',')) : [];
-    const repeatedParts = repeatedContent ? processParts(repeatedContent.split(',')) : [];
-    const afterParts = afterRepeat ? processParts(afterRepeat.split(',')) : [];
-    
-    // Combine all parts with repeated content expanded
-    let result = [...beforeParts];
-    for (let i = 0; i < repeatCount; i++) {
-      result = [...result, ...repeatedParts];
-    }
-    result = [...result, ...afterParts];
-    
-    return result;
+  // Handle space between number and stitch type (e.g., "1 sc" -> "1sc")
+  const spaceMatch = cleanCode.match(/^(\d+)\s+([a-z]+)$/);
+  if (spaceMatch) {
+    return `${spaceMatch[1]}${spaceMatch[2]}`;
   }
   
-  // Standard processing for comma-separated patterns
-  return processParts(splitByCommas(pattern));
+  // Handle single-letter codes (e.g., "sc" -> "1sc")
+  const singleCodeMatch = cleanCode.match(/^([a-z]{1,3})$/);
+  if (singleCodeMatch) {
+    return `1${singleCodeMatch[1]}`;
+  }
+  
+  return cleanCode;
 }
 
 // Helper to split a pattern string by commas, preserving parentheses content
@@ -514,37 +513,6 @@ const splitByCommas = (pattern) => {
   }
   
   return parts;
-}
-
-// Process parts into normalized stitch codes
-const processParts = (parts) => {
-  if (!parts || !parts.length) return [];
-  
-  // Filter and normalize the parts
-  return parts.filter(part => {
-    const cleanPart = part.trim();
-    return cleanPart.length > 0;
-  }).map(part => {
-    // Clean the part
-    const cleanPart = part.replace(/\.$/, '').trim();
-    
-    // Handle space between number and stitch type (e.g., "1 sc" -> "1sc")
-    const spaceMatch = cleanPart.match(/^(\d+)\s+([a-z]+)$/);
-    if (spaceMatch) {
-      return `${spaceMatch[1]}${spaceMatch[2]}`;
-    }
-    
-    // Handle single-letter codes (e.g., "sc" -> "1sc")
-    const singleCodeMatch = cleanPart.match(/^([a-z]{1,3})$/);
-    if (singleCodeMatch) {
-      return `1${singleCodeMatch[1]}`;
-    }
-    
-    return cleanPart;
-  }).filter(code => {
-    // Only keep valid stitch codes
-    return /^\d+[a-z]+$/.test(code) || /^\([^)]+\)x\d+$/.test(code);
-  });
 }
 
 // Current row data based on index
@@ -736,42 +704,60 @@ const completionPercentage = computed(() => {
 
 // Current stitches display
 const currentStitches = computed(() => {
-  if (!currentRow.value) return []
-  const start = currentStitchIndex.value
-  const end = start + stitchesPerView.value
-  return currentRow.value.codes.slice(start, end).map((code, index) => ({
-    code,
-    isCompleted: index < stitchesPerView.value
-  }))
+  if (!currentRow.value) return [];
+  const start = currentStitchIndex.value;
+  const end = start + stitchesPerView.value;
+  
+  return currentRow.value.codes.slice(start, end).map((code, index) => {
+    // Check if this is a repeat pattern
+    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
+    
+    return {
+      code,
+      isCompleted: index < stitchesPerView.value,
+      isRepeatPattern
+    };
+  });
 })
 
 // Mobile preview stitch display
 const mobilePreviewStitches = computed(() => {
-  if (!currentRow.value) return []
+  if (!currentRow.value) return [];
   
   return currentRow.value.codes.map((code, index) => {
-    let status = 'pending'
+    let status = 'pending';
     if (index < currentStitchIndex.value) {
-      status = 'completed'
+      status = 'completed';
     } else if (index >= currentStitchIndex.value && index < currentStitchIndex.value + stitchesPerView.value) {
-      status = 'current'
+      status = 'current';
     } else if (index >= currentStitchIndex.value + stitchesPerView.value && 
                index < currentStitchIndex.value + stitchesPerView.value + 2) {
-      status = 'next'
+      status = 'next';
     }
     
-    return { code, status }
-  })
+    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
+    
+    return { 
+      code, 
+      status,
+      isRepeatPattern
+    };
+  });
 })
 
 // Completed codes for display in full row preview
 const getCompletedCodes = computed(() => {
-  if (!currentRow.value) return []
+  if (!currentRow.value) return [];
   
-  return currentRow.value.codes.map((code, index) => ({
-    code,
-    isCompleted: index < currentStitchIndex.value
-  }))
+  return currentRow.value.codes.map((code, index) => {
+    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
+    
+    return {
+      code,
+      isCompleted: index < currentStitchIndex.value,
+      isRepeatPattern
+    };
+  });
 })
 
 // Stitch view controls
@@ -1284,5 +1270,62 @@ onMounted(() => {
 :root.light .raw-pattern pre {
   background-color: #f0f0f0;
   color: #333;
+}
+
+/* Repeat pattern styles */
+.repeat-pattern {
+  background: var(--accent-color-light, rgba(79, 135, 255, 0.25)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: var(--text-primary, #fff) !important;
+  font-size: 1.2rem !important;
+  padding: 0.35rem 0.5rem !important;
+  white-space: nowrap;
+  border-radius: 4px;
+}
+
+/* Only apply special styling for current stitches view */
+.current-stitches .repeat-pattern {
+  font-size: 1.6rem !important;
+  margin: 0 0.5rem;
+  color: var(--accent-color, #4f87ff) !important;
+}
+
+/* For a more prominent display in current stitches */
+.current-stitches {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.preview-content .repeat-pattern {
+  max-width: none;
+  white-space: nowrap;
+  overflow: visible;
+  font-family: monospace;
+  display: inline-block;
+}
+
+.preview-stitch {
+  font-family: monospace;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-light);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Light theme overrides for repeat patterns */
+:root.light .repeat-pattern {
+  background: rgba(41, 121, 255, 0.15) !important;
+  border: 1px solid #2979ff !important;
+  color: #333 !important;
+}
+
+:root.light .current-stitches .repeat-pattern {
+  color: #2979ff !important;
 }
 </style> 
