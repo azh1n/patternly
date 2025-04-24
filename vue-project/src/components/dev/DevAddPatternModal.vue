@@ -47,9 +47,6 @@
               <div class="detection-item">
                 <span class="label">Row Format:</span>
                 <span class="value">{{ detectedRowFormat || 'Not detected' }}</span>
-                <button v-if="!detectedRowFormat" class="action-button" @click="showRowConfig = true">
-                  Define
-                </button>
               </div>
   
               <div class="detection-item">
@@ -145,55 +142,24 @@
                     <div v-if="!row.stitches || (Array.isArray(row.stitches) && row.stitches.length === 0)" class="no-stitches-message">
                       No stitches detected. Original text: {{ row.text }}
                     </div>
-                    <div v-else class="preview-stitches">
-                      <template v-if="typeof row.stitches === 'object' && row.stitches.repeated">
-                        <!-- Show stitches before the repeat -->
-                        <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
-                          <div 
-                            class="preview-stitch" 
-                            :class="getStitchClass(stitch)"
-                            :title="stitch"
-                          >
-                            <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                            <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                          </div>
-                        </template>
-                        
-                        <!-- Show the repeat group -->
-                        <div class="repeat-group">
-                          <div class="repeat-bracket">(</div>
-                          
-                          <template v-for="(stitch, i) in row.stitches.repeated" :key="`rep-${i}`">
-                            <div 
-                              class="preview-stitch" 
-                              :class="getStitchClass(stitch)"
-                              :title="stitch"
-                            >
-                              <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                              <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                            </div>
-                          </template>
-                          
-                          <div class="repeat-bracket">)</div>
-                          <div class="repeat-count">
-                            x{{ getRepeatCount(row.text) }}
-                          </div>
+                    <div v-else-if="row.stitches.repeated" class="preview-stitches">
+                      <!-- Show stitches before the repeat -->
+                      <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
+                        <div 
+                          class="preview-stitch" 
+                          :class="getStitchClass(stitch)"
+                          :title="stitch"
+                        >
+                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
                         </div>
-                        
-                        <!-- Show stitches after the repeat -->
-                        <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
-                          <div 
-                            class="preview-stitch" 
-                            :class="getStitchClass(stitch)"
-                            :title="stitch"
-                          >
-                            <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                            <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                          </div>
-                        </template>
                       </template>
-                      <template v-else>
-                        <template v-for="(stitch, i) in row.stitches" :key="i">
+                      
+                      <!-- Show the repeat group -->
+                      <div class="repeat-group">
+                        <div class="repeat-bracket">(</div>
+                        
+                        <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
                           <div 
                             class="preview-stitch" 
                             :class="getStitchClass(stitch)"
@@ -203,6 +169,35 @@
                             <span class="stitch-type">{{ getStitchType(stitch) }}</span>
                           </div>
                         </template>
+                        
+                        <div class="repeat-bracket">)</div>
+                        <div class="repeat-count">
+                          x{{ row.stitches.repeatCount }}
+                        </div>
+                      </div>
+                      
+                      <!-- Show stitches after the repeat -->
+                      <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
+                        <div 
+                          class="preview-stitch" 
+                          :class="getStitchClass(stitch)"
+                          :title="stitch"
+                        >
+                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                        </div>
+                      </template>
+                    </div>
+                    <div v-else class="preview-stitches">
+                      <template v-for="(stitch, i) in row.stitches" :key="i">
+                        <div 
+                          class="preview-stitch" 
+                          :class="getStitchClass(stitch)"
+                          :title="stitch"
+                        >
+                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                        </div>
                       </template>
                     </div>
                   </div>
@@ -297,7 +292,55 @@ const formattedPatternForDB = computed(() => {
   
   return parsedRows.value.map(row => {
     const colorInfo = row.color ? row.color : '';
-    const stitchesInfo = Array.isArray(row.stitches) ? row.stitches.join(', ') : '';
+    
+    // Handle stitches formatting, including repeats
+    let stitchesInfo = '';
+    
+    // Check if this is a repeated stitch pattern
+    if (row.stitches && row.stitches.repeated) {
+      // Format repeated section with parentheses and repeat count
+      const beforeRepeat = Array.isArray(row.stitches.beforeRepeat) ? row.stitches.beforeRepeat.join(', ') : '';
+      const repeatedPart = Array.isArray(row.stitches.repeatedStitches) ? row.stitches.repeatedStitches.join(', ') : '';
+      const afterRepeat = Array.isArray(row.stitches.afterRepeat) ? row.stitches.afterRepeat.join(', ') : '';
+      
+      // Get repeat count from the object
+      const repeatCount = row.stitches.repeatCount || '0';
+      
+      // Build stitches parts array and filter out empty segments
+      const stitchesParts = [];
+      
+      if (beforeRepeat) {
+        stitchesParts.push(beforeRepeat);
+      }
+      
+      if (repeatedPart) {
+        stitchesParts.push(`(${repeatedPart}) x${repeatCount}`);
+      }
+      
+      if (afterRepeat) {
+        stitchesParts.push(afterRepeat);
+      }
+      
+      // Join the parts that have content
+      stitchesInfo = stitchesParts.join(', ');
+    } else if (Array.isArray(row.stitches)) {
+      // Regular stitch array
+      stitchesInfo = row.stitches.join(', ');
+    } else if (typeof row.stitches === 'string') {
+      // Handle case where stitches might be a string
+      stitchesInfo = row.stitches;
+    } else {
+      // If we can't parse it, use the original row text after stripping row markers
+      const cleanedText = row.text.replace(/^(Round|Row)\s*\d+\s*:?\s*/i, '').trim();
+      // Check for repeat patterns in the raw text
+      const repeatMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
+      if (repeatMatch) {
+        // Preserve the repeat pattern as is
+        stitchesInfo = cleanedText;
+      } else {
+        stitchesInfo = cleanedText;
+      }
+    }
     
     return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
   }).join(', ');
@@ -658,6 +701,8 @@ const parseRows = () => {
         
         const rowText = line.substring(startPos, endPos).trim();
         
+        // Look for repeat patterns in the row text directly
+        // Example: Round 3 (1sc, 1inc) x6 (18)
         foundRows.push({
           number: rowNum,
           text: rowText,
@@ -671,6 +716,7 @@ const parseRows = () => {
       const match = matches[0];
       const rowNum = parseInt(match[1]);
       
+      // Look for repeat patterns in the row text directly
       foundRows.push({
         number: rowNum,
         text: line.trim(),
@@ -744,6 +790,7 @@ const parseRows = () => {
   });
   expandedRows.value = expanded;
   
+  // Make sure we set parsedRows last
   parsedRows.value = foundRows;
 }
 
@@ -770,14 +817,6 @@ const extractColor = (text) => {
 // Extract stitches from row text
 const extractStitches = (text) => {
   try {
-    // Create a more structured result object
-    const result = {
-      repeated: [],
-      beforeRepeat: [],
-      afterRepeat: [],
-      allStitches: []
-    };
-    
     // If there's another "Round X" or "Row X" in the text, truncate it to only include the current row
     const nextRowMatch = text.match(/(?:Round|Row) \d+/g);
     if (nextRowMatch && nextRowMatch.length > 1) {
@@ -790,61 +829,75 @@ const extractStitches = (text) => {
       }
     }
     
-    // Strip out the "Round X" or "Row X" prefix and trailing stitch count in parentheses
+    // Special case for patterns like "Round 3 (1sc, 1inc) x6 (18)"
+    const directRepeatMatch = text.match(/(?:Round|Row)\s+\d+\s+\(([^)]+)\)\s*x(\d+)/i);
+    if (directRepeatMatch) {
+      // Extract the repeated content and count directly from the row text
+      const repeatedContent = directRepeatMatch[1].trim();
+      const repeatCount = directRepeatMatch[2];
+      
+      // Parse the repeated content to extract individual stitches
+      const repeatedStitches = extractStitchesFromText(repeatedContent);
+      
+      // Return the structured result with the repeat
+      return {
+        repeated: true,
+        beforeRepeat: [],
+        repeatedStitches: repeatedStitches,
+        afterRepeat: [],
+        repeatCount: repeatCount
+      };
+    }
+    
+    // Strip out the "Round X" or "Row X" prefix 
     let cleanedText = text.replace(/^(?:Round|Row) \d+\s*:?\s*/, '').trim();
     
     // Remove any "With Color X" prefix
     cleanedText = cleanedText.replace(/With\s+Color\s+[A-Za-z]+,?\s*/i, '').trim();
     
-    // Check for the stitch count at the end e.g., "(Stitch Count: 33sc, 91dc, 76ns)"
-    const stitchCountMatch = cleanedText.match(/\(Stitch Count:([^)]+)\)/i);
-    if (stitchCountMatch) {
-      // Remove the stitch count information
-      cleanedText = cleanedText.replace(/\s*\(Stitch Count:[^)]+\)\s*$/, '').trim();
-    }
-    
-    // Remove any "FO." (finish off) marking
-    cleanedText = cleanedText.replace(/\s*FO\.\s*/, '').trim();
-    
-    // Look for repeated pattern like "(1sc, 1inc) x6"
+    // Check for repeat pattern like "(1sc, 1inc) x6 (18)" and preserve it
     const repeatPatternMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
     
     if (repeatPatternMatch) {
-      // Process the repeating pattern as before
-      // ...
-    } else {
-      // For complex patterns without repeats, simply split by commas and process each stitch
-      const stitchSegments = cleanedText.split(',').map(s => s.trim()).filter(s => s);
-      const extractedStitches = [];
+      // We have a pattern with repeats like "(1sc, 1inc) x6"
+      // We need to preserve this structure instead of flattening it
       
-      for (const segment of stitchSegments) {
-        // Try to match all common stitch patterns
-        let matched = false;
-        
-        for (const pattern of stitchPatterns) {
-          const match = segment.match(pattern.pattern);
-          if (match) {
-            const count = match[1] || '1';
-            extractedStitches.push(`${count}${pattern.name}`);
-            matched = true;
-            break;
-          }
-        }
-        
-        // If no pattern matched, try a more general approach
-        if (!matched) {
-          // Look for a number followed by any letters (potential stitch)
-          const generalMatch = segment.match(/(\d+)([a-zA-Z]+)/);
-          if (generalMatch) {
-            extractedStitches.push(`${generalMatch[1]}${generalMatch[2].toLowerCase()}`);
-          }
-        }
+      // First, check if there's a stitch count at the end like "(18)"
+      const stitchCountMatch = cleanedText.match(/\(\d+\)$/);
+      if (stitchCountMatch) {
+        cleanedText = cleanedText.replace(/\s*\(\d+\)$/, '').trim();
       }
       
-      return extractedStitches;
+      // Extract everything before the repeat
+      const beforeRepeatMatch = cleanedText.match(/^(.*?)\s*\(/);
+      const beforeRepeat = beforeRepeatMatch ? beforeRepeatMatch[1].trim() : '';
+      
+      // Extract everything after the repeat
+      const afterRepeatMatch = cleanedText.match(/x\d+\s*(.*?)$/);
+      const afterRepeat = afterRepeatMatch ? afterRepeatMatch[1].trim() : '';
+      
+      // Extract the repeated part
+      const repeatedContent = repeatPatternMatch[1].trim();
+      const repeatCount = repeatPatternMatch[2];
+      
+      // Parse the repeated content to extract individual stitches
+      const repeatedStitches = extractStitchesFromText(repeatedContent);
+      
+      // Parse before and after parts if they exist
+      const beforeStitches = beforeRepeat ? extractStitchesFromText(beforeRepeat) : [];
+      const afterStitches = afterRepeat ? extractStitchesFromText(afterRepeat) : [];
+      
+      // Return the structured result
+      return {
+        repeated: true,
+        beforeRepeat: beforeStitches,
+        repeatedStitches: repeatedStitches,
+        afterRepeat: afterStitches,
+        repeatCount: repeatCount
+      };
     }
     
-    // If we reached here and didn't return anything, use the original extraction method
+    // For patterns without repeats, extract stitches as before
     return extractStitchesFromText(cleanedText);
   } catch (error) {
     console.error("Error extracting stitches:", error);
@@ -1067,6 +1120,12 @@ const extractRepeatPattern = (text) => {
 }
 
 const getRepeatCount = (text) => {
+  // First check if we got the row text or a pattern object
+  if (typeof text === 'object' && text.repeatCount) {
+    return text.repeatCount;
+  }
+  
+  // Otherwise extract from text
   const repeatMatch = text.match(/\([^)]+\)\s*x(\d+)/);
   return repeatMatch ? repeatMatch[1] : "";
 }
