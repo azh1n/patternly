@@ -301,7 +301,7 @@ const parsedRows = computed(() => {
         // If we have collected pattern data from previous row, save it
         if (currentRowNum && currentPattern) {
           parsedRows.push({
-            rowNum: currentRowNum,
+            rowNum: String(currentRowNum), // Ensure rowNum is a string
             color: currentColor || 'No color',
             pattern: currentPattern,
             codes: currentRow
@@ -327,7 +327,7 @@ const parsedRows = computed(() => {
     // Save the last row if there's data
     if (currentRowNum && currentPattern) {
       parsedRows.push({
-        rowNum: currentRowNum,
+        rowNum: String(currentRowNum), // Ensure rowNum is a string
         color: currentColor || 'No color',
         pattern: currentPattern,
         codes: currentRow
@@ -429,23 +429,31 @@ const logPattern = (pattern) => {
 // Parse the new formatted pattern from DevAddPatternModal
 const parseFormattedPattern = (content) => {
   try {
-    console.log('Parsing formatted pattern:', content);
-    
     // Split by rows if separated by commas followed by "Row:"
     const rowEntries = content.split(/,\s*Row:/);
     
     // For the first entry, we need to clean up the "Row:" prefix
-    if (rowEntries.length > 0 && rowEntries[0].startsWith('Row:')) {
-      rowEntries[0] = rowEntries[0].replace(/^Row:/, '').trim();
+    let firstEntry = rowEntries[0];
+    if (rowEntries.length > 0 && firstEntry.startsWith('Row:')) {
+      firstEntry = firstEntry.replace(/^Row:/, '').trim();
+      rowEntries[0] = firstEntry;
     }
     
-    return rowEntries.map(entry => {
-      // Add "Row:" back for consistent parsing
-      const fullEntry = entry.startsWith(' ') ? `Row:${entry}` : entry;
+    const parsedRows = rowEntries.map((entry, index) => {
+      // Add "Row:" back for consistent parsing if needed
+      const fullEntry = index === 0 ? entry : `Row:${entry.startsWith(' ') ? entry : ` ${entry}`}`;
       
-      // Extract row number
-      const rowMatch = fullEntry.match(/Row:\s*(\d+)/);
-      const rowNum = rowMatch ? rowMatch[1] : '0';
+      // Extract row number - special handling for first entry since "Row:" was removed
+      let rowNum;
+      if (index === 0) {
+        // First entry special handling - format should be "53, Color: A, Stitches: ..."
+        const firstRowMatch = fullEntry.match(/^(\d+)/);
+        rowNum = firstRowMatch ? String(firstRowMatch[1]) : '0';
+      } else {
+        // Other entries should have "Row:" which was added back
+        const rowMatch = fullEntry.match(/Row:\s*(\d+)/);
+        rowNum = rowMatch ? String(rowMatch[1]) : '0';
+      }
       
       // Extract color
       const colorMatch = fullEntry.match(/Color:\s*([^,]*)/);
@@ -459,9 +467,6 @@ const parseFormattedPattern = (content) => {
       // We now want to preserve the repeat patterns, not expand them
       const codes = processPatternPreservingRepeats(stitchesText);
       
-      // Debug log for testing
-      console.log(`Row ${rowNum}: ${stitchesText} -> ${codes.length} codes`);
-      
       return {
         rowNum,
         color,
@@ -469,6 +474,8 @@ const parseFormattedPattern = (content) => {
         codes
       };
     });
+    
+    return parsedRows;
   } catch (error) {
     console.error('Error parsing formatted pattern:', error);
     return [];
@@ -554,7 +561,8 @@ const splitByCommas = (pattern) => {
 
 // Current row data based on index
 const currentRow = computed(() => {
-  return parsedRows.value[currentRowIndex.value] || null
+  const row = parsedRows.value[currentRowIndex.value] || null;
+  return row;
 })
 
 // Total stitches in current row
@@ -859,6 +867,14 @@ onMounted(() => {
       patternCard.removeEventListener('touchend', handleTouchEnd)
     }
   }
+})
+
+// Watch for changes in currentRowIndex
+watch(currentRowIndex, (newIndex, oldIndex) => {
+})
+
+// Watch for changes in parsedRows
+watch(parsedRows, (newRows) => {
 })
 </script>
 
