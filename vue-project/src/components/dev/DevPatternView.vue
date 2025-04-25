@@ -212,18 +212,6 @@
             <font-awesome-icon icon="code" />
             {{ showRawPattern ? 'Hide Raw Pattern' : 'View Raw Pattern' }}
           </button>
-          <button class="feature-button">
-            <font-awesome-icon icon="magic" />
-            Pattern Analysis
-          </button>
-          <button class="feature-button">
-            <font-awesome-icon icon="history" />
-            Version History
-          </button>
-          <button class="feature-button">
-            <font-awesome-icon icon="chart-line" />
-            Progress Stats
-          </button>
         </div>
         
         <!-- Raw Pattern Display for Debugging -->
