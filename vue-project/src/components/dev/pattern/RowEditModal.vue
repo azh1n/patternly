@@ -102,7 +102,7 @@
             <div class="preview-row">
               <div class="preview-row-header">
                 <span class="preview-row-number">Row {{ editRowNumber }}</span>
-                <div v-if="editRowColor" class="color-indicator" :style="{ backgroundColor: getColorHex(editRowColor) }"></div>
+                <div v-if="editRowColor" class="color-indicator" :style="{ backgroundColor: getColorHex(editRowColor) }">{{ editRowColor }}</div>
               </div>
               <div class="preview-row-content">
                 <div v-if="!hasRepeatedStitches" class="preview-stitches">
@@ -370,8 +370,23 @@ const getStitchClass = (stitch) => {
 }
 
 const getColorHex = (color) => {
-  // Map color identifiers to hex values
+  // First check for exact color name matches
   const colorMap = {
+    // Color names
+    'Red': '#ff5252',
+    'Green': '#4caf50',
+    'Blue': '#2196f3',
+    'Yellow': '#ffc107',
+    'Purple': '#9c27b0',
+    'Orange': '#ff9800',
+    'Pink': '#e91e63',
+    'Turquoise': '#00bcd4',
+    'Black': '#333333',
+    'White': '#ffffff',
+    'Brown': '#795548',
+    'Gray': '#607d8b',
+    
+    // Letter-based colors
     'A': '#ff5252', // Red
     'B': '#4caf50', // Green
     'C': '#2196f3', // Blue
@@ -381,23 +396,23 @@ const getColorHex = (color) => {
     'MC': '#333333', // Main Color (dark)
     'CC': '#e91e63', // Contrast Color (pink)
     'CC1': '#e91e63', // Contrast Color 1
-    'CC2': '#00bcd4', // Contrast Color 2
-    'Red': '#ff5252',
-    'Green': '#4caf50',
-    'Blue': '#2196f3',
-    'Yellow': '#ffc107',
-    'Purple': '#9c27b0',
-    'Orange': '#ff9800',
-    'Pink': '#e91e63',
-    'Turquoise': '#00bcd4'
+    'CC2': '#00bcd4'  // Contrast Color 2
   }
   
-  // If we can match the color to our map, return the hex
-  const colorKey = Object.keys(colorMap).find(key => 
-    color.toLowerCase().includes(key.toLowerCase())
-  )
+  // First check for exact matches
+  if (colorMap[color]) {
+    return colorMap[color]
+  }
   
-  return colorKey ? colorMap[colorKey] : '#888888' // Default gray
+  // Then check for partial matches
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (color.toLowerCase().includes(key.toLowerCase())) {
+      return value
+    }
+  }
+  
+  // If no match found, return default gray
+  return '#888888'
 }
 </script>
 
@@ -583,10 +598,24 @@ const getColorHex = (color) => {
 }
 
 .color-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+}
+
+.color-indicator::before {
+  content: '';
+  display: inline-block;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-color, #444);
+  box-shadow: 0 0 0 1px white;
+  background-color: inherit;
 }
 
 .preview-row-content {

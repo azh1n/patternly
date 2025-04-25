@@ -75,7 +75,43 @@
                   <button @click="applyColorFormat" class="apply-button">Apply</button>
                 </div>
                 <div class="examples">
-                  <p>Examples: "Color A", "MC", "Pink", etc.</p>
+                  <p>Examples: "Black", "Orange", "Color A", etc.</p>
+                </div>
+                
+                <!-- Color Mapping Section -->
+                <div v-if="detectedColors.length > 0" class="color-mapping-section">
+                  <h4>Map Colors</h4>
+                  <p class="help-text">Map ambiguous colors to specific colors</p>
+                  <div v-for="(color, index) in detectedColors" :key="index" class="color-mapping-item">
+                    <div class="color-mapping-label">{{ color }}:</div>
+                    <div class="color-mapping-input">
+                      <select 
+                        v-model="colorMappings[color]" 
+                        class="color-select"
+                      >
+                        <option value="">Select a color</option>
+                        <option value="#ff5252">Red</option>
+                        <option value="#4caf50">Green</option>
+                        <option value="#2196f3">Blue</option>
+                        <option value="#ffc107">Yellow</option>
+                        <option value="#9c27b0">Purple</option>
+                        <option value="#ff9800">Orange</option>
+                        <option value="#e91e63">Pink</option>
+                        <option value="#00bcd4">Turquoise</option>
+                        <option value="#333333">Black</option>
+                        <option value="#ffffff">White</option>
+                        <option value="#795548">Brown</option>
+                        <option value="#607d8b">Gray</option>
+                      </select>
+                      <div 
+                        class="color-preview" 
+                        :style="{ backgroundColor: colorMappings[color] || '#888888' }"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="color-mapping-actions">
+                    <button @click="applyColorMappings" class="apply-button">Apply Color Mappings</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -97,9 +133,32 @@
 
               <div class="detection-item">
                 <span class="label">Colors:</span>
-                <span class="value">{{ detectedColors.length ? detectedColors.join(', ') : 'Not detected' }}</span>
-                <button v-if="!detectedColors.length" class="action-button" @click="showColorConfig = true">
+                <span class="value">
+                  <template v-if="detectedColors.length">
+                    <template v-for="(color, index) in detectedColors" :key="index">
+                      <span 
+                        class="color-chip"
+                        :style="{ backgroundColor: getColorHex(getMappedColorName(color)) }"
+                      ></span>
+                      <span class="color-name">{{ getMappedColorName(color) }}</span>
+                      <span v-if="index < detectedColors.length - 1" class="color-separator">, </span>
+                    </template>
+                  </template>
+                  <template v-else>Not detected</template>
+                </span>
+                <button 
+                  v-if="!detectedColors.length" 
+                  class="action-button" 
+                  @click="showColorConfig = true"
+                >
                   Define
+                </button>
+                <button 
+                  v-if="detectedColors.length" 
+                  class="action-button" 
+                  @click="openColorMapping"
+                >
+                  Map Colors
                 </button>
               </div>
             </div>
@@ -231,6 +290,9 @@ const userColorFormat = ref('')
 const detectedStitches = ref([])
 const parsedRows = ref([])
 const unparsedContent = ref('')
+
+// Color mapping state
+const colorMappings = ref({}) // Maps color identifiers to hex values
 
 // Row editing state
 const editingRowIndex = ref(-1)
@@ -382,6 +444,7 @@ const resetForm = () => {
   detectedStitches.value = []
   parsedRows.value = []
   expandedRows.value = {}
+  colorMappings.value = {}
   showRowConfig.value = false
   showColorConfig.value = false
   showAnalysis.value = true
@@ -998,6 +1061,60 @@ const applyColorFormat = () => {
   }
 }
 
+// Get the mapped color name for a given color
+const getMappedColorName = (color) => {
+  // Check if this color has a mapping
+  for (const [mappedColor, colorValue] of Object.entries(colorMappings.value)) {
+    if (color.toLowerCase() === mappedColor.toLowerCase() && colorValue) {
+      // Return the actual color name instead of the ambiguous one
+      return getColorNameFromHex(colorValue)
+    }
+  }
+  // If no mapping found, return the original color
+  return color
+}
+
+// Apply color mappings when user clicks the Apply button
+const applyColorMappings = () => {
+  // Update the actual color values in each row
+  parsedRows.value = parsedRows.value.map(row => {
+    // Clone the row to avoid mutating the original
+    const updatedRow = { ...row }
+    
+    // Check if this row has a color that needs to be mapped
+    if (updatedRow.color) {
+      // Find if any of our color mappings apply to this row's color
+      for (const [mappedColor, colorValue] of Object.entries(colorMappings.value)) {
+        if (updatedRow.color.toLowerCase().includes(mappedColor.toLowerCase()) && colorValue) {
+          // Get the color name from the selected value
+          const colorName = getColorNameFromHex(colorValue)
+          // Replace the ambiguous color with the actual color name
+          updatedRow.color = colorName
+          break
+        }
+      }
+    }
+    
+    return updatedRow
+  })
+  
+  // Show a confirmation and close the color config panel
+  showColorConfig.value = false
+}
+
+// Open color mapping section
+const openColorMapping = () => {
+  showColorConfig.value = true
+  // Use setTimeout to ensure the DOM is updated before scrolling
+  setTimeout(() => {
+    // Find the color mapping section and scroll to it
+    const colorMappingSection = document.querySelector('.color-mapping-section')
+    if (colorMappingSection) {
+      colorMappingSection.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, 100)
+}
+
 // Toggle row details visibility
 const toggleRowDetails = (index) => {
   expandedRows.value = {
@@ -1068,35 +1185,86 @@ const getStitchClass = (stitch) => {
   }
 }
 
+// Color mapping for hex values to color names and vice versa
+const colorMap = {
+  // Hex to name mapping
+  '#ff5252': 'Red',
+  '#4caf50': 'Green',
+  '#2196f3': 'Blue',
+  '#ffc107': 'Yellow',
+  '#9c27b0': 'Purple',
+  '#ff9800': 'Orange',
+  '#e91e63': 'Pink',
+  '#00bcd4': 'Turquoise',
+  '#333333': 'Black',
+  '#ffffff': 'White',
+  '#795548': 'Brown',
+  '#607d8b': 'Gray',
+  
+  // Name to hex mapping
+  'Red': '#ff5252',
+  'Green': '#4caf50',
+  'Blue': '#2196f3',
+  'Yellow': '#ffc107',
+  'Purple': '#9c27b0',
+  'Orange': '#ff9800',
+  'Pink': '#e91e63',
+  'Turquoise': '#00bcd4',
+  'Black': '#333333',
+  'White': '#ffffff',
+  'Brown': '#795548',
+  'Gray': '#607d8b',
+  
+  // Letter-based colors
+  'A': '#ff5252', // Red
+  'B': '#4caf50', // Green
+  'C': '#2196f3', // Blue
+  'D': '#ffc107', // Yellow
+  'E': '#9c27b0', // Purple
+  'F': '#ff9800', // Orange
+  'MC': '#333333', // Main Color (dark)
+  'CC': '#e91e63', // Contrast Color (pink)
+  'CC1': '#e91e63', // Contrast Color 1
+  'CC2': '#00bcd4'  // Contrast Color 2
+}
+
+// Get color name from hex value
+const getColorNameFromHex = (hexValue) => {
+  return colorMap[hexValue] || 'Custom Color'
+}
+
 const getColorHex = (color) => {
-  // Map color identifiers to hex values
-  const colorMap = {
-    'A': '#ff5252', // Red
-    'B': '#4caf50', // Green
-    'C': '#2196f3', // Blue
-    'D': '#ffc107', // Yellow
-    'E': '#9c27b0', // Purple
-    'F': '#ff9800', // Orange
-    'MC': '#333333', // Main Color (dark)
-    'CC': '#e91e63', // Contrast Color (pink)
-    'CC1': '#e91e63', // Contrast Color 1
-    'CC2': '#00bcd4', // Contrast Color 2
-    'Red': '#ff5252',
-    'Green': '#4caf50',
-    'Blue': '#2196f3',
-    'Yellow': '#ffc107',
-    'Purple': '#9c27b0',
-    'Orange': '#ff9800',
-    'Pink': '#e91e63',
-    'Turquoise': '#00bcd4'
+  if (!color) return '#888888';
+  
+  // First check if we have a user-defined mapping for this color
+  for (const [mappedColor, hexValue] of Object.entries(colorMappings.value)) {
+    if (color.toLowerCase() === mappedColor.toLowerCase() && hexValue) {
+      return hexValue;
+    }
   }
   
-  // If we can match the color to our map, return the hex
-  const colorKey = Object.keys(colorMap).find(key => 
-    color.toLowerCase().includes(key.toLowerCase())
-  )
+  // Check for exact match in our color map
+  if (colorMap[color]) {
+    return colorMap[color];
+  }
   
-  return colorKey ? colorMap[colorKey] : '#888888' // Default gray
+  // Check for color names (case insensitive)
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (typeof value === 'string' && value.startsWith('#') && 
+        color.toLowerCase() === key.toLowerCase()) {
+      return value;
+    }
+  }
+  
+  // Check for partial matches (for 'Color A' type formats)
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (!key.startsWith('#') && 
+        color.toLowerCase().includes(key.toLowerCase())) {
+      return value;
+    }
+  }
+  
+  return '#888888'; // Default gray
 }
 
 const extractRepeatPattern = (text) => {
@@ -1457,8 +1625,39 @@ const handleRowSave = (updatedRow) => {
 }
 
 .detection-item .value {
-  color: var(--text-primary, #fff);
   flex: 1;
+  color: var(--text-primary, #fff);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.color-chip {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-right: 4px;
+  border: 1px solid var(--border-color, #444);
+  box-shadow: 0 0 0 1px white;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.color-name {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.color-separator {
+  display: inline-block;
+  margin: 0 2px;
 }
 
 .action-button {
@@ -1689,10 +1888,70 @@ const handleRowSave = (updatedRow) => {
   background: var(--button-secondary-hover, #555);
 }
 
+/* Color Mapping Styles */
+.color-mapping-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #444);
+}
+
+.color-mapping-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.color-mapping-label {
+  width: 80px;
+  font-weight: 500;
+  color: var(--text-primary, #fff);
+}
+
+.color-mapping-input {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.color-select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #444);
+  border-radius: 4px;
+  background: var(--input-bg, #333);
+  color: var(--text-primary, #fff);
+}
+
+.color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  border: 1px solid var(--border-color, #444);
+  /* Add white outline for dark colors like black */
+  box-shadow: 0 0 0 1px white;
+}
+
+.color-mapping-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
 /* Light Theme Overrides */
 :root.light .pattern-modal {
   background: #ffffff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+:root.light .color-mapping-label {
+  color: #333;
+}
+
+:root.light .color-select {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  color: #333;
 }
 
 :root.light .modal-header {
