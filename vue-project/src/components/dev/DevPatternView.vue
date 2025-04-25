@@ -35,7 +35,7 @@
             <!-- Desktop view -->
             <div class="desktop-only">
               <h2>Row {{ currentRow?.rowNum }}</h2>
-              <span class="row-color">{{ currentRow?.color }}</span>
+              <span class="row-color">Color {{ currentRow?.color }}</span>
             </div>
             <!-- Mobile view -->
             <div class="mobile-only stacked-info">
@@ -645,6 +645,8 @@ const nextRow = async () => {
     // Move to next row
     currentRowIndex.value++
     currentStitchIndex.value = 0
+    // Update scroll position after changing row
+    setTimeout(updateScrollPosition, 50)
   }
 }
 
@@ -652,6 +654,8 @@ const previousRow = () => {
   if (currentRowIndex.value > 0) {
     currentRowIndex.value--
     currentStitchIndex.value = 0
+    // Update scroll position after changing row
+    setTimeout(updateScrollPosition, 50)
   }
 }
 
@@ -675,13 +679,23 @@ const toggleRowComplete = async () => {
 // Update scroll position helper
 const updateScrollPosition = () => {
   try {
-    const container = document.querySelector('.preview-content')
-    if (container) {
-      const activeStitch = container.querySelector('.current-stitch')
-      if (activeStitch) {
-        activeStitch.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    // Wait for DOM to update
+    setTimeout(() => {
+      const container = document.querySelector('.preview-content')
+      if (container) {
+        const activeStitches = container.querySelectorAll('.current-stitch')
+        if (activeStitches.length > 0) {
+          const firstActiveStitch = activeStitches[0]
+          const containerWidth = container.offsetWidth
+          const scrollPosition = firstActiveStitch.offsetLeft - (containerWidth / 2) + (firstActiveStitch.offsetWidth * stitchesPerView.value / 2)
+          
+          container.scrollTo({
+            left: Math.max(0, scrollPosition),
+            behavior: 'smooth'
+          })
+        }
       }
-    }
+    }, 50) // Small delay to ensure DOM has updated
   } catch (error) {
     console.error('Error updating scroll position:', error)
   }
@@ -858,6 +872,9 @@ onMounted(() => {
   // Save the row count when component mounts
   saveRowCount()
   
+  // Initialize scroll position after component mounts
+  setTimeout(updateScrollPosition, 300)
+  
   // Clean up event listeners
   return () => {
     window.removeEventListener('resize', () => {})
@@ -871,6 +888,14 @@ onMounted(() => {
 
 // Watch for changes in currentRowIndex
 watch(currentRowIndex, (newIndex, oldIndex) => {
+  // Make sure to update scroll position when row changes
+  setTimeout(updateScrollPosition, 50)
+})
+
+// Watch for changes in currentStitchIndex
+watch(currentStitchIndex, (newIndex, oldIndex) => {
+  // Update scroll position when stitch index changes
+  setTimeout(updateScrollPosition, 50)
 })
 
 // Watch for changes in parsedRows
@@ -1172,8 +1197,12 @@ watch(parsedRows, (newRows) => {
 }
 
 .current-stitch {
-  border: 2px solid var(--accent-color);
+  border: 2px solid #4CAF50;
   position: relative;
+  background-color: rgba(76, 175, 80, 0.1);
+  font-weight: bold;
+  box-shadow: 0 0 0 1px #4CAF50;
+  outline: 1px solid #4CAF50;
 }
 
 .row-navigation {
