@@ -221,15 +221,18 @@ async function handleLogout() {
   display: flex;
   flex-direction: column;
   background-color: var(--main-bg);
+  color: var(--text-primary);
+  width: 100%;
+  position: relative;
+  padding-bottom: 60px; /* Space for ad banner */
 }
 
 /* Content wrapper styles */
 .profile-content {
-  padding: 1rem;
-  margin: 0 auto;
+  padding: 1.5rem;
   width: 100%;
-  max-width: 100%;
   flex: 1;
+  position: relative;
 }
 
 /* Profile card styles */
@@ -461,8 +464,7 @@ button:disabled {
 /* Tablet styles */
 @media (min-width: 768px) {
   .profile-content {
-    padding: 2rem;
-    max-width: 600px;
+    padding: 1.5rem;
   }
 
   .profile-card {
@@ -483,12 +485,16 @@ button:disabled {
   }
 }
 
+/* Mobile styles */
+@media (max-width: 767px) {
+  .profile-content {
+    padding: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Desktop styles */
 @media (min-width: 1024px) {
-  .profile-content {
-    padding: 3rem;
-  }
-
   .profile-card {
     padding: 3rem;
   }
