@@ -102,7 +102,8 @@
                 :key="index"
                 :class="[
                   { 'completed-stitch': stitch.isCompleted },
-                  { 'repeat-pattern': stitch.isRepeatPattern }
+                  { 'repeat-pattern': stitch.isRepeatPattern },
+                  getStitchClass(stitch.code)
                 ]"
               >
                 {{ stitch.code }}
@@ -138,7 +139,8 @@
                   { 'current-stitch': item.status === 'current' },
                   { 'next-stitch': item.status === 'next' },
                   { 'border-stitch': item.code.endsWith('bs') },
-                  { 'repeat-pattern': item.isRepeatPattern }
+                  { 'repeat-pattern': item.isRepeatPattern },
+                  getStitchClass(item.code)
                 ]"
               >
                 {{ item.code }}
@@ -153,7 +155,8 @@
                   { 'completed-stitch': item.isCompleted },
                   { 'current-stitch': index >= currentStitchIndex && index < currentStitchIndex + stitchesPerView },
                   { 'border-stitch': item.code.endsWith('bs') },
-                  { 'repeat-pattern': item.isRepeatPattern }
+                  { 'repeat-pattern': item.isRepeatPattern },
+                  getStitchClass(item.code)
                 ]"
               >
                 {{ item.code }}
@@ -901,6 +904,30 @@ watch(currentStitchIndex, (newIndex, oldIndex) => {
 // Watch for changes in parsedRows
 watch(parsedRows, (newRows) => {
 })
+
+// Get stitch class based on code for styling
+const getStitchClass = (code) => {
+  if (!code) return '';
+  
+  // Extract the stitch type from the code
+  const type = code.match(/[a-z]+$/i);
+  const stitchType = type ? type[0].toLowerCase() : '';
+  
+  // Return appropriate CSS class based on stitch type
+  if (stitchType.includes('sc')) return 'stitch-sc';
+  if (stitchType.includes('dc')) return 'stitch-dc';
+  if (stitchType.includes('hdc')) return 'stitch-hdc';
+  if (stitchType.includes('tr')) return 'stitch-tr';
+  if (stitchType.includes('dtr')) return 'stitch-dtr';
+  if (stitchType.includes('ch')) return 'stitch-ch';
+  if (stitchType.includes('sl')) return 'stitch-sl';
+  if (stitchType === 'inc') return 'stitch-inc';
+  if (stitchType === 'dec') return 'stitch-dec';
+  if (stitchType.includes('bs')) return 'stitch-bs';
+  if (stitchType.includes('ns')) return 'stitch-ns';
+  
+  return '';
+}
 </script>
 
 <style scoped>
@@ -1194,6 +1221,10 @@ watch(parsedRows, (newRows) => {
   border-radius: 4px;
   background-color: var(--card-bg);
   border: 1px solid var(--border-light);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .current-stitch {
@@ -1425,6 +1456,62 @@ watch(parsedRows, (newRows) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Stitch type colors matching DevAddPatternModal.vue */
+.stitch-sc {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+.stitch-dc {
+  background-color: #2196f3 !important;
+  color: white !important;
+}
+
+.stitch-hdc {
+  background-color: #673ab7 !important;
+  color: white !important;
+}
+
+.stitch-tr {
+  background-color: #ff5722 !important;
+  color: white !important;
+}
+
+.stitch-dtr {
+  background-color: #e91e63 !important;
+  color: white !important;
+}
+
+.stitch-ch {
+  background-color: #ffc107 !important;
+  color: #333 !important;
+}
+
+.stitch-sl {
+  background-color: #9e9e9e !important;
+  color: white !important;
+}
+
+.stitch-inc {
+  background-color: #8bc34a !important;
+  color: white !important;
+}
+
+.stitch-dec {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+.stitch-bs {
+  background-color: #795548 !important;
+  color: white !important;
+}
+
+.stitch-ns {
+  background-color: #607d8b !important;
+  color: white !important;
 }
 
 /* Light theme overrides for repeat patterns */
