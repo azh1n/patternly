@@ -55,10 +55,6 @@ const props = defineProps({
     type: Object,
     required: true  // Pattern object containing name, content, timestamp, and completion data
   },
-  isDevMode: {
-    type: Boolean,
-    default: false  // Flag to indicate if this is being used in dev mode
-  }
 })
 
 // Router instance for navigation
@@ -126,8 +122,7 @@ const completionPercentage = computed(() => {
 
 // Navigate to pattern detail view
 const handleClick = () => {
-  // Use the correct route path based on whether we're in dev mode
-  const routePath = props.isDevMode ? `/dev/pattern/${props.pattern.id}` : `/pattern/${props.pattern.id}`
+  const routePath = `/pattern/${props.pattern.id}`
   router.push(routePath)
 }
 </script>

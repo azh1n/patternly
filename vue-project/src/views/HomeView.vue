@@ -4,12 +4,6 @@
 
     <main class="main-content">
       <div v-if="!selectedPattern" class="home-view">
-        <div v-if="experimentalFeatures" class="experimental-banner">
-          <span>Try our experimental features!</span>
-          <router-link to="/dev" class="experimental-link">
-            <font-awesome-icon icon="flask" /> Go to experimental version
-          </router-link>
-        </div>
         
         <PatternGrid
           :patterns="savedTexts"

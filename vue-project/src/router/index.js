@@ -7,7 +7,6 @@ import HomeView from '../views/HomeView.vue'
 import LoginPage from '../components/LoginPage.vue'
 import ProfilePage from '../components/ProfilePage.vue'
 import GoogleAuthCallback from '../components/GoogleAuthCallback.vue'
-import DevHomeView from '../components/dev/DevHomeView.vue'
 import AboutView from '../views/AboutView.vue'
 import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
 
@@ -61,26 +60,6 @@ const router = createRouter({
       component: GoogleAuthCallback,
       meta: { requiresGuest: true }
     },
-    // Experimental routes
-    {
-      path: '/dev',
-      name: 'dev-home',
-      component: DevHomeView,
-      meta: { 
-        requiresAuth: true,
-        requiresExperimental: true 
-      }
-    },
-    {
-      path: '/dev/pattern/:id',
-      name: 'dev-pattern',
-      component: DevHomeView,
-      props: true,
-      meta: { 
-        requiresAuth: true,
-        requiresExperimental: true 
-      }
-    }
   ]
 })
 
