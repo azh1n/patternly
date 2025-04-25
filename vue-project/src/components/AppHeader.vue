@@ -4,17 +4,17 @@
   <header class="header">
     <!-- Content wrapper for consistent width and padding -->
     <div class="header-content">
-      <!-- Left section placeholder for layout balance -->
-      <div class="left-section"></div>
-      <!-- App title with click navigation to home -->
+      <!-- Left section with equal width as right section -->
+      <div class="side-section left-section"></div>
+      <!-- App title with click navigation to home - absolutely positioned -->
       <h1 
         @click="navigateHome"
-        class="clickable"
+        class="app-title clickable"
       >
         Patternly
       </h1>
       <!-- Right section with conditional navigation -->
-      <div class="right-section">
+      <div class="side-section right-section">
         <nav v-if="showNav">
           <router-link to="/profile" class="profile-link">Profile</router-link>
           <router-link 
@@ -67,7 +67,7 @@ const navigateHome = () => {
 /* Main header container styles */
 .header {
   background-color: var(--header-bg);
-  min-height: 60px; /* Changed from fixed height to min-height */
+  min-height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -75,40 +75,49 @@ const navigateHome = () => {
   border-bottom: 1px solid var(--border-color);
   position: relative;
   width: 100%;
-  padding: 0.5rem 0; /* Added padding to prevent content squishing */
+  padding: 0.5rem 0;
 }
 
 /* Header content wrapper styles */
 .header-content {
   width: 100%;
-  padding: 0 0.75rem; /* Reduced side padding for mobile */
+  padding: 0 0.75rem;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative; /* For absolute positioning of title */
 }
 
-/* Left section styles for layout balance */
+/* Side sections with equal widths */
+.side-section {
+  flex-shrink: 0;
+  min-width: 80px; /* Ensure both sides have equal width */
+}
+
+/* Left section specific styles */
 .left-section {
-  width: 20px; /* Reduced width for mobile */
-  flex-shrink: 0; /* Prevent shrinking */
+  display: flex;
+  justify-content: flex-start;
 }
 
 /* Right section styles with navigation */
 .right-section {
-  width: auto;
-  flex-shrink: 0; /* Prevent shrinking */
   display: flex;
+  justify-content: flex-end;
   align-items: center;
 }
 
-/* App title styles */
-h1 {
+/* App title styles - centered absolutely */
+.app-title {
   margin: 0;
-  font-size: 1.5rem; /* Reduced font size for mobile */
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--accent-color);
-  cursor: pointer;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
 }
 
 /* Navigation styles */
@@ -163,11 +172,11 @@ nav {
     padding: 0 2rem;
   }
   
-  .left-section {
-    width: 40px;
+  .side-section {
+    min-width: 100px;
   }
   
-  h1 {
+  .app-title {
     font-size: 1.8rem;
   }
 }
