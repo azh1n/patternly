@@ -138,23 +138,14 @@
             </div>
                     
             <!-- Unparsed Content Section -->
-            <div v-if="patternText.trim() && unparsedContent.trim()" class="unparsed-content-section">
-              <div class="unparsed-header">
-                <div class="icon-warning">⚠️</div>
-                <h4>Unparsed Content</h4>
-                <button class="toggle-button" @click="showUnparsedContent = !showUnparsedContent">
-                  {{ showUnparsedContent ? '−' : '+' }}
-                </button>
-              </div>
-              <div v-if="showUnparsedContent" class="unparsed-content">
-                <p class="help-text">The following content could not be parsed into rows:</p>
-                <div class="unparsed-text">{{ unparsedContent }}</div>
-                <div class="unparsed-actions">
-                  <button @click="addNewRow" class="action-button">Add New Row</button>
-                  <button @click="ignoreUnparsedContent" class="action-button secondary">Ignore This Content</button>
-                </div>
-              </div>
-            </div>
+            <UnparsedContentSection
+              :unparsedContent="unparsedContent"
+              :showUnparsedContent="showUnparsedContent"
+              :isVisible="patternText.trim() && unparsedContent.trim()"
+              @add-new-row="addNewRow"
+              @ignore-unparsed-content="ignoreUnparsedContent"
+              @toggle-show="showUnparsedContent = !showUnparsedContent"
+            />
 
             <!-- Pattern Preview Section -->
             <div v-if="parsedRows.length" class="pattern-preview-section">
@@ -270,6 +261,7 @@ import { ref, computed, watch, reactive } from 'vue'
 import { usePatternStore } from '@/stores/pattern'
 import { auth } from '@/firebase'
 import RowEditModal from './pattern/RowEditModal.vue'
+import UnparsedContentSection from './pattern/UnparsedContentSection.vue'
 
 // Props and emits
 const props = defineProps({
@@ -2163,64 +2155,7 @@ const handleRowSave = (updatedRow) => {
   background: var(--accent-hover, #3a6fd9);
 }
 
-/* Unparsed Content Section */
-.unparsed-content-section {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--warning-border, #8B6E00);
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: var(--warning-bg, rgba(255, 204, 0, 0.1));
-}
-
-.unparsed-header {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background-color: var(--warning-header-bg, rgba(255, 204, 0, 0.2));
-  gap: 0.5rem;
-}
-
-.icon-warning {
-  font-size: 1.25rem;
-}
-
-.unparsed-header h4 {
-  margin: 0;
-  flex-grow: 1;
-  color: var(--warning-text, #FFC107);
-}
-
-.unparsed-content {
-  padding: 1rem;
-}
-
-.unparsed-text {
-  padding: 0.75rem;
-  background: var(--input-bg, #333);
-  border: 1px solid var(--border-color, #444);
-  border-radius: 6px;
-  color: var(--text-secondary, #aaa);
-  font-style: italic;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
-  white-space: pre-wrap;
-}
-
-.unparsed-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.action-button.secondary {
-  background: var(--button-secondary-bg, #555);
-}
-
-.action-button.secondary:hover {
-  background: var(--button-secondary-hover, #666);
-}
+/* Preview Header */
 
 .preview-header {
   display: flex;
