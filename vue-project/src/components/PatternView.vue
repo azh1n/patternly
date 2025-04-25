@@ -1962,72 +1962,7 @@ const getStitchClass = (code) => {
   }
 }
 
-/* Stitch-type-specific styling */
-.stitch-sc {
-  background-color: #a8e6cf !important; /* Pastel green */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-dc {
-  background-color: #92c4ff !important; /* Pastel blue */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-hdc {
-  background-color: #c3aadb !important; /* Pastel purple */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-tr {
-  background-color: #ffbe9d !important; /* Pastel orange */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-dtr {
-  background-color: #ffabcf !important; /* Pastel pink */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-ch {
-  background-color: #ffe6a2 !important; /* Pastel yellow */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-sl {
-  background-color: #c0c0c0 !important; /* Pastel gray */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-inc {
-  background-color: #c3e6a5 !important; /* Pastel light green */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-dec {
-  background-color: #ffa7a7 !important; /* Pastel red */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-bs {
-  background-color: #d0b9a2 !important; /* Pastel brown */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-ns {
-  background-color: #adcbd6 !important; /* Pastel blue-gray */
-  color: #333 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
+/* Stitch styles are now defined globally in assets/styles/stitch-colors.css */
 
 /* Light theme overrides for repeat patterns */
 :root.light .repeat-pattern {

@@ -658,72 +658,7 @@ const getColorHex = (color) => {
   opacity: 0.8;
 }
 
-/* Different stitch styles */
-.stitch-sc {
-  background: #8ed68e;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dc {
-  background: #92c4ff;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-hdc {
-  background: #c3aadb;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-tr {
-  background: #ffbe9d;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dtr {
-  background: #ffabcf;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-ch {
-  background: #ffe6a2;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-sl {
-  background: #c0c0c0;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-inc {
-  background: #c3e6a5;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dec {
-  background: #ffa7a7;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-bs {
-  background: #d0b9a2;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-ns {
-  background: #adcbd6;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
+/* Stitch styles are now defined globally in assets/styles/stitch-colors.css */
 
 /* Repeat Group Styles */
 .repeat-group {

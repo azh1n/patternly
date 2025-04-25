@@ -1,0 +1,78 @@
+/* Global stitch color styles */
+
+/* Single crochet */
+.stitch-sc {
+  background: #66d166 !important; /* Vibrant green */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Double crochet */
+.stitch-dc {
+  background: #64b5f6 !important; /* Vibrant blue */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Half double crochet */
+.stitch-hdc {
+  background: #ba8ad8 !important; /* Vibrant purple */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Treble crochet */
+.stitch-tr {
+  background: #ffab7b !important; /* Vibrant orange */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Double treble crochet */
+.stitch-dtr {
+  background: #ff8bc4 !important; /* Vibrant pink */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Chain stitch */
+.stitch-ch {
+  background: #ffd54f !important; /* Vibrant yellow */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Slip stitch */
+.stitch-sl {
+  background: #bdbdbd !important; /* Vibrant silver */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Increase */
+.stitch-inc {
+  background: #aed581 !important; /* Vibrant light green */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Decrease */
+.stitch-dec {
+  background: #ff8a80 !important; /* Vibrant light red */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Bobble stitch */
+.stitch-bs {
+  background: #e6b089 !important; /* Vibrant light brown */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Net stitch */
+.stitch-ns {
+  background: #81d4fa !important; /* Vibrant light blue */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}

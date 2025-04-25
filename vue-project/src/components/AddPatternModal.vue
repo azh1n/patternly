@@ -1759,72 +1759,7 @@ const applyQuickFormat = (format) => {
     opacity: 0.8;
   }
   
-/* Different stitch styles - these are for the preview buttons */
-.stitch-sc {
-  background: #8ed68e; /* Pastel green */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dc {
-  background: #92c4ff; /* Pastel blue */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-hdc {
-  background: #c3aadb; /* Pastel purple */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-tr {
-  background: #ffbe9d; /* Pastel orange */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dtr {
-  background: #ffabcf; /* Pastel pink */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-ch {
-  background: #ffe6a2; /* Pastel yellow */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-sl {
-  background: #c0c0c0; /* Pastel gray */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-inc {
-  background: #c3e6a5; /* Pastel light green */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dec {
-  background: #ffa7a7; /* Pastel red */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-bs {
-  background: #d0b9a2; /* Pastel brown */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-ns {
-  background: #adcbd6; /* Pastel blue-gray */
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
+/* Stitch styles are now defined globally in assets/styles/stitch-colors.css */
 
 /* Dark theme text overrides for stitch colors to ensure visibility */
 :root:not(.light) .stitch-sc,
