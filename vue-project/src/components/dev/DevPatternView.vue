@@ -1027,69 +1027,84 @@ const getStitchClass = (code) => {
 }
 
 .row-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  flex-wrap: wrap;
-  gap: 1rem;
 }
 
 .row-info {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1.5rem;
+}
+
+.row-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.row-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+}
+
+.row-color {
+  color: var(--accent-color);
+  font-weight: 500;
 }
 
 .complete-button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: var(--button-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--button-border);
   padding: 0.5rem 1rem;
-  border-radius: 10px;
-  font-size: 1rem;
+  border: 2px solid var(--accent-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-color);
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .complete-button:hover {
-  background-color: var(--button-hover-bg);
-  transform: translateY(-2px);
+  background-color: rgba(76, 175, 80, 0.1);
 }
 
 .complete-button.completed {
   background-color: var(--accent-color);
   color: white;
-  border-color: var(--accent-color);
 }
 
 .stitch-control {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-top: 1rem;
+  color: var(--text-primary);
 }
 
 .number-control {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .control-button {
+  padding: 0.5rem;
   width: 32px;
   height: 32px;
+  border: 1px solid var(--button-border);
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--button-bg);
-  border: 1px solid var(--button-border);
-  cursor: pointer;
   font-size: 1.2rem;
-  padding: 0;
-  transition: all 0.2s ease;
 }
 
 .control-button:first-child {
@@ -1101,7 +1116,8 @@ const getStitchClass = (code) => {
 }
 
 .control-button:hover:not(:disabled) {
-  background-color: var(--button-hover-bg);
+  background: var(--button-hover-bg);
+  border-color: var(--accent-color);
 }
 
 .control-button:disabled {
@@ -1111,19 +1127,26 @@ const getStitchClass = (code) => {
 
 .number-input {
   width: 60px;
-  height: 32px;
-  border: 1px solid var(--button-border);
-  border-left: none;
-  border-right: none;
-  background-color: var(--button-bg);
+  padding: 0.5rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background-color: var(--input-bg);
   color: var(--text-primary);
   text-align: center;
   font-size: 1rem;
-  padding: 0;
+  -moz-appearance: textfield;
 }
 
 .number-input:focus {
   outline: none;
+  border-color: var(--accent-color);
+  background-color: var(--hover-bg);
+}
+
+.number-input::-webkit-outer-spin-button,
+.number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .pattern-card {
@@ -1364,11 +1387,46 @@ const getStitchClass = (code) => {
   }
   
   .row-info {
-    width: 100%;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
   }
   
+  .row-title h2 {
+    font-size: 1.1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .row-color {
+    color: var(--accent-color);
+  }
+  
+  .complete-button {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.9rem;
+    height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  
+  .button-text {
+    display: inline-block;
+    margin-left: 0.25rem;
+  }
+  
   .stitch-control {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  
+  .number-control {
     width: 100%;
     justify-content: space-between;
   }
