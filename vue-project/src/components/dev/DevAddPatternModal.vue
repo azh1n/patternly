@@ -1754,97 +1754,85 @@ const applyQuickFormat = (format) => {
   
 /* Different stitch styles - these are for the preview buttons */
 .stitch-sc {
-  background: #4caf50;
-  color: white;
-}
-
-.stitch-dc {
-  background: #2196f3;
-  color: white;
-}
-
-.stitch-hdc {
-  background: #673ab7;
-  color: white;
-}
-
-.stitch-tr {
-  background: #ff5722;
-  color: white;
-}
-
-.stitch-dtr {
-  background: #e91e63;
-  color: white;
-}
-
-.stitch-ch {
-  background: #ffc107;
+  background: #8ed68e; /* Pastel green */
   color: #333;
-}
-
-.stitch-sl {
-  background: #9e9e9e;
-  color: white;
-}
-
-.stitch-inc {
-  background: #8bc34a;
-  color: white;
-}
-
-.stitch-dec {
-  background: #f44336;
-  color: white;
-}
-
-.stitch-bs {
-  background: #795548;
-  color: white;
-}
-
-.stitch-ns {
-  background: #607d8b;
-  color: white;
-}
-
-/* Light theme overrides for preview */
-:root.light .pattern-preview {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-}
-
-:root.light .preview-row-number {
-  color: #2979ff;
-}
-
-:root.light .color-indicator {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.stitch-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.stitch {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-:root.light .preview-stitch {
-  background: #e0e0e0;
+.stitch-dc {
+  background: #92c4ff; /* Pastel blue */
   color: #333;
-  border: 1px solid #d0d0d0;
-  }
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-hdc {
+  background: #c3aadb; /* Pastel purple */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-tr {
+  background: #ffbe9d; /* Pastel orange */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-dtr {
+  background: #ffabcf; /* Pastel pink */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-ch {
+  background: #ffe6a2; /* Pastel yellow */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-sl {
+  background: #c0c0c0; /* Pastel gray */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-inc {
+  background: #c3e6a5; /* Pastel light green */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-dec {
+  background: #ffa7a7; /* Pastel red */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-bs {
+  background: #d0b9a2; /* Pastel brown */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-ns {
+  background: #adcbd6; /* Pastel blue-gray */
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme text overrides for stitch colors to ensure visibility */
+:root:not(.light) .stitch-sc,
+:root:not(.light) .stitch-dc,
+:root:not(.light) .stitch-hdc,
+:root:not(.light) .stitch-tr,
+:root:not(.light) .stitch-dtr,
+:root:not(.light) .stitch-ch,
+:root:not(.light) .stitch-sl,
+:root:not(.light) .stitch-inc,
+:root:not(.light) .stitch-dec,
+:root:not(.light) .stitch-bs,
+:root:not(.light) .stitch-ns {
+  text-shadow: 0px 1px 1px rgba(0,0,0,0.2);
+}
 
 /* Repeat Pattern Styles */
 .repeat-pattern {
@@ -1971,5 +1959,41 @@ const applyQuickFormat = (format) => {
 
 :root.light .storage-format-text {
   color: #333;
+}
+
+/* Light theme overrides for preview */
+:root.light .pattern-preview {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .preview-row-number {
+  color: #2979ff;
+}
+
+:root.light .color-indicator {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stitch-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.stitch {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+:root.light .preview-stitch {
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 </style> 
