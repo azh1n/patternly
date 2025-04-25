@@ -2,7 +2,7 @@
 <template>
   <!-- Main profile container -->
   <div class="profile-container">
-    <AppHeader :is-dev-mode="isDevMode" />
+    <AppHeader :show-nav="true" :is-dev-mode="isDevMode" />
 
     <!-- Profile content wrapper -->
     <div class="profile-content">
