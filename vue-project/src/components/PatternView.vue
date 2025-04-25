@@ -34,7 +34,7 @@
             <!-- Desktop view -->
             <div class="desktop-only">
               <h2>Row {{ currentRow?.rowNum }}</h2>
-              <span class="row-color">{{ currentRow?.color }}</span>
+              <span class="row-color">Color {{ currentRow?.color }}</span>
             </div>
             <!-- Mobile view -->
             <div class="mobile-only stacked-info">
@@ -99,7 +99,11 @@
               <span 
                 v-for="(stitch, index) in currentStitches" 
                 :key="index"
-                :class="{ 'completed-stitch': stitch.isCompleted }"
+                :class="[
+                  { 'completed-stitch': stitch.isCompleted },
+                  { 'repeat-pattern': stitch.isRepeatPattern },
+                  getStitchClass(stitch.code)
+                ]"
               >
                 {{ stitch.code }}
               </span>
@@ -123,7 +127,7 @@
         <!-- Full row preview section -->
         <div class="full-row-preview">
           <h3>Full Row Preview</h3>
-          <div class="preview-content">
+          <div class="preview-content" :class="{ 'row-completed': isRowComplete }">
             <template v-if="windowWidth < 768">
               <span 
                 v-for="(item, index) in mobilePreviewStitches" 
@@ -133,7 +137,9 @@
                   { 'completed-stitch': item.status === 'completed' },
                   { 'current-stitch': item.status === 'current' },
                   { 'next-stitch': item.status === 'next' },
-                  { 'border-stitch': item.code.endsWith('bs') }
+                  { 'border-stitch': item.code.endsWith('bs') },
+                  { 'repeat-pattern': item.isRepeatPattern },
+                  getStitchClass(item.code)
                 ]"
               >
                 {{ item.code }}
@@ -147,7 +153,9 @@
                   'preview-stitch',
                   { 'completed-stitch': item.isCompleted },
                   { 'current-stitch': index >= currentStitchIndex && index < currentStitchIndex + stitchesPerView },
-                  { 'border-stitch': item.code.endsWith('bs') }
+                  { 'border-stitch': item.code.endsWith('bs') },
+                  { 'repeat-pattern': item.isRepeatPattern },
+                  getStitchClass(item.code)
                 ]"
               >
                 {{ item.code }}
@@ -195,6 +203,23 @@
           <font-awesome-icon icon="arrow-right" />
         </button>
       </div>
+      
+      <!-- Experimental features section -->
+      <div class="experimental-features">
+        <h3>Experimental Features</h3>
+        <div class="feature-section">
+          <button class="feature-button" @click="showRawPattern = !showRawPattern">
+            <font-awesome-icon icon="code" />
+            {{ showRawPattern ? 'Hide Raw Pattern' : 'View Raw Pattern' }}
+          </button>
+        </div>
+        
+        <!-- Raw Pattern Display for Debugging -->
+        <div v-if="showRawPattern" class="raw-pattern">
+          <h4>Raw Pattern Data:</h4>
+          <pre>{{ props.pattern.content }}</pre>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -233,13 +258,21 @@ const isSwiping = ref(false)  // Touch swipe state
 const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
+const showRawPattern = ref(false)  // State for showing raw pattern
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
   if (!props.pattern?.content) return []
   
   try {
-    const content = props.pattern.content
+    const content = props.pattern.content;
+    
+    // Check if this is a new format from DevAddPatternModal (comma-separated "Row: X, Color: Y, Stitches: Z" format)
+    if (content.includes('Row:') && content.includes('Color:') && content.includes('Stitches:')) {
+      return parseFormattedPattern(content);
+    }
+    
+    // Legacy format parsing (for backward compatibility)
     const rows = content.split('\n').filter(row => row?.trim())
     const parsedRows = []
     
@@ -248,93 +281,247 @@ const parsedRows = computed(() => {
     let currentColor = null
     let currentPattern = ''
     
-    // Parse each row of the pattern
-    rows.forEach(row => {
-      try {
-        const rowMatch = row.match(/Row (\d+): With (Color [A-Z])/)
-        if (rowMatch) {
-          // Process previous row if exists
-          if (currentPattern) {
-            // Clean up the pattern before processing
-            currentPattern = currentPattern.replace(/\s+/g, ' ').trim()
-            // Find the last stitch before FO. or Stitch Count
-            if (currentPattern.includes(' FO.')) {
-              currentPattern = currentPattern.substring(0, currentPattern.indexOf(' FO.'))
-            }
-            if (currentPattern.includes(' (Stitch Count')) {
-              currentPattern = currentPattern.substring(0, currentPattern.indexOf(' (Stitch Count'))
-            }
-            
-            const codes = processPattern(currentPattern)
-            if (codes.length > 0) {
-              currentRow.push(...codes)
-            }
-          }
-          
-          if (currentRow.length > 0) {
-            parsedRows.push({
-              rowNum: currentRowNum || '0',
-              color: currentColor || 'Color A',
-              codes: currentRow,
-              fullRow: currentRow.join(' ')
-            })
-          }
-          
-          // Start new row
-          currentRowNum = rowMatch[1]
-          currentColor = rowMatch[2]
-          currentRow = []
-          currentPattern = row.split(currentColor)[1]?.trim() || ''
-        } else {
-          // Just append the raw line
-          currentPattern += ' ' + row.trim()
-        }
-      } catch (e) {
-        // Silent error handling
-      }
-    })
-    
-    // Process the last row
-    if (currentPattern) {
-      // Clean up the pattern before processing
-      currentPattern = currentPattern.replace(/\s+/g, ' ').trim()
-      // Find the last stitch before FO. or Stitch Count
-      if (currentPattern.includes(' FO.')) {
-        currentPattern = currentPattern.substring(0, currentPattern.indexOf(' FO.'))
-      }
-      if (currentPattern.includes(' (Stitch Count')) {
-        currentPattern = currentPattern.substring(0, currentPattern.indexOf(' (Stitch Count'))
-      }
+    for (const row of rows) {
+      const trimmed = row.trim()
       
-      const codes = processPattern(currentPattern)
-      if (codes.length > 0) {
-        currentRow.push(...codes)
+      // Check if this is a row marker line (Row X Color)
+      const rowMatch = trimmed.match(/^Row\s+(\d+)\s+([\w\s]+)$/i)
+      
+      if (rowMatch) {
+        // If we have collected pattern data from previous row, save it
+        if (currentRowNum && currentPattern) {
+          parsedRows.push({
+            rowNum: String(currentRowNum), // Ensure rowNum is a string
+            color: currentColor || 'No color',
+            pattern: currentPattern,
+            codes: currentRow
+          })
+        }
+        
+        // Start a new row
+        currentRowNum = rowMatch[1]
+        currentColor = rowMatch[2].trim()
+        currentPattern = ''
+        currentRow = []
+      } else if (currentRowNum) {
+        // This is pattern data for the current row
+        if (currentPattern) currentPattern += ' '
+        currentPattern += trimmed
+        
+        // Process the pattern data into individual codes
+        const codes = processPattern(trimmed)
+        currentRow = [...currentRow, ...codes]
       }
     }
     
-    if (currentRow.length > 0) {
+    // Save the last row if there's data
+    if (currentRowNum && currentPattern) {
       parsedRows.push({
-        rowNum: currentRowNum || '0',
-        color: currentColor || 'Color A',
-        codes: currentRow,
-        fullRow: currentRow.join(' ')
+        rowNum: String(currentRowNum), // Ensure rowNum is a string
+        color: currentColor || 'No color',
+        pattern: currentPattern,
+        codes: currentRow
       })
     }
     
     return parsedRows
-  } catch (e) {
+  } catch (error) {
+    console.error('Error parsing pattern:', error)
     return []
   }
 })
 
-// Process pattern codes into structured format
+// Helper to expand repeated sections in pattern string
+const expandRepeatedSections = (pattern) => {
+  if (!pattern) return '';
+  
+  // Look for patterns like "(1sc, 1inc) x6"
+  const repeatRegex = /\(([^)]+)\)\s*x(\d+)/g;
+  let expandedPattern = pattern;
+  let match;
+  
+  // Keep track of matches to avoid infinite loops with global regex
+  const matches = [];
+  while ((match = repeatRegex.exec(pattern)) !== null) {
+    matches.push({
+      fullMatch: match[0],
+      repeatedContent: match[1],
+      repeatCount: parseInt(match[2]),
+      index: match.index
+    });
+  }
+  
+  // Process matches in reverse order to avoid affecting positions
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { fullMatch, repeatedContent, repeatCount } = matches[i];
+    const repeatedItems = repeatedContent.split(',').map(item => item.trim());
+    
+    // Create the expanded content
+    let expandedContent = '';
+    for (let j = 0; j < repeatCount; j++) {
+      if (j > 0) expandedContent += ', ';
+      expandedContent += repeatedItems.join(', ');
+    }
+    
+    // Replace the repeated section with the expanded content
+    expandedPattern = expandedPattern.replace(fullMatch, expandedContent);
+  }
+  
+  return expandedPattern;
+}
+
+// Process pattern text into individual stitch codes
 const processPattern = (pattern) => {
-  if (!pattern) return []
+  if (!pattern) return [];
+  
+  // Expand any repeated sections like "(1sc, 1inc) x6"
+  const expandedPattern = expandRepeatedSections(pattern);
+  
+  // Split the pattern by commas
+  const parts = expandedPattern.split(',').map(part => part.trim());
+  
+  // Process each part into a standardized stitch code
+  return parts.map(part => {
+    // Handle space between number and stitch type (e.g., "1 sc" -> "1sc")
+    const spaceMatch = part.match(/^(\d+)\s+([a-z]+)$/i);
+    if (spaceMatch) {
+      return `${spaceMatch[1]}${spaceMatch[2]}`;
+    }
+    
+    // Handle single-letter codes (e.g., "sc" -> "1sc")
+    const singleCodeMatch = part.match(/^([a-z]{1,3})$/i);
+    if (singleCodeMatch) {
+      return `1${singleCodeMatch[1]}`;
+    }
+    
+    // Remove trailing periods if any
+    return part.replace(/\.$/, '');
+  }).filter(Boolean); // Remove any empty entries
+}
+
+// Process pattern with repeats preserved for newer format parsing
+const processPatternWithRepeats = (pattern) => {
+  if (!pattern) return [];
+  
+  // We use a different approach when we want to preserve repeat patterns
+  return processPatternPreservingRepeats(pattern);
+}
+
+// For debugging parsed patterns
+const logPattern = (pattern) => {
+  console.log('Pattern:', pattern);
+  console.log('Expanded:', expandRepeatedSections(pattern));
+  const codes = processPatternWithRepeats(pattern);
+  console.log('Codes:', codes);
+  return pattern;
+}
+
+// Parse the new formatted pattern from DevAddPatternModal
+const parseFormattedPattern = (content) => {
+  try {
+    // Split by rows if separated by commas followed by "Row:"
+    const rowEntries = content.split(/,\s*Row:/);
+    
+    // For the first entry, we need to clean up the "Row:" prefix
+    let firstEntry = rowEntries[0];
+    if (rowEntries.length > 0 && firstEntry.startsWith('Row:')) {
+      firstEntry = firstEntry.replace(/^Row:/, '').trim();
+      rowEntries[0] = firstEntry;
+    }
+    
+    const parsedRows = rowEntries.map((entry, index) => {
+      // Add "Row:" back for consistent parsing if needed
+      const fullEntry = index === 0 ? entry : `Row:${entry.startsWith(' ') ? entry : ` ${entry}`}`;
+      
+      // Extract row number - special handling for first entry since "Row:" was removed
+      let rowNum;
+      if (index === 0) {
+        // First entry special handling - format should be "53, Color: A, Stitches: ..."
+        const firstRowMatch = fullEntry.match(/^(\d+)/);
+        rowNum = firstRowMatch ? String(firstRowMatch[1]) : '0';
+      } else {
+        // Other entries should have "Row:" which was added back
+        const rowMatch = fullEntry.match(/Row:\s*(\d+)/);
+        rowNum = rowMatch ? String(rowMatch[1]) : '0';
+      }
+      
+      // Extract color
+      const colorMatch = fullEntry.match(/Color:\s*([^,]*)/);
+      const color = colorMatch ? colorMatch[1].trim() : 'No color';
+      
+      // Extract stitches section
+      const stitchesMatch = fullEntry.match(/Stitches:\s*(.*?)(?:$|,\s*Row:)/);
+      const stitchesText = stitchesMatch ? stitchesMatch[1].trim() : '';
+      
+      // Process pattern text to extract individual stitch codes
+      // We now want to preserve the repeat patterns, not expand them
+      const codes = processPatternPreservingRepeats(stitchesText);
+      
+      return {
+        rowNum,
+        color,
+        pattern: stitchesText,
+        codes
+      };
+    });
+    
+    return parsedRows;
+  } catch (error) {
+    console.error('Error parsing formatted pattern:', error);
+    return [];
+  }
+}
+
+// Process pattern while preserving repeat patterns
+const processPatternPreservingRepeats = (pattern) => {
+  if (!pattern) return [];
   
   // Clean up the pattern string
-  pattern = pattern.replace(/\s+/g, ' ').trim()
+  pattern = pattern.replace(/\s+/g, ' ').trim();
   
-  // Split by commas, but preserve parentheses content
+  // Split the pattern by commas, preserving repeat sections
+  const parts = splitByCommas(pattern);
+  
+  // Process each part
+  return parts.map(part => {
+    const trimmedPart = part.trim();
+    
+    // Check if this is a repeat pattern like "(1sc, 1inc) x6"
+    const repeatMatch = trimmedPart.match(/^\(([^)]+)\)\s*x(\d+)$/);
+    if (repeatMatch) {
+      // Keep the repeat pattern as is
+      return trimmedPart;
+    }
+    
+    // Otherwise normalize the individual stitch codes
+    return normalizeStitchCode(trimmedPart);
+  }).filter(Boolean); // Remove any empty or undefined entries
+}
+
+// Normalize a single stitch code
+const normalizeStitchCode = (code) => {
+  if (!code) return '';
+  
+  // Clean the code
+  const cleanCode = code.replace(/\.$/, '').trim();
+  
+  // Handle space between number and stitch type (e.g., "1 sc" -> "1sc")
+  const spaceMatch = cleanCode.match(/^(\d+)\s+([a-z]+)$/);
+  if (spaceMatch) {
+    return `${spaceMatch[1]}${spaceMatch[2]}`;
+  }
+  
+  // Handle single-letter codes (e.g., "sc" -> "1sc")
+  const singleCodeMatch = cleanCode.match(/^([a-z]{1,3})$/);
+  if (singleCodeMatch) {
+    return `1${singleCodeMatch[1]}`;
+  }
+  
+  return cleanCode;
+}
+
+// Helper to split a pattern string by commas, preserving parentheses content
+const splitByCommas = (pattern) => {
   const parts = []
   let currentPart = ''
   let inParentheses = 0
@@ -353,86 +540,52 @@ const processPattern = (pattern) => {
       currentPart += char
     }
   }
+  
   // Add the last part if it exists
   if (currentPart.trim()) {
     parts.push(currentPart.trim())
   }
   
-  // Filter and clean the parts
-  const filteredParts = parts.filter(code => {
-    if (!code) return false
-    // Clean the code by removing any trailing period
-    const cleanCode = code.replace(/\.$/, '').trim()
-    
-    // Match standard stitch codes (e.g., "1bs", "22dc")
-    const isStandardCode = cleanCode.match(/^\d+[a-z]+$/)
-    // Match repeated patterns in parentheses (e.g., "(1dc, 2ch)x3")
-    const isRepeatedPattern = cleanCode.match(/^\([^)]+\)x\d+$/)
-    // Match border stitches specifically
-    const isBorderStitch = cleanCode.match(/^\d+bs$/)
-    
-    const keep = isStandardCode || isRepeatedPattern || isBorderStitch
-    return keep ? cleanCode : null
-  }).filter(Boolean)
-  
-  // Handle any repeated patterns by expanding them
-  const result = filteredParts.reduce((acc, code) => {
-    if (code.includes('x')) {
-      try {
-        // It's a repeated pattern
-        const [pattern, countStr] = code.slice(1, -1).split(')x')
-        const repeats = parseInt(countStr)
-        if (isNaN(repeats) || repeats < 0 || repeats > 1000) return acc // Safety check
-        
-        const subCodes = pattern.split(',')
-          .map(p => p.trim().replace(/\.$/, '')) // Remove trailing periods from sub-codes
-          .filter(p => p && p.match(/^\d+[a-z]+$/)) // Only include valid stitch codes
-        
-        if (subCodes.length === 0) return acc
-        return [...acc, ...Array.from({ length: repeats }, () => subCodes).flat()]
-      } catch (e) {
-        return acc
-      }
-    }
-    return [...acc, code.replace(/\.$/, '')] // Remove trailing period from single stitches
-  }, [])
-  
-  return result
+  return parts;
 }
 
-// Computed properties for current state
+// Current row data based on index
 const currentRow = computed(() => {
-  return parsedRows.value[currentRowIndex.value]
+  const row = parsedRows.value[currentRowIndex.value] || null;
+  return row;
 })
 
-const visibleStitches = computed(() => {
-  if (!currentRow.value) return ''
-  const start = currentStitchIndex.value
-  const end = Math.min(start + stitchesPerView.value, currentRow.value.codes.length)
-  return currentRow.value.codes.slice(start, end).join(' ')
-})
-
-// Calculate total stitches in current row
+// Total stitches in current row
 const totalStitches = computed(() => {
   if (!currentRow.value) return 0
+  
+  // Sum the numbers in each stitch code instead of counting codes
   return currentRow.value.codes.reduce((total, code) => {
     // Extract the number from the stitch code (e.g., "22dc" -> 22)
-    const match = code.match(/^(\d+)/)
-    return total + (match ? parseInt(match[1]) : 1)
-  }, 0)
+    const match = code.match(/^(\d+)/);
+    // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
+    if (code.includes('(') && code.includes(')') && code.includes('x')) {
+      // Extract content inside parentheses and repeat count
+      const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
+      if (repeatMatch) {
+        const repeatedContent = repeatMatch[1];
+        const repeatCount = parseInt(repeatMatch[2], 10);
+        
+        // Split the repeated content by commas and sum each stitch count
+        const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
+          const countMatch = stitch.trim().match(/^(\d+)/);
+          return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
+        }, 0);
+        
+        return total + (stitchesPerRepeat * repeatCount);
+      }
+    }
+    
+    return total + (match ? parseInt(match[1], 10) : 1);
+  }, 0);
 })
 
-// Get completed codes for full row preview
-const getCompletedCodes = computed(() => {
-  if (!currentRow.value) return []
-  const completedIndex = currentStitchIndex.value + stitchesPerView.value
-  return currentRow.value.codes.map((code, index) => ({
-    code,
-    isCompleted: index < completedIndex
-  }))
-})
-
-// Check if current row is marked as complete
+// Get completion status for current row
 const isRowComplete = computed(() => {
   if (!currentRow.value || !props.pattern?.completedRows) return false
   return props.pattern.completedRows[`row${currentRow.value.rowNum}`] || false
@@ -471,7 +624,26 @@ const stitchProgress = computed(() => {
     .slice(0, currentStitchIndex.value)
     .reduce((total, code) => {
       const match = code.match(/^(\d+)/)
-      return total + (match ? parseInt(match[1]) : 1)
+      
+      // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
+      if (code.includes('(') && code.includes(')') && code.includes('x')) {
+        // Extract content inside parentheses and repeat count
+        const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          const repeatedContent = repeatMatch[1];
+          const repeatCount = parseInt(repeatMatch[2], 10);
+          
+          // Split the repeated content by commas and sum each stitch count
+          const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
+            const countMatch = stitch.trim().match(/^(\d+)/);
+            return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
+          }, 0);
+          
+          return total + (stitchesPerRepeat * repeatCount);
+        }
+      }
+      
+      return total + (match ? parseInt(match[1], 10) : 1)
     }, 0)
   
   // Calculate stitches in current view
@@ -479,7 +651,26 @@ const stitchProgress = computed(() => {
     .slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value)
     .reduce((total, code) => {
       const match = code.match(/^(\d+)/)
-      return total + (match ? parseInt(match[1]) : 1)
+      
+      // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
+      if (code.includes('(') && code.includes(')') && code.includes('x')) {
+        // Extract content inside parentheses and repeat count
+        const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          const repeatedContent = repeatMatch[1];
+          const repeatCount = parseInt(repeatMatch[2], 10);
+          
+          // Split the repeated content by commas and sum each stitch count
+          const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
+            const countMatch = stitch.trim().match(/^(\d+)/);
+            return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
+          }, 0);
+          
+          return total + (stitchesPerRepeat * repeatCount);
+        }
+      }
+      
+      return total + (match ? parseInt(match[1], 10) : 1)
     }, 0)
   
   return `${currentStitchCount + 1}-${currentStitchCount + viewStitches} of ${totalStitches.value} stitches`
@@ -506,6 +697,8 @@ const nextRow = async () => {
     // Move to next row
     currentRowIndex.value++
     currentStitchIndex.value = 0
+    // Update scroll position after changing row
+    setTimeout(updateScrollPosition, 50)
   }
 }
 
@@ -513,6 +706,8 @@ const previousRow = () => {
   if (currentRowIndex.value > 0) {
     currentRowIndex.value--
     currentStitchIndex.value = 0
+    // Update scroll position after changing row
+    setTimeout(updateScrollPosition, 50)
   }
 }
 
@@ -530,6 +725,31 @@ const toggleRowComplete = async () => {
     })
   } catch (error) {
     console.error('Error updating row completion:', error)
+  }
+}
+
+// Update scroll position helper
+const updateScrollPosition = () => {
+  try {
+    // Wait for DOM to update
+    setTimeout(() => {
+      const container = document.querySelector('.preview-content')
+      if (container) {
+        const activeStitches = container.querySelectorAll('.current-stitch')
+        if (activeStitches.length > 0) {
+          const firstActiveStitch = activeStitches[0]
+          const containerWidth = container.offsetWidth
+          const scrollPosition = firstActiveStitch.offsetLeft - (containerWidth / 2) + (firstActiveStitch.offsetWidth * stitchesPerView.value / 2)
+          
+          container.scrollTo({
+            left: Math.max(0, scrollPosition),
+            behavior: 'smooth'
+          })
+        }
+      }
+    }, 50) // Small delay to ensure DOM has updated
+  } catch (error) {
+    console.error('Error updating scroll position:', error)
   }
 }
 
@@ -618,13 +838,60 @@ watch(totalRows, (newCount) => {
 
 // Current stitches display
 const currentStitches = computed(() => {
-  if (!currentRow.value) return []
-  const start = currentStitchIndex.value
-  const end = start + stitchesPerView.value
-  return currentRow.value.codes.slice(start, end).map((code, index) => ({
-    code,
-    isCompleted: index < stitchesPerView.value
-  }))
+  if (!currentRow.value) return [];
+  const start = currentStitchIndex.value;
+  const end = start + stitchesPerView.value;
+  
+  return currentRow.value.codes.slice(start, end).map((code, index) => {
+    // Check if this is a repeat pattern
+    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
+    
+    return {
+      code,
+      isCompleted: index < stitchesPerView.value && (isRowComplete.value || start > 0),
+      isRepeatPattern
+    };
+  });
+})
+
+// Mobile preview stitch display
+const mobilePreviewStitches = computed(() => {
+  if (!currentRow.value) return [];
+  
+  return currentRow.value.codes.map((code, index) => {
+    let status = 'pending';
+    if (index < currentStitchIndex.value || isRowComplete.value) {
+      status = 'completed';
+    } else if (index >= currentStitchIndex.value && index < currentStitchIndex.value + stitchesPerView.value) {
+      status = 'current';
+    } else if (index >= currentStitchIndex.value + stitchesPerView.value && 
+               index < currentStitchIndex.value + stitchesPerView.value + 2) {
+      status = 'next';
+    }
+    
+    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
+    
+    return { 
+      code, 
+      status,
+      isRepeatPattern
+    };
+  });
+})
+
+// Completed codes for display in full row preview
+const getCompletedCodes = computed(() => {
+  if (!currentRow.value) return [];
+  
+  return currentRow.value.codes.map((code, index) => {
+    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
+    
+    return {
+      code,
+      isCompleted: index < currentStitchIndex.value || isRowComplete.value,
+      isRepeatPattern
+    };
+  });
 })
 
 // Stitch view controls
@@ -640,63 +907,71 @@ const increaseStitches = () => {
   }
 }
 
-// Separate function for scroll position update
-const updateScrollPosition = () => {
-  // Wait for DOM to update
-  setTimeout(() => {
-    const previewContent = document.querySelector('.preview-content')
-    if (!previewContent || !currentRow.value) return
-
-    // Center the current stitches
-    const currentStitches = previewContent.querySelectorAll('.current-stitch')
-    if (currentStitches.length === 0) return
-
-    const firstCurrentStitch = currentStitches[0]
-    const containerWidth = previewContent.offsetWidth
-    const scrollPosition = firstCurrentStitch.offsetLeft - (containerWidth / 2) + (firstCurrentStitch.offsetWidth * stitchesPerView.value / 2)
-    
-    previewContent.scrollTo({
-      left: Math.max(0, scrollPosition),
-      behavior: 'smooth'
-    })
-  }, 0)
-}
-
-// Watch for window resize
+// Set up window resize listener and touch events for mobile swipe
 onMounted(() => {
   window.addEventListener('resize', () => {
     windowWidth.value = window.innerWidth
   })
-})
-
-// New computed property for mobile preview stitches
-const mobilePreviewStitches = computed(() => {
-  if (!currentRow.value) return []
   
-  const allStitches = currentRow.value.codes
-  return allStitches.map((code, index) => ({
-    code,
-    status: index < currentStitchIndex.value ? 'completed' 
-           : (index >= currentStitchIndex.value && index < currentStitchIndex.value + stitchesPerView.value) ? 'current'
-           : 'next'
-  }))
-})
-
-// Component initialization
-onMounted(() => {
-  // Find the first incomplete row
-  const firstIncompleteRowIndex = parsedRows.value.findIndex(row => {
-    return !props.pattern?.completedRows?.[`row${row.rowNum}`]
-  })
-  
-  // If an incomplete row is found, navigate to it
-  if (firstIncompleteRowIndex !== -1) {
-    currentRowIndex.value = firstIncompleteRowIndex
+  const patternCard = document.querySelector('.pattern-card')
+  if (patternCard) {
+    patternCard.addEventListener('touchstart', handleTouchStart)
+    patternCard.addEventListener('touchmove', handleTouchMove)
+    patternCard.addEventListener('touchend', handleTouchEnd)
   }
   
   // Save the row count when component mounts
   saveRowCount()
+  
+  // Initialize scroll position after component mounts
+  setTimeout(updateScrollPosition, 300)
+  
+  // Clean up event listeners
+  return () => {
+    window.removeEventListener('resize', () => {})
+    if (patternCard) {
+      patternCard.removeEventListener('touchstart', handleTouchStart)
+      patternCard.removeEventListener('touchmove', handleTouchMove)
+      patternCard.removeEventListener('touchend', handleTouchEnd)
+    }
+  }
 })
+
+// Watch for changes in currentRowIndex
+watch(currentRowIndex, (newIndex, oldIndex) => {
+  // Make sure to update scroll position when row changes
+  setTimeout(updateScrollPosition, 50)
+})
+
+// Watch for changes in currentStitchIndex
+watch(currentStitchIndex, (newIndex, oldIndex) => {
+  // Update scroll position when stitch index changes
+  setTimeout(updateScrollPosition, 50)
+})
+
+// Get stitch class based on code for styling
+const getStitchClass = (code) => {
+  if (!code) return '';
+  
+  // Extract the stitch type from the code
+  const type = code.match(/[a-z]+$/i);
+  const stitchType = type ? type[0].toLowerCase() : '';
+  
+  // Return appropriate CSS class based on stitch type
+  if (stitchType.includes('sc')) return 'stitch-sc';
+  if (stitchType.includes('dc')) return 'stitch-dc';
+  if (stitchType.includes('hdc')) return 'stitch-hdc';
+  if (stitchType.includes('tr')) return 'stitch-tr';
+  if (stitchType.includes('dtr')) return 'stitch-dtr';
+  if (stitchType.includes('ch')) return 'stitch-ch';
+  if (stitchType.includes('sl')) return 'stitch-sl';
+  if (stitchType === 'inc') return 'stitch-inc';
+  if (stitchType === 'dec') return 'stitch-dec';
+  if (stitchType.includes('bs')) return 'stitch-bs';
+  if (stitchType.includes('ns')) return 'stitch-ns';
+  
+  return '';
+}
 </script>
 
 <style scoped>
@@ -710,6 +985,19 @@ onMounted(() => {
 /* Header section styles */
 .pattern-header {
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.experimental-badge {
+  position: absolute;
+  top: -12px;
+  right: 0;
+  background-color: var(--accent-color);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 1;
 }
 
 .header-content {
@@ -775,6 +1063,7 @@ onMounted(() => {
   border-radius: 16px;
   border: 1px solid var(--border-color);
   overflow: hidden;
+  position: relative;
 }
 
 /* Row header styles */
@@ -922,6 +1211,7 @@ onMounted(() => {
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -952,7 +1242,44 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   gap: 1rem;
+  flex-wrap: wrap;
   color: var(--accent-color);
+}
+
+.current-stitches span {
+  border-radius: 8px;
+  padding: 0.2rem 0.5rem;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+/* Remove the completed styling for current stitches section but keep color */
+.current-stitches span.completed-stitch {
+  color: var(--accent-color);
+}
+
+/* Apply stitch-type-specific styling to current stitches */
+.current-stitches .stitch-sc,
+.current-stitches .stitch-dc,
+.current-stitches .stitch-hdc,
+.current-stitches .stitch-tr,
+.current-stitches .stitch-dtr,
+.current-stitches .stitch-ch,
+.current-stitches .stitch-sl,
+.current-stitches .stitch-inc,
+.current-stitches .stitch-dec,
+.current-stitches .stitch-bs,
+.current-stitches .stitch-ns {
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Keep the completed styling only for the preview section */
+.preview-stitch.completed-stitch {
+  background-color: #9e9e9e !important;
+  color: white !important;
+  border-color: #848484;
+  position: relative;
 }
 
 .stitch-progress {
@@ -972,9 +1299,11 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
-  overflow-x: auto;
   padding-bottom: 1rem;
+  overflow-x: auto;
+  white-space: nowrap;
   -webkit-overflow-scrolling: touch;
+  padding: 0.5rem;
 }
 
 .preview-stitch {
@@ -983,16 +1312,16 @@ onMounted(() => {
   position: relative;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-}
-
-.preview-stitch.completed-stitch {
-  color: var(--accent-color);
+  transition: all 0.2s ease;
+  display: inline-block;
+  margin: 0.1rem;
 }
 
 .preview-stitch.current-stitch {
   font-weight: bold;
   color: var(--text-primary);
   background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .preview-stitch.next-stitch {
@@ -1006,15 +1335,155 @@ onMounted(() => {
   border: 1px solid var(--accent-color);
 }
 
+.row-navigation {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.row-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.row-label {
+  font-weight: 500;
+}
+
+.row-counter {
+  color: var(--text-secondary);
+}
+
+.row-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--button-border);
+  border-radius: 8px;
+  background-color: var(--button-bg);
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 200px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1.2rem;
+  padding-right: 2.5rem;
+}
+
+.row-select:hover {
+  border-color: var(--accent-color);
+  background-color: var(--button-hover-bg);
+}
+
+.row-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  background-color: var(--hover-bg);
+}
+
+.experimental-features {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.experimental-features h3 {
+  color: var(--accent-color);
+  margin-top: 0;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-section {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.feature-button {
+  padding: 0.6rem 1.2rem;
+  background-color: var(--button-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--button-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feature-button:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--accent-color);
+}
+
+.raw-pattern {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--code-bg);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.raw-pattern pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: var(--code-text);
+}
+
+.raw-pattern h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.completed-stitch {
+  color: var(--accent-color) !important;
+}
+
+.repeat-pattern {
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid var(--accent-color);
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  color: var(--accent-color);
+}
+
+.preview-stitch.repeat-pattern {
+  padding: 0.25rem 0.5rem;
+}
+
+.current-stitches .repeat-pattern {
+  color: var(--accent-color);
+}
+
 @media (max-width: 767px) {
   .pattern-view {
     padding: 0.5rem;
   }
 
   .pattern-content {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
+    border-radius: 8px;
+  }
+
+  .experimental-badge {
+    top: -8px;
+    font-size: 0.6rem;
+    padding: 1px 4px;
   }
 
   .pattern-header {
@@ -1029,45 +1498,22 @@ onMounted(() => {
     font-size: 1.5rem;
   }
 
+  .delete-button {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
   .row-header {
     padding: 0.75rem;
   }
 
-  .row-info {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
   .row-title h2 {
-    font-size: 1.1rem;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .row-number {
-    font-weight: 600;
-  }
-
-  .row-color {
-    color: var(--accent-color);
+    font-size: 1.2rem;
   }
 
   .complete-button {
-    padding: 0.35rem 0.75rem;
+    padding: 0.4rem 0.8rem;
     font-size: 0.9rem;
-    height: 32px;
-    min-width: 32px;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  .button-text {
-    display: inline-block;
-    margin-left: 0.25rem;
   }
 
   .stitch-control {
@@ -1082,321 +1528,73 @@ onMounted(() => {
     justify-content: space-between;
   }
 
-  .number-input {
-    width: 80px;
-  }
-
   .pattern-card {
-    padding: 0.75rem;
+    padding: 1rem;
   }
 
   .stitch-navigation {
     margin-bottom: 1rem;
   }
 
-  .nav-button {
-    padding: 0.5rem;
-  }
-
-  .nav-button.large {
-    width: 48px;
-    height: 48px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .nav-button.large span {
-    display: none;
-  }
-
   .current-stitches {
     font-size: 1.5rem;
-    flex-wrap: wrap;
     gap: 0.5rem;
-  }
-
-  .full-row-preview {
-    margin-top: 1rem;
-    padding-top: 1rem;
   }
 
   .preview-content {
     flex-wrap: nowrap;
-    justify-content: flex-start;
-    padding: 0.5rem;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scroll-padding: 1rem;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-  }
-  
-  .preview-stitch {
-    flex-shrink: 0;
-    font-size: 0.85rem;
+    gap: 0.25rem;
     padding: 0.25rem;
+  }
+
+  .preview-stitch {
+    font-size: 0.9rem;
+    padding: 0.2rem 0.4rem;
     white-space: nowrap;
   }
 
   .row-navigation {
     padding: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 0.5rem;
   }
 
-  .row-selector {
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
-
   .row-select {
-    flex: 1;
-    max-width: none;
     min-width: 0;
+    flex: 1;
     padding: 0.5rem;
-    -webkit-appearance: none;
-    appearance: none;
-    background-color: var(--button-bg);
-    border: 1px solid var(--button-border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 1rem;
-    text-align: center;
-    background-image: none;
+    font-size: 0.9rem;
+    background-position: right 0.5rem center;
+    padding-right: 1.8rem;
+    background-size: 1rem;
   }
 
-  /* Target mobile Safari specifically */
-  @supports (-webkit-touch-callout: none) {
-    .row-select {
-      -webkit-appearance: menulist;
-      appearance: menulist;
-      background: var(--button-bg);
-    }
+  .experimental-features {
+    padding: 0.75rem;
   }
 
-  /* Target Android devices */
-  @supports not (-webkit-touch-callout: none) {
-    .row-select {
-      -webkit-appearance: menulist;
-      appearance: menulist;
-      background: var(--button-bg);
-    }
-  }
-
-  .nav-button.large {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Update the template section for mobile view */
-  @media (max-width: 767px) {
-    .row-title h2::before {
-      content: "Row ";
-    }
-  }
-
-  .stacked-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
-
-  .stacked-info h2 {
+  .experimental-features h3 {
     font-size: 1.1rem;
-    margin: 0;
-    font-weight: 600;
+    margin-bottom: 0.75rem;
   }
 
-  .stacked-info .row-color {
-    color: var(--accent-color);
+  .feature-button {
+    padding: 0.5rem 1rem;
     font-size: 0.9rem;
   }
-}
 
-/* Row navigation styles */
-.row-navigation {
-  padding: 0.75rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-}
-
-/* Row selector styles */
-.row-selector {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.row-counter {
-  color: var(--text-secondary);
-}
-
-/* Mobile-specific styles */
-@media (max-width: 767px) {
-  .row-navigation {
+  .raw-pattern {
     padding: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
   }
 
-  .row-selector {
-    flex: 1;
-    display: flex;
-    align-items: center;
+  .raw-pattern pre {
+    font-size: 0.8rem;
   }
 
-  .row-select {
-    flex: 1;
-    max-width: none;
-    min-width: 0;
-    padding: 0.5rem;
-    -webkit-appearance: none;
-    appearance: none;
-    background-color: var(--button-bg);
-    border: 1px solid var(--button-border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 1rem;
-    text-align: center;
-    background-image: none;
-  }
-
-  /* Target mobile Safari specifically */
-  @supports (-webkit-touch-callout: none) {
-    .row-select {
-      -webkit-appearance: menulist;
-      appearance: menulist;
-      background: var(--button-bg);
-    }
-  }
-
-  /* Target Android devices */
-  @supports not (-webkit-touch-callout: none) {
-    .row-select {
-      -webkit-appearance: menulist;
-      appearance: menulist;
-      background: var(--button-bg);
-    }
-  }
-}
-
-/* Desktop-specific styles */
-@media (min-width: 768px) {
-  .row-selector {
-    font-size: 1.1rem;
-    color: var(--text-primary);
-  }
-
-  .row-label {
-    font-weight: 500;
-  }
-
-  .row-select {
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--button-border);
-    border-radius: 8px;
-    background-color: var(--button-bg);
-    color: var(--text-primary);
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 200px;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.7rem center;
-    background-size: 1.2rem;
-    padding-right: 2.5rem;
-  }
-
-  .row-select:hover {
-    border-color: var(--accent-color);
-    background-color: var(--button-hover-bg);
-  }
-
-  .row-select:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    background-color: var(--hover-bg);
-  }
-
-  .row-select::-ms-expand {
-    display: none;
-  }
-
-  .row-navigation {
-    padding: 1rem 1.5rem;
-  }
-}
-
-/* Responsive styles */
-@media (min-width: 1024px) {
-  .pattern-view {
-    padding: 1rem;
-  }
-
-  .header-content h1 {
-    font-size: 2.5rem;
-  }
-
-  .row-title h2 {
-    font-size: 1.8rem;
-  }
-
-  .current-stitches {
-    font-size: 2rem;
-  }
-}
-
-/* Desktop-specific styles */
-@media (min-width: 768px) {
   .mobile-only {
-    display: none;
+    display: block;
   }
 
-  .row-title {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .row-title h2 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--text-primary);
-  }
-
-  .row-color {
-    color: var(--accent-color);
-    font-weight: 500;
-  }
-
-  .complete-button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-  }
-}
-
-/* Mobile-specific styles */
-@media (max-width: 767px) {
   .desktop-only {
     display: none;
   }
@@ -1418,5 +1616,148 @@ onMounted(() => {
     color: var(--accent-color);
     font-size: 0.9rem;
   }
+
+  .button-text {
+    display: inline-block;
+    font-size: 0.9rem;
+  }
+
+  .nav-button.large {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+}
+
+/* Stitch-type-specific styling */
+.stitch-sc {
+  background-color: #a8e6cf !important; /* Pastel green */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-dc {
+  background-color: #92c4ff !important; /* Pastel blue */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-hdc {
+  background-color: #c3aadb !important; /* Pastel purple */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-tr {
+  background-color: #ffbe9d !important; /* Pastel orange */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-dtr {
+  background-color: #ffabcf !important; /* Pastel pink */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-ch {
+  background-color: #ffe6a2 !important; /* Pastel yellow */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-sl {
+  background-color: #c0c0c0 !important; /* Pastel gray */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-inc {
+  background-color: #c3e6a5 !important; /* Pastel light green */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-dec {
+  background-color: #ffa7a7 !important; /* Pastel red */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-bs {
+  background-color: #d0b9a2 !important; /* Pastel brown */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-ns {
+  background-color: #adcbd6 !important; /* Pastel blue-gray */
+  color: #333 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light theme overrides for repeat patterns */
+:root.light .repeat-pattern {
+  background: rgba(41, 121, 255, 0.15) !important;
+  border: 1px solid #2979ff !important;
+  color: #333 !important;
+}
+
+:root.light .current-stitches .repeat-pattern {
+  color: #2979ff !important;
+}
+
+/* Dark theme text overrides for stitch colors to ensure visibility */
+:root:not(.light) .stitch-sc,
+:root:not(.light) .stitch-dc,
+:root:not(.light) .stitch-hdc,
+:root:not(.light) .stitch-tr,
+:root:not(.light) .stitch-dtr,
+:root:not(.light) .stitch-ch,
+:root:not(.light) .stitch-sl,
+:root:not(.light) .stitch-inc,
+:root:not(.light) .stitch-dec,
+:root:not(.light) .stitch-bs,
+:root:not(.light) .stitch-ns {
+  text-shadow: 0px 1px 1px rgba(0,0,0,0.2);
+}
+
+/* Add style for completed row stitches */
+.row-completed .preview-stitch {
+  background-color: #b6b6b6 !important;
+  color: #fff !important;
+  border-color: #8e8e8e !important;
+  position: relative;
+}
+
+.row-completed .preview-stitch::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  color: #ffffff;
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.current-stitch {
+  border: 3px solid var(--accent-color, #42b883);
+  position: relative;
+  background-color: rgba(76, 175, 80, 0.15);
+  font-weight: bold;
+  border-radius: 8px !important;
+  box-shadow: 0 0 10px rgba(66, 184, 131, 0.5);
+  outline: 1px solid rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
 }
 </style> 
