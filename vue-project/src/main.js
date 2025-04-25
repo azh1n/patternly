@@ -32,7 +32,8 @@ import {
   faToggleOff,
   faMagic,
   faHistory,
-  faChartLine
+  faChartLine,
+  faCode
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -62,7 +63,8 @@ library.add(
   faToggleOff,
   faMagic,
   faHistory,
-  faChartLine
+  faChartLine,
+  faCode
 )
 
 const app = createApp(App)

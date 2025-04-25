@@ -773,7 +773,6 @@ const saveRowCount = async () => {
       await updateDoc(doc(db, 'patterns', props.pattern.id), {
         totalRows: totalRows.value
       })
-      console.log(`Updated row count to ${totalRows.value} for pattern ${props.pattern.name}`)
     }
   } catch (error) {
     console.error('Error updating row count:', error)
@@ -1262,11 +1261,14 @@ const getStitchClass = (code) => {
 }
 
 .current-stitch {
-  border: 2px solid #fff;
+  border: 3px solid var(--accent-color, #42b883);
   position: relative;
-  background-color: rgba(76, 175, 80, 0.1);
+  background-color: rgba(76, 175, 80, 0.15);
   font-weight: bold;
   border-radius: 8px !important;
+  box-shadow: 0 0 10px rgba(66, 184, 131, 0.5);
+  outline: 1px solid rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
 }
 
 .row-navigation {

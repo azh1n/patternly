@@ -603,7 +603,6 @@ const saveRowCount = async () => {
       await updateDoc(doc(db, 'patterns', props.pattern.id), {
         totalRows: totalRows.value
       })
-      console.log(`Updated row count to ${totalRows.value} for pattern ${props.pattern.name}`)
     }
   } catch (error) {
     console.error('Error updating row count:', error)
