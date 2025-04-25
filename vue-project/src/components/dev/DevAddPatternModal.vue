@@ -148,82 +148,11 @@
             />
 
             <!-- Pattern Preview Section -->
-            <div v-if="parsedRows.length" class="pattern-preview-section">
-              <div class="preview-header">
-                <h4>Pattern Preview ({{ parsedRows.length }} rows)</h4>
-                <button @click="addNewRow" class="add-row-button">+ Add Row</button>
-              </div>
-              <div class="pattern-preview">
-                <div v-for="(row, index) in parsedRows" :key="index" class="preview-row">
-                  <div class="preview-row-header">
-                    <span class="preview-row-number">Row {{ row.number }}</span>
-                    <div v-if="row.color" class="color-indicator" :style="{ backgroundColor: getColorHex(row.color) }"></div>
-                    <button class="edit-row-button" @click="editRow(index)">Edit</button>
-                  </div>
-                  <div class="preview-row-content">
-                    <div v-if="!row.stitches || (Array.isArray(row.stitches) && row.stitches.length === 0)" class="no-stitches-message">
-                      No stitches detected. Original text: {{ row.text }}
-                    </div>
-                    <div v-else-if="row.stitches.repeated" class="preview-stitches">
-                      <!-- Show stitches before the repeat -->
-                      <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
-                        <div 
-                          class="preview-stitch" 
-                          :class="getStitchClass(stitch)"
-                          :title="stitch"
-                        >
-                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                        </div>
-                      </template>
-                      
-                      <!-- Show the repeat group -->
-                      <div class="repeat-group">
-                        <span class="repeat-bracket left-bracket">(</span>
-                        
-                        <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
-                          <div 
-                            class="preview-stitch" 
-                            :class="getStitchClass(stitch)"
-                            :title="stitch"
-                          >
-                            <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                            <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                          </div>
-                        </template>
-                        
-                        <span class="repeat-bracket right-bracket">)</span>
-                        <span class="repeat-count">x{{ row.stitches.repeatCount }}</span>
-                      </div>
-                      
-                      <!-- Show stitches after the repeat -->
-                      <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
-                        <div 
-                          class="preview-stitch" 
-                          :class="getStitchClass(stitch)"
-                          :title="stitch"
-                        >
-                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                        </div>
-                      </template>
-                    </div>
-                    <div v-else class="preview-stitches">
-                      <template v-for="(stitch, i) in row.stitches" :key="i">
-                        <div 
-                          class="preview-stitch" 
-                          :class="getStitchClass(stitch)"
-                          :title="stitch"
-                        >
-                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PatternPreviewSection
+              :rows="parsedRows"
+              @add-new-row="addNewRow"
+              @edit-row="editRow"
+            />
           </div>
         </div>
         
@@ -262,6 +191,7 @@ import { usePatternStore } from '@/stores/pattern'
 import { auth } from '@/firebase'
 import RowEditModal from './pattern/RowEditModal.vue'
 import UnparsedContentSection from './pattern/UnparsedContentSection.vue'
+import PatternPreviewSection from './pattern/PatternPreviewSection.vue'
 
 // Props and emits
 const props = defineProps({
@@ -1274,12 +1204,6 @@ const editRow = (index) => {
   showRowEditModal.value = true
 }
 
-
-
-
-
-
-
 // Handle save from row edit modal
 const handleRowSave = (updatedRow) => {
   // Update or add the row in the parsedRows array
@@ -1856,330 +1780,7 @@ const handleRowSave = (updatedRow) => {
   background: #d0d0d0;
 }
 
-/* Pattern Preview Styles */
-.pattern-preview-section {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color, #444);
-}
-
-.pattern-preview-section h4 {
-  margin: 0 0 1rem;
-  color: var(--text-primary, #fff);
-  font-size: 1.125rem;
-}
-
-.pattern-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--preview-bg, #1a1a1a);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #444);
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.preview-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.preview-row-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.preview-row-number {
-  font-weight: 600;
-  color: var(--accent-color, #4f87ff);
-}
-
-.color-indicator {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.preview-row-content {
-  padding-left: 0rem;
-}
-
-.preview-stitches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.1);
-}
-
-:root.light .preview-stitches {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.no-stitches-message {
-  padding: 0.5rem;
-  color: var(--text-secondary, #aaa);
-  font-style: italic;
-  font-size: 0.875rem;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  border: 1px dashed var(--border-color, #444);
-}
-
-:root.light .no-stitches-message {
-  color: #666;
-  background: rgba(0, 0, 0, 0.05);
-  border-color: #ddd;
-}
-
-.preview-stitch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--stitch-bg, #333);
-  color: var(--text-primary, #fff);
-  border: 1px solid var(--border-color, #444);
-  font-size: 0.75rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.stitch-count {
-  font-weight: 700;
-  font-size: 0.875rem;
-}
-
-.stitch-type {
-  font-size: 0.625rem;
-  opacity: 0.8;
-}
-
-/* Different stitch styles - these are for the preview buttons */
-.stitch-sc {
-  background: #8ed68e;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dc {
-  background: #92c4ff;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-hdc {
-  background: #c3aadb;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-tr {
-  background: #ffbe9d;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dtr {
-  background: #ffabcf;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-ch {
-  background: #ffe6a2;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-sl {
-  background: #c0c0c0;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-inc {
-  background: #c3e6a5;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-dec {
-  background: #ffa7a7;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-bs {
-  background: #d0b9a2;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stitch-ns {
-  background: #adcbd6;
-  color: #333;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-/* Dark theme text overrides for stitch colors to ensure visibility */
-:root:not(.light) .stitch-sc,
-:root:not(.light) .stitch-dc,
-:root:not(.light) .stitch-hdc,
-:root:not(.light) .stitch-tr,
-:root:not(.light) .stitch-dtr,
-:root:not(.light) .stitch-ch,
-:root:not(.light) .stitch-sl,
-:root:not(.light) .stitch-inc,
-:root:not(.light) .stitch-dec,
-:root:not(.light) .stitch-bs,
-:root:not(.light) .stitch-ns {
-  text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.2);
-}
-
-/* Repeat Pattern Styles */
-.repeat-pattern {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background: var(--stitch-bg, #2d2d2d);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #444);
-}
-
-.repeat-notation {
-  font-weight: 500;
-  color: var(--text-primary, #fff);
-}
-
-:root.light .repeat-pattern {
-  background: #e8e8e8;
-  border: 1px solid #d0d0d0;
-}
-
-:root.light .repeat-notation {
-  color: #333;
-}
-
-/* Repeat Group Styles */
-.repeat-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  margin: 0 0.5rem;
-  position: relative;
-  padding: 0 0.5rem;
-  background-color: rgba(79, 135, 255, 0.08);
-  border-radius: 8px;
-  height: 40px;
-  overflow: visible;
-}
-
-.repeat-bracket {
-  font-size: 2.5rem;
-  font-weight: 400;
-  color: var(--accent-color, #4f87ff);
-  margin: 0;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding-bottom: 7px;
-}
-
-.left-bracket {
-  margin-right: 0.25rem;
-}
-
-.right-bracket {
-  margin-left: 0.25rem;
-  margin-right: 0.125rem;
-}
-
-.repeat-count {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--accent-color, #4f87ff);
-  padding: 0.125rem 0.25rem;
-  background: rgba(79, 135, 255, 0.15);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 0.125rem;
-  height: 24px;
-  position: relative;
-}
-
-/* Light theme overrides */
-:root.light .repeat-group {
-  background-color: rgba(41, 121, 255, 0.08);
-}
-
-:root.light .repeat-bracket,
-:root.light .repeat-count {
-  color: #2979ff;
-}
-
-/* Edit Row Button */
-.edit-row-button {
-  padding: 0.25rem 0.5rem;
-  background: transparent;
-  color: var(--accent-color, #4f87ff);
-  border: 1px solid var(--accent-color, #4f87ff);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  margin-left: auto;
-  transition: all 0.2s ease;
-}
-
-.edit-row-button:hover {
-  background: var(--accent-color, #4f87ff);
-  color: white;
-}
-
-.edit-row-button:hover {
-  background: var(--accent-hover, #3a6fd9);
-}
-
-/* Preview Header */
-
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.preview-header h4 {
-  margin: 0;
-}
-
-.add-row-button {
-  padding: 0.25rem 0.75rem;
-  background: var(--accent-color, #4f87ff);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-}
-
+/* No rows message styles */
 .no-rows-message {
   display: flex;
   flex-direction: column;
@@ -2187,7 +1788,7 @@ const handleRowSave = (updatedRow) => {
   justify-content: center;
   padding: 2rem;
   text-align: center;
-  background: var(--card-bg, #2a2a2a);
+  background: var(--card-bg-light, #2d2d2d);
   border: 1px solid var(--warning-border, #8B6E00);
   border-radius: 8px;
   margin: 1rem 0;
@@ -2213,10 +1814,6 @@ const handleRowSave = (updatedRow) => {
   margin-top: 0.5rem;
 }
 
-.add-row-button:hover {
-  background: var(--accent-hover, #3a6fd9);
-}
-
 /* Light theme override */
 :root.light .storage-format-preview {
   background: #f5f5f5;
@@ -2227,20 +1824,7 @@ const handleRowSave = (updatedRow) => {
   color: #333;
 }
 
-/* Light theme overrides for preview */
-:root.light .pattern-preview {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-}
-
-:root.light .preview-row-number {
-  color: #2979ff;
-}
-
-:root.light .color-indicator {
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
+/* Stitch preview styles */
 .stitch-preview {
   display: flex;
   flex-wrap: wrap;
@@ -2257,9 +1841,5 @@ const handleRowSave = (updatedRow) => {
   border-radius: 4px;
   font-size: 12px;
   font-weight: bold;
-}
-
-:root.light .preview-stitch {
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 </style> 
