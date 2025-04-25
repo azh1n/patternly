@@ -16,6 +16,7 @@
       <!-- Right section with conditional navigation -->
       <div class="side-section right-section">
         <nav v-if="showNav">
+          <router-link to="/about" class="nav-link">About</router-link>
           <router-link to="/profile" class="profile-link">Profile</router-link>
           <router-link 
             v-if="experimentalFeatures" 
@@ -125,6 +126,18 @@ nav {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* Regular nav link styles */
+.nav-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--accent-color);
 }
 
 /* Profile link styles */

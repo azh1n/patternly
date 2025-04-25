@@ -8,6 +8,7 @@ import LoginPage from '../components/LoginPage.vue'
 import ProfilePage from '../components/ProfilePage.vue'
 import GoogleAuthCallback from '../components/GoogleAuthCallback.vue'
 import DevHomeView from '../components/dev/DevHomeView.vue'
+import AboutView from '../views/AboutView.vue'
 
 // Initialize user settings to check for experimental features
 const { experimentalFeatures, initSettings } = useUserSettings()
@@ -40,6 +41,12 @@ const router = createRouter({
       name: 'profile',
       component: ProfilePage,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: AboutView,
+      meta: { requiresAuth: false }
     },
     {
       path: '/auth/callback',
