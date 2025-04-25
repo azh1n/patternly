@@ -1050,7 +1050,7 @@ const getStitchClass = (code) => {
   color: var(--text-primary);
   border: 1px solid var(--button-border);
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1058,6 +1058,7 @@ const getStitchClass = (code) => {
 
 .complete-button:hover {
   background-color: var(--button-hover-bg);
+  transform: translateY(-2px);
 }
 
 .complete-button.completed {
@@ -1144,7 +1145,7 @@ const getStitchClass = (code) => {
   justify-content: center;
   background-color: var(--button-bg);
   border: 1px solid var(--button-border);
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s ease;
@@ -1152,6 +1153,7 @@ const getStitchClass = (code) => {
 
 .nav-button:hover:not(:disabled) {
   background-color: var(--button-hover-bg);
+  transform: translateY(-2px);
 }
 
 .nav-button:disabled {
@@ -1209,7 +1211,7 @@ const getStitchClass = (code) => {
   gap: 1rem;
   padding: 1rem;
   background-color: var(--card-secondary-bg);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow-x: auto;
 }
 
@@ -1218,22 +1220,26 @@ const getStitchClass = (code) => {
   font-size: 1.2rem;
   color: var(--text-primary);
   padding: 0.35rem 0.5rem;
-  border-radius: 4px;
+  border-radius: 8px;
   background-color: var(--card-bg);
   border: 1px solid var(--border-light);
   max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.preview-stitch:hover {
+  transform: translateY(-1px);
 }
 
 .current-stitch {
-  border: 2px solid #4CAF50;
+  border: 2px solid #fff;
   position: relative;
   background-color: rgba(76, 175, 80, 0.1);
   font-weight: bold;
-  box-shadow: 0 0 0 1px #4CAF50;
-  outline: 1px solid #4CAF50;
+  border-radius: 8px !important;
 }
 
 .row-navigation {
@@ -1254,14 +1260,16 @@ const getStitchClass = (code) => {
   padding: 0.75rem 1rem;
   background-color: var(--button-bg);
   border: 1px solid var(--button-border);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 1rem;
+  transition: all 0.2s ease;
 }
 
 .row-select:focus {
   outline: none;
   border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(79, 135, 255, 0.25);
 }
 
 /* Experimental features section */
@@ -1291,7 +1299,7 @@ const getStitchClass = (code) => {
   color: var(--text-primary);
   border: 1px solid var(--button-border);
   padding: 0.75rem 1rem;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1301,6 +1309,7 @@ const getStitchClass = (code) => {
   background-color: var(--button-hover-bg);
   border-color: var(--accent-color);
   color: var(--accent-color);
+  transform: translateY(-2px);
 }
 
 /* Mobile-specific styles */
@@ -1383,7 +1392,7 @@ const getStitchClass = (code) => {
   margin-top: 1rem;
   padding: 1rem;
   background-color: var(--card-bg);
-  border-radius: 6px;
+  border-radius: 12px;
   border: 1px solid var(--border-color);
 }
 
@@ -1397,7 +1406,7 @@ const getStitchClass = (code) => {
   margin: 0;
   padding: 1rem;
   background-color: var(--code-bg, #1a1a1a);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-family: monospace;
   font-size: 0.875rem;
@@ -1420,7 +1429,7 @@ const getStitchClass = (code) => {
   font-size: 1.2rem !important;
   padding: 0.35rem 0.5rem !important;
   white-space: nowrap;
-  border-radius: 4px;
+  border-radius: 8px !important;
 }
 
 /* Only apply special styling for current stitches view */
@@ -1444,18 +1453,14 @@ const getStitchClass = (code) => {
   display: inline-block;
 }
 
-.preview-stitch {
-  font-family: monospace;
-  font-size: 1.2rem;
-  color: var(--text-primary);
-  padding: 0.35rem 0.5rem;
-  border-radius: 4px;
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-light);
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.current-stitches span {
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.current-stitches span:hover {
+  transform: translateY(-2px);
 }
 
 /* Stitch type colors matching DevAddPatternModal.vue */
