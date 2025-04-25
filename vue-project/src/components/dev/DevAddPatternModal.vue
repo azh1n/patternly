@@ -836,6 +836,12 @@ const extractStitches = (text) => {
       }
     }
     
+    // Remove stitch count information in parentheses
+    text = text.replace(/\([^)]*stitch count[^)]*\)/i, '').trim();
+    
+    // Remove "FO" or "F.O." instructions
+    text = text.replace(/\b(FO|F\.O\.)\b\.*\s*/i, '').trim();
+    
     // Special case for patterns like "Round 3 (1sc, 1inc) x6 (18)"
     const directRepeatMatch = text.match(/(?:Round|Row)\s+\d+\s+\(([^)]+)\)\s*x(\d+)/i);
     if (directRepeatMatch) {
@@ -917,8 +923,11 @@ const extractStitchesFromText = (text) => {
   try {
     const foundStitches = [];
     
+    // First remove any stitch count information in parentheses
+    const cleanedText = text.replace(/\([^)]*stitch count[^)]*\)/i, '').trim();
+  
     // Split by all commas first
-    const allParts = text.split(',').map(p => p.trim()).filter(Boolean);
+    const allParts = cleanedText.split(',').map(p => p.trim()).filter(Boolean);
     
     for (const part of allParts) {
       // Skip empty parts
@@ -933,10 +942,13 @@ const extractStitchesFromText = (text) => {
           const innerParts = innerContent.split(',').map(p => p.trim());
           
           for (const innerPart of innerParts) {
+            // Remove any trailing punctuation
+            const cleanInnerPart = innerPart.replace(/[.,;:!?]+$/, '').trim();
+            
             // Try all the stitch patterns
             let matched = false;
             for (const pattern of stitchPatterns) {
-              const match = innerPart.match(pattern.pattern);
+              const match = cleanInnerPart.match(pattern.pattern);
               if (match) {
                 const count = match[1] || '1';
                 foundStitches.push(`${count}${pattern.name}`);
@@ -948,7 +960,7 @@ const extractStitchesFromText = (text) => {
             // If no specific pattern matched, try a general pattern
             if (!matched) {
               // Look for a number followed by any letters (potential stitch)
-              const generalMatch = innerPart.match(/(\d+)([a-zA-Z]+)/);
+              const generalMatch = cleanInnerPart.match(/(\d+)([a-zA-Z]+)/);
               if (generalMatch) {
                 foundStitches.push(`${generalMatch[1]}${generalMatch[2].toLowerCase()}`);
               }
@@ -958,10 +970,13 @@ const extractStitchesFromText = (text) => {
         continue;
       }
       
+      // Remove any trailing punctuation for non-repeat parts
+      const cleanPart = part.replace(/[.,;:!?]+$/, '').trim();
+      
       // Try all stitch patterns for non-repeat parts
       let matched = false;
       for (const pattern of stitchPatterns) {
-        const match = part.match(pattern.pattern);
+        const match = cleanPart.match(pattern.pattern);
         if (match) {
           const count = match[1] || '1';
           foundStitches.push(`${count}${pattern.name}`);
@@ -973,7 +988,7 @@ const extractStitchesFromText = (text) => {
       // If no specific pattern matched, try a general pattern
       if (!matched) {
         // Look for a number followed by any letters (potential stitch)
-        const generalMatch = part.match(/(\d+)([a-zA-Z]+)/);
+        const generalMatch = cleanPart.match(/(\d+)([a-zA-Z]+)/);
         if (generalMatch) {
           foundStitches.push(`${generalMatch[1]}${generalMatch[2].toLowerCase()}`);
         }
