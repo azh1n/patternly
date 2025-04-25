@@ -558,7 +558,31 @@ const currentRow = computed(() => {
 // Total stitches in current row
 const totalStitches = computed(() => {
   if (!currentRow.value) return 0
-  return currentRow.value.codes.length
+  
+  // Sum the numbers in each stitch code instead of counting codes
+  return currentRow.value.codes.reduce((total, code) => {
+    // Extract the number from the stitch code (e.g., "22dc" -> 22)
+    const match = code.match(/^(\d+)/);
+    // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
+    if (code.includes('(') && code.includes(')') && code.includes('x')) {
+      // Extract content inside parentheses and repeat count
+      const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
+      if (repeatMatch) {
+        const repeatedContent = repeatMatch[1];
+        const repeatCount = parseInt(repeatMatch[2], 10);
+        
+        // Split the repeated content by commas and sum each stitch count
+        const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
+          const countMatch = stitch.trim().match(/^(\d+)/);
+          return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
+        }, 0);
+        
+        return total + (stitchesPerRepeat * repeatCount);
+      }
+    }
+    
+    return total + (match ? parseInt(match[1], 10) : 1);
+  }, 0);
 })
 
 // Get completion status for current row
@@ -600,7 +624,26 @@ const stitchProgress = computed(() => {
     .slice(0, currentStitchIndex.value)
     .reduce((total, code) => {
       const match = code.match(/^(\d+)/)
-      return total + (match ? parseInt(match[1]) : 1)
+      
+      // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
+      if (code.includes('(') && code.includes(')') && code.includes('x')) {
+        // Extract content inside parentheses and repeat count
+        const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          const repeatedContent = repeatMatch[1];
+          const repeatCount = parseInt(repeatMatch[2], 10);
+          
+          // Split the repeated content by commas and sum each stitch count
+          const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
+            const countMatch = stitch.trim().match(/^(\d+)/);
+            return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
+          }, 0);
+          
+          return total + (stitchesPerRepeat * repeatCount);
+        }
+      }
+      
+      return total + (match ? parseInt(match[1], 10) : 1)
     }, 0)
   
   // Calculate stitches in current view
@@ -608,7 +651,26 @@ const stitchProgress = computed(() => {
     .slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value)
     .reduce((total, code) => {
       const match = code.match(/^(\d+)/)
-      return total + (match ? parseInt(match[1]) : 1)
+      
+      // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
+      if (code.includes('(') && code.includes(')') && code.includes('x')) {
+        // Extract content inside parentheses and repeat count
+        const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          const repeatedContent = repeatMatch[1];
+          const repeatCount = parseInt(repeatMatch[2], 10);
+          
+          // Split the repeated content by commas and sum each stitch count
+          const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
+            const countMatch = stitch.trim().match(/^(\d+)/);
+            return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
+          }, 0);
+          
+          return total + (stitchesPerRepeat * repeatCount);
+        }
+      }
+      
+      return total + (match ? parseInt(match[1], 10) : 1)
     }, 0)
   
   return `${currentStitchCount + 1}-${currentStitchCount + viewStitches} of ${totalStitches.value} stitches`
