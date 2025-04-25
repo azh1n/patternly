@@ -100,6 +100,9 @@
           <span class="character-count" :class="{ 'limit-reached': currentRowNotes.length >= 500 }">
             {{ currentRowNotes.length }}/500
           </span>
+          <button @click="saveNotes" class="save-notes-button" :class="{ 'unsaved': !notesSaved }" title="Save notes">
+            <font-awesome-icon icon="save" />
+          </button>
           <button @click="hideNotes" class="close-notes-button">
             <font-awesome-icon icon="times" />
           </button>
@@ -109,7 +112,7 @@
           placeholder="Add your notes for this row here..."
           class="notes-textarea"
           maxlength="500"
-          @input="saveNotesDebounced"
+          @input="markAsUnsaved"
           style="color: #ffffff !important;"
         ></textarea>
       </div>
@@ -298,6 +301,7 @@ const showRawPattern = ref(false)  // State for showing raw pattern
 const currentRowNotes = ref('')  // Current row notes content
 const saveNotesTimeout = ref(null)  // For debouncing notes save
 const showNotes = ref(false)  // Control visibility of notes section
+const notesSaved = ref(true)  // Track if notes have been saved
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
@@ -788,14 +792,30 @@ const loadRowNotes = () => {
 
 const hideNotes = () => {
   showNotes.value = false
-  // If there are no notes, make sure the button shows up
-  if (!currentRowNotes.value.trim()) {
+  // If there are unsaved changes, ask user if they want to save
+  if (!notesSaved.value && currentRowNotes.value.trim()) {
+    if (confirm('You have unsaved notes. Would you like to save them before closing?')) {
+      saveNotes()
+    }
+  } else if (!currentRowNotes.value.trim()) {
+    // If there are no notes, remove them from storage
     saveNotes()
   }
 }
 
 const saveNotes = async () => {
   if (!currentRow.value) return
+  
+  // Add the click animation class
+  const saveButton = document.querySelector('.save-notes-button')
+  if (saveButton) {
+    saveButton.classList.add('clicked')
+    
+    // Remove the class after animation completes
+    setTimeout(() => {
+      saveButton.classList.remove('clicked')
+    }, 500)
+  }
   
   try {
     const textId = props.pattern.id
@@ -811,22 +831,17 @@ const saveNotes = async () => {
     await updateDoc(doc(db, 'patterns', textId), {
       rowNotes: notesData
     })
+    
+    // Mark notes as saved after successful save
+    notesSaved.value = true
   } catch (error) {
     console.error('Error saving row notes:', error)
   }
 }
 
-// Debounced save function to avoid too many Firestore writes
-const saveNotesDebounced = () => {
-  // Clear any existing timeout
-  if (saveNotesTimeout.value) {
-    clearTimeout(saveNotesTimeout.value)
-  }
-  
-  // Set a new timeout to save after 1 second of inactivity
-  saveNotesTimeout.value = setTimeout(() => {
-    saveNotes()
-  }, 1000)
+// Mark notes as unsaved when the user types
+const markAsUnsaved = () => {
+  notesSaved.value = false
 }
 
 // Update scroll position helper
@@ -1037,11 +1052,6 @@ onMounted(() => {
       patternCard.removeEventListener('touchstart', handleTouchStart)
       patternCard.removeEventListener('touchmove', handleTouchMove)
       patternCard.removeEventListener('touchend', handleTouchEnd)
-    }
-    
-    // Clear any pending save timeout
-    if (saveNotesTimeout.value) {
-      clearTimeout(saveNotesTimeout.value)
     }
   }
 })
@@ -1286,6 +1296,7 @@ const getStitchClass = (code) => {
   font-weight: 600;
 }
 
+.save-notes-button,
 .close-notes-button {
   background: transparent;
   border: none;
@@ -1302,8 +1313,34 @@ const getStitchClass = (code) => {
   height: 24px;
 }
 
+.save-notes-button:hover,
 .close-notes-button:hover {
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+.save-notes-button {
+  color: var(--accent-color);
+}
+
+.save-notes-button.unsaved {
+  color: #ff9800;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.save-notes-button.clicked {
+  animation: click-feedback 0.5s ease-in-out;
+}
+
+@keyframes click-feedback {
+  0% { transform: scale(1); background-color: transparent; }
+  50% { transform: scale(0.85); background-color: var(--accent-color); color: white; }
+  100% { transform: scale(1); background-color: transparent; }
 }
 
 .character-count {
