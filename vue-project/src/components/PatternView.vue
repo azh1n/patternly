@@ -50,6 +50,7 @@
             <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
             <span class="mobile-only button-text">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
           </button>
+
         </div>
         
         <!-- Stitches per view control -->
@@ -80,6 +81,24 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Row notes section -->
+      <div class="row-notes-section">
+        <div class="notes-header">
+          <font-awesome-icon icon="sticky-note" />
+          <span>Row Notes</span>
+          <span class="character-count" :class="{ 'limit-reached': currentRowNotes.length >= 500 }">
+            {{ currentRowNotes.length }}/500
+          </span>
+        </div>
+        <textarea 
+          v-model="currentRowNotes" 
+          placeholder="Add your notes for this row here..."
+          class="notes-textarea"
+          maxlength="500"
+          @input="saveNotesDebounced"
+        ></textarea>
       </div>
 
       <!-- Pattern card with stitch navigation -->
@@ -222,6 +241,8 @@
       </div>
     </div>
   </div>
+
+
 </template>
 
 <script setup>
@@ -259,6 +280,10 @@ const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
 const showRawPattern = ref(false)  // State for showing raw pattern
+
+// Notes feature state
+const currentRowNotes = ref('')  // Current row notes content
+const saveNotesTimeout = ref(null)  // For debouncing notes save
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
@@ -591,6 +616,12 @@ const isRowComplete = computed(() => {
   return props.pattern.completedRows[`row${currentRow.value.rowNum}`] || false
 })
 
+// Check if current row has notes
+const hasRowNotes = computed(() => {
+  if (!currentRow.value || !props.pattern?.rowNotes) return false
+  return !!props.pattern.rowNotes[`row${currentRow.value.rowNum}`]
+})
+
 // Touch swipe transform style
 const transformStyle = computed(() => {
   if (!isSwiping.value) return ''
@@ -726,6 +757,53 @@ const toggleRowComplete = async () => {
   } catch (error) {
     console.error('Error updating row completion:', error)
   }
+}
+
+// Notes functions
+const loadRowNotes = () => {
+  if (!currentRow.value) return
+  
+  // Load existing notes for this row if any
+  if (props.pattern?.rowNotes && props.pattern.rowNotes[`row${currentRow.value.rowNum}`]) {
+    currentRowNotes.value = props.pattern.rowNotes[`row${currentRow.value.rowNum}`]
+  } else {
+    currentRowNotes.value = ''
+  }
+}
+
+const saveNotes = async () => {
+  if (!currentRow.value) return
+  
+  try {
+    const textId = props.pattern.id
+    const notesData = props.pattern.rowNotes || {}
+    
+    // Only save if there's content, otherwise remove the note
+    if (currentRowNotes.value.trim()) {
+      notesData[`row${currentRow.value.rowNum}`] = currentRowNotes.value.trim()
+    } else {
+      delete notesData[`row${currentRow.value.rowNum}`]
+    }
+    
+    await updateDoc(doc(db, 'patterns', textId), {
+      rowNotes: notesData
+    })
+  } catch (error) {
+    console.error('Error saving row notes:', error)
+  }
+}
+
+// Debounced save function to avoid too many Firestore writes
+const saveNotesDebounced = () => {
+  // Clear any existing timeout
+  if (saveNotesTimeout.value) {
+    clearTimeout(saveNotesTimeout.value)
+  }
+  
+  // Set a new timeout to save after 1 second of inactivity
+  saveNotesTimeout.value = setTimeout(() => {
+    saveNotes()
+  }, 1000)
 }
 
 // Update scroll position helper
@@ -926,6 +1004,9 @@ onMounted(() => {
   // Initialize scroll position after component mounts
   setTimeout(updateScrollPosition, 300)
   
+  // Load notes for the initial row
+  loadRowNotes()
+  
   // Clean up event listeners
   return () => {
     window.removeEventListener('resize', () => {})
@@ -934,6 +1015,11 @@ onMounted(() => {
       patternCard.removeEventListener('touchmove', handleTouchMove)
       patternCard.removeEventListener('touchend', handleTouchEnd)
     }
+    
+    // Clear any pending save timeout
+    if (saveNotesTimeout.value) {
+      clearTimeout(saveNotesTimeout.value)
+    }
   }
 })
 
@@ -941,6 +1027,9 @@ onMounted(() => {
 watch(currentRowIndex, (newIndex, oldIndex) => {
   // Make sure to update scroll position when row changes
   setTimeout(updateScrollPosition, 50)
+  
+  // Load notes for the new row
+  loadRowNotes()
 })
 
 // Watch for changes in currentStitchIndex
@@ -1116,9 +1205,53 @@ const getStitchClass = (code) => {
 
 .complete-button.completed {
   background-color: var(--accent-color);
+  border-color: var(--accent-color);
   color: white;
 }
 
+/* Row notes section styles */
+.row-notes-section {
+  margin: 1rem 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.character-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.character-count.limit-reached {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.notes-textarea {
+  width: 100%;
+  height: 80px;
+  padding: 0.75rem 1rem;
+  border: none;
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  font-family: inherit;
+  resize: none;
+  outline: none;
+}
+
+/* Row color indicator */
 /* Stitch control styles */
 .stitch-control {
   display: flex;
