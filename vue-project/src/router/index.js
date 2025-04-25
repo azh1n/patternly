@@ -9,6 +9,7 @@ import ProfilePage from '../components/ProfilePage.vue'
 import GoogleAuthCallback from '../components/GoogleAuthCallback.vue'
 import DevHomeView from '../components/dev/DevHomeView.vue'
 import AboutView from '../views/AboutView.vue'
+import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
 
 // Initialize user settings to check for experimental features
 const { experimentalFeatures, initSettings } = useUserSettings()
@@ -46,6 +47,12 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: AboutView,
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/privacy-policy',
+      name: 'privacy-policy',
+      component: PrivacyPolicyView,
       meta: { requiresAuth: false }
     },
     {

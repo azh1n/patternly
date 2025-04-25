@@ -1,6 +1,7 @@
 <template>
   <router-view></router-view>
   <AdBanner />
+  <AppFooter />
 </template>
 
 <style>
@@ -67,6 +68,7 @@ import { auth } from './firebase'
 import { useTheme } from './services/theme'
 import { useUserSettings } from './services/userSettings'
 import AdBanner from './components/AdBanner.vue'
+import AppFooter from './components/AppFooter.vue'
 
 const router = useRouter()
 const { initTheme } = useTheme()

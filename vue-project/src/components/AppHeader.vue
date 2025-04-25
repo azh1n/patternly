@@ -17,6 +17,7 @@
       <div class="side-section right-section">
         <nav v-if="showNav">
           <router-link to="/about" class="nav-link">About</router-link>
+          <router-link to="/privacy-policy" class="nav-link">Privacy</router-link>
           <router-link to="/profile" class="profile-link">Profile</router-link>
           <router-link 
             v-if="experimentalFeatures" 
