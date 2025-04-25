@@ -4,7 +4,6 @@
   <div class="pattern-view">
     <!-- Pattern header with title, controls, and progress -->
     <div class="pattern-header">
-      <div class="experimental-badge">EXPERIMENTAL</div>
       <div class="header-content">
         <h1>{{ pattern.name }}</h1>
         <div class="pattern-controls">
@@ -40,7 +39,7 @@
             <!-- Mobile view -->
             <div class="mobile-only stacked-info">
               <h2>{{ currentRow?.rowNum }}</h2>
-              <div class="row-color">{{ currentRow?.color }}</div>
+              <div class="row-color">Color {{ currentRow?.color }}</div>
             </div>
           </div>
           <button 
@@ -977,46 +976,42 @@ const getStitchClass = (code) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: var(--button-bg);
-  color: var(--text-danger);
-  border: 1px solid var(--button-border);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  padding: 0.8rem 1.5rem;
+  border: 1px solid #ff4444;
+  border-radius: 8px;
+  background: transparent;
+  color: #ff4444;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .delete-button:hover {
-  background-color: var(--button-hover-bg);
-  border-color: var(--text-danger);
+  background-color: rgba(255, 68, 68, 0.1);
 }
 
 .progress-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .progress-track {
   width: 100%;
-  height: 8px;
+  height: 4px;
   background-color: var(--border-color);
-  border-radius: 4px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   background-color: var(--accent-color);
-  border-radius: 4px;
   transition: width 0.3s ease;
 }
 
 .progress-text {
-  font-size: 0.9rem;
+  display: block;
+  margin-top: 0.5rem;
   color: var(--text-secondary);
-  text-align: right;
+  font-size: 0.9rem;
 }
 
 .pattern-content {
@@ -1371,7 +1366,19 @@ const getStitchClass = (code) => {
   .stacked-info {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 0.25rem;
+  }
+  
+  .stacked-info h2 {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 600;
+  }
+  
+  .stacked-info .row-color {
+    color: var(--accent-color);
+    font-size: 0.9rem;
   }
   
   .pattern-header {
