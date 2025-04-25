@@ -19,14 +19,15 @@
           <router-link to="/about" class="nav-link">About</router-link>
           <router-link to="/privacy-policy" class="nav-link">Privacy</router-link>
           <router-link to="/profile" class="profile-link">Profile</router-link>
-          <router-link 
-            v-if="experimentalFeatures" 
-            to="/dev" 
+          <button 
             class="dev-link"
-            title="Experimental Features"
+            :class="{ 'active': experimentalFeatures }"
+            @click="toggleExperimentalFeatures"
+            :title="experimentalFeatures ? 'Experimental Features: ON' : 'Experimental Features: OFF'"
           >
             <font-awesome-icon icon="flask" />
-          </router-link>
+            <span class="status-indicator" :class="{ 'on': experimentalFeatures }"></span>
+          </button>
         </nav>
       </div>
     </div>
@@ -52,16 +53,12 @@ const props = defineProps({
 // Router instance for programmatic navigation
 const router = useRouter()
 
-// Get experimental features state
-const { experimentalFeatures } = useUserSettings()
+// Get experimental features state and toggle function
+const { experimentalFeatures, toggleExperimentalFeatures } = useUserSettings()
 
-// Navigate to appropriate home page based on dev mode
+// Navigate to home page
 const navigateHome = () => {
-  if (props.isDevMode) {
-    router.push('/dev')
-  } else {
-    router.push('/')
-  }
+  router.push('/')
 }
 </script>
 
@@ -165,6 +162,31 @@ nav {
   background-color: var(--accent-color);
   color: white;
   transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.dev-link.active {
+  background-color: #2ecc71; /* Green color for active state */
+  box-shadow: 0 0 8px #2ecc71; /* Glow effect when active */
+}
+
+/* Status indicator dot */
+.status-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #e74c3c; /* Red for OFF state */
+  border: 2px solid var(--header-bg);
+  transition: all 0.2s ease;
+}
+
+.status-indicator.on {
+  background-color: #2ecc71; /* Green for ON state */
 }
 
 .dev-link:hover {

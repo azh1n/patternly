@@ -24,6 +24,14 @@
     </main>
 
     <AddPatternModal
+      v-if="!experimentalFeatures"
+      v-model="showAddPattern"
+      :is-loading="isLoading"
+      @pattern-added="handlePatternAdded"
+    />
+    
+    <DevAddPatternModal
+      v-if="experimentalFeatures"
       v-model="showAddPattern"
       :is-loading="isLoading"
       @pattern-added="handlePatternAdded"
@@ -41,6 +49,7 @@ import { useUserSettings } from '@/services/userSettings'
 import PatternView from '@/components/PatternView.vue'
 import PatternGrid from '@/components/PatternGrid.vue'
 import AddPatternModal from '@/components/AddPatternModal.vue'
+import DevAddPatternModal from '@/components/dev/DevAddPatternModal.vue'
 import AppHeader from '@/components/AppHeader.vue'
 
 const route = useRoute()

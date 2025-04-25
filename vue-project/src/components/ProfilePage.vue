@@ -36,22 +36,7 @@
             </button>
           </div>
           
-          <!-- Experimental features toggle -->
-          <div class="form-group theme-toggle">
-            <label>
-              <font-awesome-icon icon="flask" class="field-icon" />
-              Experimental Features
-            </label>
-            <button 
-              type="button"
-              class="theme-button"
-              :class="{ 'active': experimentalFeatures }"
-              @click="toggleExperimentalFeatures"
-            >
-              <font-awesome-icon :icon="experimentalFeatures ? 'toggle-on' : 'toggle-off'" class="theme-icon" />
-              {{ experimentalFeatures ? 'Enabled' : 'Disabled' }}
-            </button>
-          </div>
+
 
           <!-- Display name input group -->
           <div class="form-group">
@@ -147,7 +132,7 @@ const router = useRouter()
 const route = useRoute()
 const { user, loading, updateProfile, updatePassword, logout } = useAuth()
 const { isDarkMode, toggleTheme } = useTheme()
-const { experimentalFeatures, toggleExperimentalFeatures, initSettings } = useUserSettings()
+const { initSettings } = useUserSettings()
 
 // Check if we're in dev mode based on the current route
 const isDevMode = computed(() => route.path.includes('/dev'))
