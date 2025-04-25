@@ -128,7 +128,7 @@
         <!-- Full row preview section -->
         <div class="full-row-preview">
           <h3>Full Row Preview</h3>
-          <div class="preview-content">
+          <div class="preview-content" :class="{ 'row-completed': isRowComplete }">
             <template v-if="windowWidth < 768">
               <span 
                 v-for="(item, index) in mobilePreviewStitches" 
@@ -800,7 +800,7 @@ const currentStitches = computed(() => {
     
     return {
       code,
-      isCompleted: index < stitchesPerView.value,
+      isCompleted: index < stitchesPerView.value && (isRowComplete.value || start > 0),
       isRepeatPattern
     };
   });
@@ -812,7 +812,7 @@ const mobilePreviewStitches = computed(() => {
   
   return currentRow.value.codes.map((code, index) => {
     let status = 'pending';
-    if (index < currentStitchIndex.value) {
+    if (index < currentStitchIndex.value || isRowComplete.value) {
       status = 'completed';
     } else if (index >= currentStitchIndex.value && index < currentStitchIndex.value + stitchesPerView.value) {
       status = 'current';
@@ -840,7 +840,7 @@ const getCompletedCodes = computed(() => {
     
     return {
       code,
-      isCompleted: index < currentStitchIndex.value,
+      isCompleted: index < currentStitchIndex.value || isRowComplete.value,
       isRepeatPattern
     };
   });
@@ -1191,6 +1191,8 @@ const getStitchClass = (code) => {
 
 .completed-stitch {
   color: var(--accent-color);
+  background-color: #9e9e9e !important;
+  color: white !important;
 }
 
 .full-row-preview {
@@ -1232,6 +1234,12 @@ const getStitchClass = (code) => {
 
 .preview-stitch:hover {
   transform: translateY(-1px);
+}
+
+.preview-stitch.completed-stitch {
+  background-color: #9e9e9e !important;
+  color: white !important;
+  border-color: #848484;
 }
 
 .current-stitch {
@@ -1528,5 +1536,12 @@ const getStitchClass = (code) => {
 
 :root.light .current-stitches .repeat-pattern {
   color: #2979ff !important;
+}
+
+/* Add style for completed row stitches */
+.row-completed .preview-stitch {
+  background-color: #9e9e9e !important;
+  color: white !important;
+  border-color: #848484;
 }
 </style> 
