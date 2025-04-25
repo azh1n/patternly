@@ -156,16 +156,21 @@ watch(searchQuery, () => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  max-width: var(--max-content-width, 1200px);
+  margin: 0 auto;
+  padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 /* Controls section layout */
 .controls-section {
   width: 100%;
-  margin-bottom: 2rem;
+  margin: 2rem 0;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  max-width: 100%;
 }
 
 /* Search bar container */
@@ -258,6 +263,7 @@ watch(searchQuery, () => {
 /* Patterns header styles */
 .patterns-header {
   margin-bottom: 2rem;
+  width: 100%;
 }
 
 .patterns-header h2 {
@@ -278,7 +284,6 @@ watch(searchQuery, () => {
 /* Grid and empty state container */
 .pattern-grid, .empty-state {
   width: 100%;
-  max-width: var(--max-content-width, 1200px);
   margin: 0 auto;
 }
 
@@ -287,6 +292,8 @@ watch(searchQuery, () => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Empty state styles */
@@ -296,12 +303,8 @@ watch(searchQuery, () => {
   background-color: var(--card-bg);
   border-radius: 16px;
   border: 1px solid var(--border-color);
-  width: calc(100vw - 4rem);
-  max-width: var(--max-content-width, 1200px);
+  width: 100%;
   margin: 0 auto;
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
 }
 
 /* Empty state icon */
@@ -331,6 +334,7 @@ watch(searchQuery, () => {
   align-items: center;
   gap: 1rem;
   margin-top: 2rem;
+  width: 100%;
 }
 
 /* Pagination button styles */
@@ -395,6 +399,7 @@ watch(searchQuery, () => {
   .pattern-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
+    width: 100%;
   }
 }
 
@@ -435,6 +440,7 @@ watch(searchQuery, () => {
   .pattern-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 2rem;
+    width: 100%;
   }
 
   .pagination-button {
@@ -449,7 +455,7 @@ watch(searchQuery, () => {
   }
 
   .empty-state {
-    width: calc(100vw - 8rem);
+    width: 100%;
   }
 
   .empty-state h3 {
