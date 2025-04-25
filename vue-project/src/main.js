@@ -33,7 +33,9 @@ import {
   faMagic,
   faHistory,
   faChartLine,
-  faCode
+  faCode,
+  faStickyNote,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -64,7 +66,9 @@ library.add(
   faMagic,
   faHistory,
   faChartLine,
-  faCode
+  faCode,
+  faStickyNote,
+  faTimes
 )
 
 const app = createApp(App)

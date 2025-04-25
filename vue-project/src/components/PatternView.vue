@@ -50,6 +50,15 @@
             <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
             <span class="mobile-only button-text">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
           </button>
+          <button 
+            v-show="!hasRowNotes && !showNotes"
+            @click="showNotes = true"
+            class="notes-button"
+          >
+            <font-awesome-icon icon="sticky-note" />
+            <span class="desktop-only">Add Notes</span>
+            <span class="mobile-only button-text">Notes</span>
+          </button>
 
         </div>
         
@@ -84,13 +93,16 @@
       </div>
 
       <!-- Row notes section -->
-      <div class="row-notes-section">
+      <div v-show="showNotes || hasRowNotes" class="row-notes-section">
         <div class="notes-header">
           <font-awesome-icon icon="sticky-note" />
           <span>Row Notes</span>
           <span class="character-count" :class="{ 'limit-reached': currentRowNotes.length >= 500 }">
             {{ currentRowNotes.length }}/500
           </span>
+          <button @click="hideNotes" class="close-notes-button">
+            <font-awesome-icon icon="times" />
+          </button>
         </div>
         <textarea 
           v-model="currentRowNotes" 
@@ -98,6 +110,7 @@
           class="notes-textarea"
           maxlength="500"
           @input="saveNotesDebounced"
+          style="color: #ffffff !important;"
         ></textarea>
       </div>
 
@@ -246,7 +259,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -284,6 +297,7 @@ const showRawPattern = ref(false)  // State for showing raw pattern
 // Notes feature state
 const currentRowNotes = ref('')  // Current row notes content
 const saveNotesTimeout = ref(null)  // For debouncing notes save
+const showNotes = ref(false)  // Control visibility of notes section
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
@@ -619,7 +633,8 @@ const isRowComplete = computed(() => {
 // Check if current row has notes
 const hasRowNotes = computed(() => {
   if (!currentRow.value || !props.pattern?.rowNotes) return false
-  return !!props.pattern.rowNotes[`row${currentRow.value.rowNum}`]
+  const rowKey = `row${currentRow.value.rowNum}`
+  return !!props.pattern.rowNotes[rowKey] && props.pattern.rowNotes[rowKey].trim() !== ''
 })
 
 // Touch swipe transform style
@@ -768,6 +783,14 @@ const loadRowNotes = () => {
     currentRowNotes.value = props.pattern.rowNotes[`row${currentRow.value.rowNum}`]
   } else {
     currentRowNotes.value = ''
+  }
+}
+
+const hideNotes = () => {
+  showNotes.value = false
+  // If there are no notes, make sure the button shows up
+  if (!currentRowNotes.value.trim()) {
+    saveNotes()
   }
 }
 
@@ -1030,6 +1053,12 @@ watch(currentRowIndex, (newIndex, oldIndex) => {
   
   // Load notes for the new row
   loadRowNotes()
+  
+  // Update notes visibility based on whether there are notes
+  nextTick(() => {
+    const hasNotes = currentRowNotes.value.trim() !== ''
+    showNotes.value = hasNotes
+  })
 })
 
 // Watch for changes in currentStitchIndex
@@ -1209,12 +1238,42 @@ const getStitchClass = (code) => {
   color: white;
 }
 
+/* Notes button styles */
+.notes-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.notes-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.notes-button.has-notes {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.notes-button.has-notes:hover {
+  background-color: rgba(255, 193, 7, 0.2);
+}
+
 /* Row notes section styles */
 .row-notes-section {
-  margin: 1rem 0;
+  margin: 1rem ;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
+  animation: fadeIn 0.3s ease;
 }
 
 .notes-header {
@@ -1224,8 +1283,27 @@ const getStitchClass = (code) => {
   padding: 0.75rem 1rem;
   background-color: rgba(0, 0, 0, 0.03);
   border-bottom: 1px solid var(--border-color);
-  color: var(--text-secondary);
   font-weight: 600;
+}
+
+.close-notes-button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+}
+
+.close-notes-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .character-count {
@@ -1245,10 +1323,21 @@ const getStitchClass = (code) => {
   padding: 0.75rem 1rem;
   border: none;
   background-color: var(--background-color);
-  color: var(--text-primary);
+  color: #ffffff !important;
   font-family: inherit;
   resize: none;
   outline: none;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.notes-textarea::placeholder {
+  color: rgba(200, 200, 200, 0.6) !important;
+  -webkit-text-fill-color: rgba(200, 200, 200, 0.6) !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Row color indicator */
