@@ -257,186 +257,19 @@
   </div>
 
   <!-- Row Edit Modal -->
-  <div v-if="showRowEditModal" class="row-edit-modal-overlay" @click="closeRowEditModal">
-    <div class="row-edit-modal" @click.stop>
-      <div class="modal-header">
-        <h2>Edit Row {{ editingRow ? editingRow.number : '' }}</h2>
-        <button class="close-button" @click="closeRowEditModal">×</button>
-      </div>
-      
-      <div class="modal-body">
-        <!-- Row Number -->
-        <div class="form-group">
-          <label for="editRowNumber">Row Number</label>
-          <input
-            type="number"
-            id="editRowNumber"
-            v-model.number="editRowNumber"
-            class="form-input"
-          />
-        </div>
-
-        <!-- Row Color -->
-        <div class="form-group">
-          <label for="editRowColor">Color (optional)</label>
-          <input
-            type="text"
-            id="editRowColor"
-            v-model="editRowColor"
-            placeholder="e.g., A, MC, Red"
-            class="form-input"
-          />
-        </div>
-
-        <!-- Row Stitches -->
-        <div class="form-group">
-          <label for="editRowStitches">Stitches</label>
-          <div v-if="!hasRepeatedStitches" class="stitch-edit-container">
-            <input
-              type="text"
-              id="editRowStitches"
-              v-model="editRowStitchesText"
-              placeholder="e.g., 1sc, 2dc, 1inc"
-              class="form-input"
-            />
-          </div>
-          <div v-else class="repeat-stitch-edit-container">
-            <div class="form-group">
-              <label>Before Repeat (optional)</label>
-              <input
-                type="text"
-                v-model="editRowBeforeRepeat"
-                placeholder="e.g., 1sc, 2dc"
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Repeated Stitches</label>
-              <input
-                type="text"
-                v-model="editRowRepeatedStitches"
-                placeholder="e.g., 1sc, 1inc"
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Repeat Count</label>
-              <input
-                type="number"
-                v-model.number="editRowRepeatCount"
-                min="1"
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>After Repeat (optional)</label>
-              <input
-                type="text"
-                v-model="editRowAfterRepeat"
-                placeholder="e.g., 1sc, 2dc"
-                class="form-input"
-              />
-            </div>
-          </div>
-          <div class="repeat-toggle">
-            <label>
-              <input type="checkbox" v-model="hasRepeatedStitches" />
-              This row has repeated stitches
-            </label>
-          </div>
-        </div>
-
-        <!-- Original Text -->
-        <div class="form-group">
-          <label>Original Text (for reference)</label>
-          <div class="original-text">{{ editingRow ? editingRow.text : '' }}</div>
-        </div>
-
-        <!-- Preview -->
-        <div class="form-group">
-          <label>Preview</label>
-          <div class="edit-preview">
-            <div class="preview-row">
-              <div class="preview-row-header">
-                <span class="preview-row-number">Row {{ editRowNumber }}</span>
-                <div v-if="editRowColor" class="color-indicator" :style="{ backgroundColor: getColorHex(editRowColor) }"></div>
-              </div>
-              <div class="preview-row-content">
-                <div v-if="!hasRepeatedStitches" class="preview-stitches">
-                  <template v-for="(stitch, i) in previewEditedStitches" :key="i">
-                    <div 
-                      class="preview-stitch" 
-                      :class="getStitchClass(stitch)"
-                      :title="stitch"
-                    >
-                      <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                      <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                    </div>
-                  </template>
-                </div>
-                <div v-else class="preview-stitches">
-                  <!-- Show stitches before the repeat -->
-                  <template v-for="(stitch, i) in previewBeforeRepeat" :key="`before-${i}`">
-                    <div 
-                      class="preview-stitch" 
-                      :class="getStitchClass(stitch)"
-                      :title="stitch"
-                    >
-                      <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                      <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                    </div>
-                  </template>
-                  
-                  <!-- Show the repeat group -->
-                  <div class="repeat-group">
-                    <span class="repeat-bracket left-bracket">(</span>
-                    
-                    <template v-for="(stitch, i) in previewRepeatedStitches" :key="`rep-${i}`">
-                      <div 
-                        class="preview-stitch" 
-                        :class="getStitchClass(stitch)"
-                        :title="stitch"
-                      >
-                        <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                        <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                      </div>
-                    </template>
-                    
-                    <span class="repeat-bracket right-bracket">)</span>
-                    <span class="repeat-count">x{{ editRowRepeatCount }}</span>
-                  </div>
-                  
-                  <!-- Show stitches after the repeat -->
-                  <template v-for="(stitch, i) in previewAfterRepeat" :key="`after-${i}`">
-                    <div 
-                      class="preview-stitch" 
-                      :class="getStitchClass(stitch)"
-                      :title="stitch"
-                    >
-                      <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                      <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button @click="saveRowEdit" class="save-button">Save Changes</button>
-          <button @click="closeRowEditModal" class="cancel-button">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <RowEditModal 
+    v-model="showRowEditModal"
+    :row="editingRow"
+    :is-new-row="editingRowIndex === -2"
+    @save="handleRowSave"
+  />
 </template>
   
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
 import { usePatternStore } from '@/stores/pattern'
 import { auth } from '@/firebase'
+import RowEditModal from './pattern/RowEditModal.vue'
 
 // Props and emits
 const props = defineProps({
@@ -480,14 +313,6 @@ const unparsedContent = ref('')
 // Row editing state
 const editingRowIndex = ref(-1)
 const editingRow = ref(null)
-const editRowNumber = ref(0)
-const editRowColor = ref('')
-const editRowStitchesText = ref('')
-const hasRepeatedStitches = ref(false)
-const editRowBeforeRepeat = ref('')
-const editRowRepeatedStitches = ref('')
-const editRowRepeatCount = ref(1)
-const editRowAfterRepeat = ref('')
 
 // Computed properties
 const canSave = computed(() => {
@@ -1423,22 +1248,18 @@ const extractUnparsedContent = () => {
 const addNewRow = () => {
   // Set up for adding a new row
   editingRowIndex.value = -2 // Special value to indicate new row
-  editingRow.value = null
   
   // Determine the next row number
   const nextRowNumber = parsedRows.value.length > 0 
     ? Math.max(...parsedRows.value.map(row => row.number)) + 1 
     : 1
   
-  // Set up form fields for a new row
-  editRowNumber.value = nextRowNumber
-  editRowColor.value = ''
-  editRowStitchesText.value = ''
-  hasRepeatedStitches.value = false
-  editRowBeforeRepeat.value = ''
-  editRowRepeatedStitches.value = ''
-  editRowRepeatCount.value = 1
-  editRowAfterRepeat.value = ''
+  // Create a basic row object with just the number
+  editingRow.value = {
+    number: nextRowNumber,
+    text: `Row ${nextRowNumber}`,
+    stitches: []
+  }
   
   // Show the edit modal
   showRowEditModal.value = true
@@ -1457,120 +1278,18 @@ const editRow = (index) => {
   editingRowIndex.value = index
   editingRow.value = index >= 0 ? { ...parsedRows.value[index] } : null
   
-  // Set up form fields
-  editRowNumber.value = editingRow.value.number
-  editRowColor.value = editingRow.value.color || ''
-  
-  // Check if this row has repeated stitches
-  if (editingRow.value.stitches && editingRow.value.stitches.repeated) {
-    hasRepeatedStitches.value = true
-    
-    // Set up repeat fields
-    const beforeRepeat = Array.isArray(editingRow.value.stitches.beforeRepeat) 
-      ? editingRow.value.stitches.beforeRepeat.join(', ') 
-      : ''
-    
-    const repeatedStitches = Array.isArray(editingRow.value.stitches.repeatedStitches) 
-      ? editingRow.value.stitches.repeatedStitches.join(', ') 
-      : ''
-    
-    const afterRepeat = Array.isArray(editingRow.value.stitches.afterRepeat) 
-      ? editingRow.value.stitches.afterRepeat.join(', ') 
-      : ''
-    
-    editRowBeforeRepeat.value = beforeRepeat
-    editRowRepeatedStitches.value = repeatedStitches
-    editRowRepeatCount.value = editingRow.value.stitches.repeatCount || 1
-    editRowAfterRepeat.value = afterRepeat
-    
-    // Clear the non-repeated field
-    editRowStitchesText.value = ''
-  } else {
-    hasRepeatedStitches.value = false
-    
-    // Set up non-repeated stitches field
-    editRowStitchesText.value = Array.isArray(editingRow.value.stitches) 
-      ? editingRow.value.stitches.join(', ') 
-      : ''
-    
-    // Clear the repeat fields
-    editRowBeforeRepeat.value = ''
-    editRowRepeatedStitches.value = ''
-    editRowRepeatCount.value = 1
-    editRowAfterRepeat.value = ''
-  }
-  
   // Show the edit modal
   showRowEditModal.value = true
 }
 
-const closeRowEditModal = () => {
-  showRowEditModal.value = false
-  editingRowIndex.value = -1
-  editingRow.value = null
-}
 
-// Parse a comma-separated string of stitches into an array
-const parseStitchesString = (stitchesStr) => {
-  if (!stitchesStr.trim()) return []
-  
-  return stitchesStr.split(',').map(s => s.trim()).filter(Boolean)
-}
 
-// Computed properties for the edit preview
-const previewEditedStitches = computed(() => {
-  return parseStitchesString(editRowStitchesText.value)
-})
 
-const previewBeforeRepeat = computed(() => {
-  return parseStitchesString(editRowBeforeRepeat.value)
-})
 
-const previewRepeatedStitches = computed(() => {
-  return parseStitchesString(editRowRepeatedStitches.value)
-})
 
-const previewAfterRepeat = computed(() => {
-  return parseStitchesString(editRowAfterRepeat.value)
-})
 
-const saveRowEdit = () => {
-  if (editingRowIndex.value < 0 && editingRowIndex.value !== -2) {
-    return
-  }
-  
-  // Create updated row object
-  let updatedRow;
-  
-  if (editingRowIndex.value === -2) {
-    // This is a new row being added
-    updatedRow = {
-      number: editRowNumber.value,
-      color: editRowColor.value,
-      text: `Row ${editRowNumber.value}` // Basic text representation
-    }
-  } else {
-    // This is an existing row being edited
-    updatedRow = {
-      ...parsedRows.value[editingRowIndex.value],
-      number: editRowNumber.value,
-      color: editRowColor.value
-    }
-  }
-  
-  // Update stitches based on edit mode
-  if (hasRepeatedStitches.value) {
-    updatedRow.stitches = {
-      repeated: true,
-      beforeRepeat: previewBeforeRepeat.value,
-      repeatedStitches: previewRepeatedStitches.value,
-      afterRepeat: previewAfterRepeat.value,
-      repeatCount: editRowRepeatCount.value
-    }
-  } else {
-    updatedRow.stitches = previewEditedStitches.value
-  }
-  
+// Handle save from row edit modal
+const handleRowSave = (updatedRow) => {
   // Update or add the row in the parsedRows array
   if (editingRowIndex.value === -2) {
     // Add new row
@@ -1583,8 +1302,9 @@ const saveRowEdit = () => {
   // Sort rows by number
   parsedRows.value.sort((a, b) => a.number - b.number)
   
-  // Close the modal
-  closeRowEditModal()
+  // Reset editing state
+  editingRowIndex.value = -1
+  editingRow.value = null
 }
 </script>
   
@@ -2421,32 +2141,7 @@ const saveRowEdit = () => {
   color: #2979ff;
 }
 
-/* Row Edit Modal */
-.row-edit-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1100;
-  padding: 1rem;
-  backdrop-filter: blur(3px);
-}
-
-.row-edit-modal {
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  background: var(--card-bg, #2a2a2a);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
+/* Edit Row Button */
 .edit-row-button {
   padding: 0.25rem 0.5rem;
   background: transparent;
@@ -2466,37 +2161,6 @@ const saveRowEdit = () => {
 
 .edit-row-button:hover {
   background: var(--accent-hover, #3a6fd9);
-}
-
-.stitch-edit-container,
-.repeat-stitch-edit-container {
-  margin-bottom: 0.5rem;
-}
-
-.repeat-toggle {
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-}
-
-.repeat-toggle label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.original-text {
-  padding: 0.75rem;
-  background: var(--input-bg, #333);
-  border: 1px solid var(--border-color, #444);
-  border-radius: 6px;
-  color: var(--text-secondary, #aaa);
-  font-style: italic;
-}
-
-.edit-preview {
-  margin-top: 0.5rem;
 }
 
 /* Unparsed Content Section */
