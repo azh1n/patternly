@@ -1295,33 +1295,68 @@ const getStitchClass = (code) => {
 }
 
 .preview-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 50px));
+  gap: 8px;
   margin-top: 1rem;
-  padding-bottom: 1rem;
-  overflow-x: auto;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
   padding: 0.5rem;
+  overflow-x: auto;
+  justify-content: start;
 }
 
 .preview-stitch {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--text-primary);
   position: relative;
-  padding: 0.25rem 0.5rem;
   border-radius: 4px;
   transition: all 0.2s ease;
-  display: inline-block;
-  margin: 0.1rem;
+  margin: 0;
+  width: 50px;
+  height: 35px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* Add scaling for wider stitch codes */
+.preview-stitch[class*="dc"],
+.preview-stitch[class*="bs"],
+.preview-stitch[class*="inc"],
+.preview-stitch[class*="dec"] {
+  font-size: 0.85rem;
+}
+
+/* Further scale down text for 2-digit numbers */
+.preview-stitch:is([class*="10"][class*="dc"], [class*="11"][class*="dc"], [class*="20"][class*="dc"], [class*="22"][class*="dc"]) {
+  font-size: 0.8rem;
+}
+
+/* Even smaller for 3-digit numbers */
+.preview-stitch:is([class*="30"][class*="dc"]) {
+  font-size: 0.75rem;
+}
+
+.preview-stitch.repeat-pattern {
+  grid-column: span 2; /* Make repeat patterns take 2 cells */
+  width: auto;
+  font-size: 0.8rem;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+/* Current stitch */
 .preview-stitch.current-stitch {
+  border: 2px solid var(--accent-color, #42b883);
+  position: relative;
+  background-color: rgba(76, 175, 80, 0.15);
   font-weight: bold;
-  color: var(--text-primary);
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px !important;
+  box-shadow: 0 0 6px rgba(66, 184, 131, 0.5);
+  transform: translateY(-1px);
 }
 
 .preview-stitch.next-stitch {
@@ -1378,6 +1413,11 @@ const getStitchClass = (code) => {
   background-position: right 0.7rem center;
   background-size: 1.2rem;
   padding-right: 2.5rem;
+}
+
+/* Add white dropdown arrow in dark mode */
+:root:not(.light) .row-select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
 }
 
 .row-select:hover {
@@ -1542,16 +1582,36 @@ const getStitchClass = (code) => {
   }
 
   .preview-content {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 0.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(45px, 45px));
+    gap: 6px;
     padding: 0.25rem;
   }
 
   .preview-stitch {
-    font-size: 0.9rem;
-    padding: 0.2rem 0.4rem;
-    white-space: nowrap;
+    font-size: 0.85rem;
+    width: 45px;
+    height: 32px;
+  }
+  
+  /* Scale down text for mobile repeat patterns */
+  .preview-stitch.repeat-pattern {
+    font-size: 0.75rem;
+  }
+  
+  /* Scale down text for digit numbers on mobile */
+  .preview-stitch[class*="dc"],
+  .preview-stitch[class*="bs"],
+  .preview-stitch[class*="inc"],
+  .preview-stitch[class*="dec"] {
+    font-size: 0.8rem;
+  }
+  
+  .preview-stitch:is([class*="10"][class*="dc"], [class*="11"][class*="dc"], [class*="20"][class*="dc"], [class*="22"][class*="dc"]) {
+    font-size: 0.75rem;
+  }
+  
+  .preview-stitch:is([class*="30"][class*="dc"]) {
+    font-size: 0.7rem;
   }
 
   .row-navigation {
@@ -1567,6 +1627,11 @@ const getStitchClass = (code) => {
     background-position: right 0.5rem center;
     padding-right: 1.8rem;
     background-size: 1rem;
+  }
+  
+  /* Keep dark mode arrow on mobile */
+  :root:not(.light) .row-select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   }
 
   .experimental-features {
@@ -1757,7 +1822,7 @@ const getStitchClass = (code) => {
   font-weight: bold;
   border-radius: 8px !important;
   box-shadow: 0 0 10px rgba(66, 184, 131, 0.5);
-  outline: 1px solid rgba(255, 255, 255, 0.3);
+  outline: 2px solid rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
 }
 </style> 
