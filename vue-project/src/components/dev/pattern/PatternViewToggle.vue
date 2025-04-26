@@ -42,6 +42,7 @@ defineEmits(['update:viewMode']);
   overflow: hidden;
   border: 1px solid var(--border-color, #444);
   margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .pattern-view-toggle button {
@@ -78,13 +79,21 @@ defineEmits(['update:viewMode']);
 /* Light theme overrides */
 :root.light .pattern-view-toggle {
   border-color: #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 :root.light .pattern-view-toggle button {
   color: #333;
+  background: #f8f9fa;
 }
 
 :root.light .pattern-view-toggle button:first-child {
   border-right-color: #e0e0e0;
+}
+
+:root.light .pattern-view-toggle button.active {
+  background: #2979ff;
+  color: white;
+  border-color: #2979ff;
 }
 </style>

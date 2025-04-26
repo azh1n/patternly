@@ -46,7 +46,8 @@ export function getStitchSymbolPath(stitchType) {
   const symbolFile = stitchSymbolMapping[lowerType];
   
   if (symbolFile) {
-    return `/src/assets/crochet-symbols/${symbolFile}`;
+    // Use relative path to ensure proper loading
+    return new URL(`/src/assets/crochet-symbols/${symbolFile}`, import.meta.url).href;
   }
   
   return null;

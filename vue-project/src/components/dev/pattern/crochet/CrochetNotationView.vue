@@ -353,15 +353,16 @@ const commonStitches = {
 .row-stitches {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .no-stitches-message {
-  padding: 0.5rem;
+  padding: 0.75rem;
   color: var(--text-secondary, #aaa);
   font-style: italic;
   font-size: 0.875rem;
@@ -376,7 +377,8 @@ const commonStitches = {
   align-items: center;
   background-color: rgba(79, 135, 255, 0.1);
   border-radius: 8px;
-  padding: 0 0.25rem;
+  padding: 0.25rem 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .repeat-bracket {
@@ -437,13 +439,15 @@ const commonStitches = {
 
 .circular-chart circle {
   opacity: 0.5;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, stroke 0.2s ease;
+  stroke: var(--border-color, rgba(255, 255, 255, 0.3));
 }
 
 .circular-chart circle.active-row {
   opacity: 1;
   stroke-width: 2;
   stroke-dasharray: none;
+  stroke: var(--accent-color, #4f87ff);
 }
 
 .circular-stitch {
@@ -513,6 +517,7 @@ const commonStitches = {
 :root.light .crochet-notation-view {
   background: #ffffff;
   border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 :root.light .view-toggle button {
@@ -520,22 +525,34 @@ const commonStitches = {
   border-color: #e0e0e0;
 }
 
+:root.light .view-toggle button.active {
+  background: #2979ff;
+  color: white;
+  border-color: #2979ff;
+}
+
 :root.light .row-number {
   color: #2979ff;
 }
 
+:root.light .color-indicator {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 :root.light .row-stitches {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.03);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 :root.light .no-stitches-message {
   color: #666;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.03);
   border-color: #ddd;
 }
 
 :root.light .repeat-group {
   background-color: rgba(41, 121, 255, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 :root.light .repeat-bracket,
@@ -543,9 +560,32 @@ const commonStitches = {
   color: #2979ff;
 }
 
+:root.light .repeat-count {
+  background: rgba(41, 121, 255, 0.12);
+}
+
+:root.light .circular-chart circle {
+  stroke: rgba(0, 0, 0, 0.1);
+}
+
+:root.light .circular-chart circle.active-row {
+  stroke: #2979ff;
+}
+
 :root.light .row-selector button {
   color: #333;
   border-color: #e0e0e0;
+  background: #f8f9fa;
+}
+
+:root.light .row-selector button.active {
+  background: #2979ff;
+  color: white;
+  border-color: #2979ff;
+}
+
+:root.light .stitch-key {
+  border-top-color: #e0e0e0;
 }
 
 :root.light .key-label {

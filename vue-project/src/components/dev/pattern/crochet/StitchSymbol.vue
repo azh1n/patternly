@@ -1,7 +1,7 @@
 <template>
   <div 
     class="stitch-symbol" 
-    :class="{ 'with-count': showCount && count > 1 }"
+    :class="[getStitchClass(), { 'with-count': showCount && count > 1 }]"
     :title="stitch"
   >
     <div v-if="hasSymbol" class="symbol-container">
@@ -49,6 +49,28 @@ const hasSymbol = computed(() => {
 const symbolPath = computed(() => {
   return getStitchSymbolPath(stitchType.value);
 });
+
+const getStitchClass = () => {
+  const type = stitchType.value;
+  const lowerType = type.toLowerCase();
+  
+  // Map common stitch types to classes
+  const stitchClasses = {
+    'sc': 'stitch-sc',
+    'dc': 'stitch-dc',
+    'hdc': 'stitch-hdc',
+    'tr': 'stitch-tr',
+    'dtr': 'stitch-dtr',
+    'ch': 'stitch-ch',
+    'sl': 'stitch-sl',
+    'inc': 'stitch-inc',
+    'dec': 'stitch-dec',
+    'bs': 'stitch-bs',
+    'ns': 'stitch-ns'
+  };
+  
+  return stitchClasses[lowerType] || '';
+};
 </script>
 
 <style scoped>
@@ -66,6 +88,7 @@ const symbolPath = computed(() => {
   font-size: 0.75rem;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
 .with-count {
@@ -84,6 +107,7 @@ const symbolPath = computed(() => {
   max-width: 80%;
   max-height: 80%;
   filter: var(--symbol-filter, invert(1));
+  transition: filter 0.2s ease;
 }
 
 .fallback-symbol {
@@ -98,22 +122,71 @@ const symbolPath = computed(() => {
   background: var(--accent-color, #4f87ff);
   color: white;
   border-radius: 50%;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   font-size: 0.625rem;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 :root.light .stitch-symbol {
-  background: #f5f5f5;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
   color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 :root.light .symbol-image {
-  filter: var(--symbol-filter-light, none);
+  filter: brightness(0);
+}
+
+:root.light .fallback-symbol {
+  color: #333;
+}
+
+:root.light .stitch-count {
+  background: #2979ff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Stitch type-specific styling */
+.stitch-symbol.stitch-sc,
+.stitch-symbol.stitch-dc,
+.stitch-symbol.stitch-hdc,
+.stitch-symbol.stitch-tr,
+.stitch-symbol.stitch-dtr {
+  background: var(--stitch-bg, #333);
+}
+
+:root.light .stitch-symbol.stitch-sc,
+:root.light .stitch-symbol.stitch-dc,
+:root.light .stitch-symbol.stitch-hdc,
+:root.light .stitch-symbol.stitch-tr,
+:root.light .stitch-symbol.stitch-dtr {
+  background: #ffffff;
+}
+
+.stitch-symbol.stitch-ch,
+.stitch-symbol.stitch-sl {
+  background: var(--stitch-special-bg, #444);
+}
+
+:root.light .stitch-symbol.stitch-ch,
+:root.light .stitch-symbol.stitch-sl {
+  background: #ffffff;
+}
+
+/* Fallback styles for non-matched stitches */
+.stitch-symbol.stitch-bs,
+.stitch-symbol.stitch-ns {
+  background: var(--stitch-special-bg, #444);
+}
+
+:root.light .stitch-symbol.stitch-bs,
+:root.light .stitch-symbol.stitch-ns {
+  background: #ffffff;
 }
 </style>
