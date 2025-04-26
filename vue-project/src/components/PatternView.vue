@@ -217,6 +217,13 @@
 
       <!-- Row navigation controls -->
       <div class="row-navigation">
+        <button 
+          @click="previousRow" 
+          class="nav-button large"
+          :disabled="currentRowIndex === 0"
+        >
+          <font-awesome-icon icon="arrow-left" />
+        </button>
         <div class="row-selector">
           <span class="row-label desktop-only">Row</span>
           <select 
@@ -238,6 +245,13 @@
           </select>
           <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
         </div>
+        <button 
+          @click="nextRow" 
+          class="nav-button large"
+          :disabled="currentRowIndex === parsedRows.length - 1"
+        >
+          <font-awesome-icon icon="arrow-right" />
+        </button>
       </div>
       
       <!-- Experimental features section -->
@@ -1737,7 +1751,8 @@ defineExpose({
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 2rem;
 }
 
 .row-selector {
@@ -1745,8 +1760,8 @@ defineExpose({
   align-items: center;
   justify-content: center;
   gap: 1rem;
+  flex: 1;
   max-width: 400px;
-  width: 100%;
 }
 
 .row-label {
@@ -1777,7 +1792,7 @@ defineExpose({
   padding-right: 2.5rem;
 }
 
-/* Add white dropdown arrow in dark mode */
+/* Keep dark mode arrow on mobile */
 :root:not(.light) .row-select {
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
 }
@@ -1996,6 +2011,15 @@ defineExpose({
   .row-navigation {
     padding: 0.75rem;
     gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .row-selector {
+    order: -1;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    max-width: none;
   }
 
   .row-select {
@@ -2013,66 +2037,11 @@ defineExpose({
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   }
 
-  .experimental-features {
-    padding: 0.75rem;
-  }
-
-  .experimental-features h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .feature-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  .raw-pattern {
-    padding: 0.75rem;
-  }
-
-  .raw-pattern pre {
-    font-size: 0.8rem;
-  }
-
-  .mobile-only {
-    display: block;
-  }
-
-  .desktop-only {
-    display: none;
-  }
-
-  .stacked-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
-
-  .stacked-info h2 {
-    font-size: 1.1rem;
-    margin: 0;
-    font-weight: 600;
-  }
-
-  .stacked-info .row-color {
-    color: var(--accent-color);
-    font-size: 0.9rem;
-  }
-
-  .button-text {
-    display: inline-block;
-    font-size: 0.9rem;
-  }
-
   .nav-button.large {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    flex: 1;
+    max-width: 45%;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.5rem;
   }
 }
 
