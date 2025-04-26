@@ -51,34 +51,68 @@
         
         <div class="row-stitches">
           <!-- Handle repeated stitches -->
-          <div v-if="row.stitches && row.stitches.repeated">
+          <div v-if="row.stitches && row.stitches.repeated" class="horizontal-stitches">
             <!-- Before repeat -->
-            <StitchSymbol 
-              v-for="(stitch, i) in row.stitches.beforeRepeat" 
-              :key="`before-${i}`"
-              :stitch="stitch"
-            />
+            <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
+              <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+                <div v-for="j in getStitchCount(stitch)" :key="`before-stitch-${i}-${j}`" class="stitch-wrapper">
+                  <StitchSymbol
+                    :stitch="getStitchType(stitch)"
+                    :showCount="false"
+                  />
+                </div>
+              </template>
+              <div v-else class="stitch-wrapper">
+                <StitchSymbol 
+                  :stitch="stitch"
+                  :showCount="true"
+                />
+              </div>
+            </template>
             
             <!-- Repeat group -->
             <div class="repeat-group">
               <span class="repeat-bracket left-bracket">(</span>
               
-              <StitchSymbol 
-                v-for="(stitch, i) in row.stitches.repeatedStitches" 
-                :key="`rep-${i}`"
-                :stitch="stitch"
-              />
+              <!-- For repeated stitches, display them separately when expanded -->
+              <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
+                <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+                  <div v-for="j in getStitchCount(stitch)" :key="`rep-stitch-${i}-${j}`" class="stitch-wrapper repeat-stitch">
+                    <StitchSymbol
+                      :stitch="getStitchType(stitch)"
+                      :showCount="false"
+                    />
+                  </div>
+                </template>
+                <div v-else class="stitch-wrapper repeat-stitch">
+                  <StitchSymbol 
+                    :stitch="stitch"
+                    :showCount="true"
+                  />
+                </div>
+              </template>
               
               <span class="repeat-bracket right-bracket">)</span>
               <span class="repeat-count">x{{ row.stitches.repeatCount }}</span>
             </div>
             
             <!-- After repeat -->
-            <StitchSymbol 
-              v-for="(stitch, i) in row.stitches.afterRepeat" 
-              :key="`after-${i}`"
-              :stitch="stitch"
-            />
+            <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
+              <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+                <div v-for="j in getStitchCount(stitch)" :key="`after-stitch-${i}-${j}`" class="stitch-wrapper">
+                  <StitchSymbol
+                    :stitch="getStitchType(stitch)"
+                    :showCount="false"
+                  />
+                </div>
+              </template>
+              <div v-else class="stitch-wrapper">
+                <StitchSymbol 
+                  :stitch="stitch"
+                  :showCount="true"
+                />
+              </div>
+            </template>
           </div>
           
           <!-- Regular stitches -->
@@ -896,7 +930,7 @@ const commonStitches = {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 1px;
   align-items: center;
   width: 100%;
   max-width: 100%;
@@ -912,25 +946,27 @@ const commonStitches = {
 
 .stitch-wrapper {
   display: inline-block;
-  margin: 0.25rem;
+  margin: 1px;
 }
 
 .repeated-stitch-group {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 0.25rem;
+  gap: 1px;
   align-items: center;
 }
 
 /* Repeat group styling */
 .repeat-group {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   background-color: rgba(79, 135, 255, 0.1);
   border-radius: 8px;
   padding: 0.25rem 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin: 1px;
+  flex-wrap: wrap;
 }
 
 .repeat-bracket {

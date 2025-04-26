@@ -91,8 +91,9 @@ const getStitchClass = () => {
   transition: all 0.2s ease;
 }
 
+/* Remove height increase for counted stitches */
 .with-count {
-  height: 50px;
+  position: relative;
 }
 
 .symbol-container {
@@ -117,13 +118,13 @@ const getStitchClass = () => {
 
 .stitch-count {
   position: absolute;
-  bottom: 2px;
-  right: 2px;
+  bottom: 0;
+  right: 0;
   background: var(--accent-color, #4f87ff);
   color: white;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   font-size: 0.625rem;
   display: flex;
   align-items: center;
