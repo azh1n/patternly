@@ -218,11 +218,11 @@ defineExpose({
 .text-stitches {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .expand-toggle {
-  margin: 0.5rem 0 1rem 0;
+  margin: 0.25rem 0 0.75rem 0;
   padding: 0.35rem 1.2rem;
   background: var(--accent-color, #4f87ff);
   color: white;
@@ -243,7 +243,7 @@ defineExpose({
 /* Stitch wrapper */
 .stitch-wrapper {
   display: inline-block;
-  margin: 2px;
+  margin: 1px;
 }
 
 .stitch-wrapper.preview-stitch {
@@ -269,6 +269,8 @@ defineExpose({
   color: var(--text-primary, #fff);
   border: 1px solid var(--border-color, #444);
   transition: background-color 0.2s, transform 0.2s;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .stitch-symbol.with-count {

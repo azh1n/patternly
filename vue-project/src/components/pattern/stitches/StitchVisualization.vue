@@ -181,7 +181,7 @@ defineExpose({
   align-items: center;
   gap: 1rem;
   color: var(--text-primary, #fff);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .number-control {
@@ -252,12 +252,16 @@ defineExpose({
   background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .stitch-content {
   flex: 1;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 70px;
 }
 
 .current-stitches {
@@ -265,7 +269,10 @@ defineExpose({
   justify-content: center;
   align-items: center;
   gap: 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  min-height: 45px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .stitch-progress {
@@ -275,8 +282,8 @@ defineExpose({
 
 /* Full row preview */
 .full-row-preview {
-  margin-top: 1rem;
-  padding-top: 2rem;
+  margin-top: 0.5rem;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
 }
 

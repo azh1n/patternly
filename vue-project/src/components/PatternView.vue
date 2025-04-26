@@ -1560,8 +1560,9 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   width: 100%;
+  padding: 0.5rem;
 }
 
 /* When in symbols mode, center the content */
@@ -1607,17 +1608,20 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: 90px;
 }
 
 .current-stitches {
   font-size: 1.8rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
   color: var(--accent-color);
   width: 100%;
+  min-height: 50px;
 }
 
 .current-stitches span {
@@ -1665,9 +1669,16 @@ defineExpose({
 
 /* Full row preview styles */
 .full-row-preview {
-  margin-top: 2rem;
-  padding-top: 2rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
+}
+
+.full-row-preview h3 {
+  text-align: center;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+  color: var(--text-primary);
 }
 
 .preview-content {
