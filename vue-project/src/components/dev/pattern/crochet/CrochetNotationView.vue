@@ -81,11 +81,22 @@
           
           <!-- Regular stitches -->
           <template v-else-if="row.stitches && Array.isArray(row.stitches)">
-            <StitchSymbol 
-              v-for="(stitch, i) in row.stitches" 
-              :key="`stitch-${i}`"
-              :stitch="stitch"
-            />
+            <template v-for="(stitch, i) in row.stitches" :key="`stitch-${i}`">
+              <!-- For repeated stitches, display them separately -->
+              <template v-if="getStitchCount(stitch) > 1 && displayRepeatedStitchesSeparately">
+                <StitchSymbol 
+                  v-for="j in getStitchCount(stitch)" 
+                  :key="`stitch-${i}-${j}`"
+                  :stitch="getStitchType(stitch)"
+                  :showCount="false"
+                />
+              </template>
+              <!-- Display as single stitch with count -->
+              <StitchSymbol 
+                v-else
+                :stitch="stitch"
+              />
+            </template>
           </template>
           
           <!-- No stitches detected -->
@@ -98,13 +109,69 @@
 
     <!-- Circular notation view -->
     <div v-else-if="viewMode === 'circular'" class="circular-notation">
-      <div class="circular-container">
+      <!-- Control buttons -->
+      <div class="view-controls">
+        <div class="zoom-controls">
+          <button @click="zoomIn" class="zoom-btn" title="Zoom in">
+            <span class="zoom-icon">+</span>
+          </button>
+          <button @click="resetZoom" class="zoom-btn" title="Reset zoom">
+            <span class="zoom-icon">⟲</span>
+          </button>
+          <button @click="zoomOut" class="zoom-btn" title="Zoom out">
+            <span class="zoom-icon">-</span>
+          </button>
+        </div>
+        <button 
+          @click="toggleMultipleRowsView" 
+          class="multi-row-btn" 
+          :class="{ active: showMultipleRows }"
+          title="Toggle multiple rows view"
+        >
+          <span v-if="showMultipleRows">Single Row</span>
+          <span v-else>Multiple Rows</span>
+        </button>
+      </div>
+      
+      <div 
+        class="circular-container" 
+        ref="circularContainer"
+        @mousedown="startPan"
+        @mousemove="pan"
+        @mouseup="endPan"
+        @mouseleave="endPan"
+        @wheel="handleZoom"
+      >
         <svg 
           :width="svgSize" 
           :height="svgSize" 
-          :viewBox="`0 0 ${svgSize} ${svgSize}`" 
+          :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`" 
           class="circular-chart"
         >
+          <!-- Background grid for reference -->
+          <g class="grid-lines">
+            <!-- Horizontal grid lines -->
+            <line 
+              v-for="i in 10" 
+              :key="`h-grid-${i}`"
+              :x1="0" 
+              :y1="i * (svgSize / 10)" 
+              :x2="svgSize" 
+              :y2="i * (svgSize / 10)" 
+              class="grid-line"
+            />
+            <!-- Vertical grid lines -->
+            <line 
+              v-for="i in 10" 
+              :key="`v-grid-${i}`"
+              :x1="i * (svgSize / 10)" 
+              :y1="0" 
+              :x2="i * (svgSize / 10)" 
+              :y2="svgSize" 
+              class="grid-line"
+            />
+          </g>
+          
           <!-- Draw concentric circles for each row -->
           <circle 
             v-for="(row, index) in rows" 
@@ -114,57 +181,84 @@
             :r="getRowRadius(index)" 
             fill="none" 
             stroke="currentColor" 
-            stroke-width="1" 
-            stroke-dasharray="5,5"
             :class="{ 'active-row': index === activeRowIndex }"
           />
           
-          <!-- Draw row numbers -->
-          <text 
-            v-for="(row, index) in rows" 
-            :key="`row-num-${index}`"
-            :x="centerX + 5" 
-            :y="centerY - getRowRadius(index) + 15" 
-            font-size="12" 
-            fill="currentColor"
-          >
-            Row {{ row.number }}
-          </text>
-          
-          <!-- Draw stitches for active row -->
-          <g v-if="activeRow && activeRow.stitches">
-            <template v-if="Array.isArray(activeRow.stitches)">
-              <foreignObject 
-                v-for="(stitch, i) in activeRow.stitches" 
-                :key="`stitch-${i}`"
-                :x="getStitchX(i, activeRow.stitches.length) - 20" 
-                :y="getStitchY(i, activeRow.stitches.length) - 20" 
-                width="40" 
-                height="40"
-              >
-                <StitchSymbol 
-                  :stitch="stitch"
-                  class="circular-stitch"
-                />
-              </foreignObject>
-            </template>
+          <!-- Draw all rows with their stitches -->
+          <g v-for="(row, rowIndex) in rows" :key="`row-${rowIndex}`" 
+             :class="{ 
+               'active-row-group': rowIndex === activeRowIndex,
+               'visible-row-group': isRowVisible(rowIndex)
+             }">
+            <!-- Draw connecting lines between stitches in the same row -->
+            <g class="connecting-lines" v-if="isRowVisible(rowIndex) && getRowStitches(row).length > 1">
+              <path 
+                :d="getStitchConnectionPath(getRowStitches(row), rowIndex)" 
+                class="stitch-connection"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1"
+                stroke-dasharray="4,2"
+                :class="{ 'active-connection': rowIndex === activeRowIndex }"
+              />
+            </g>
             
-            <template v-else-if="activeRow.stitches.repeated">
-              <!-- Calculate total stitch count for positioning -->
-              <foreignObject 
-                v-for="(stitch, i) in getExpandedStitches(activeRow.stitches)" 
-                :key="`stitch-${i}`"
-                :x="getStitchX(i, getExpandedStitches(activeRow.stitches).length) - 20" 
-                :y="getStitchY(i, getExpandedStitches(activeRow.stitches).length) - 20" 
-                width="40" 
-                height="40"
-              >
-                <StitchSymbol 
-                  :stitch="stitch"
-                  class="circular-stitch"
-                />
-              </foreignObject>
-            </template>
+            <!-- Draw connecting lines to previous row if not first row -->
+            <g class="row-connections" v-if="rowIndex > 0 && isRowVisible(rowIndex) && isRowVisible(rowIndex-1)">
+              <line 
+                v-for="(stitch, stitchIndex) in getRowStitches(row)" 
+                :key="`connection-${rowIndex}-${stitchIndex}`"
+                :x1="getStitchCenterX(stitchIndex, getRowStitches(row).length, rowIndex)" 
+                :y1="getStitchCenterY(stitchIndex, getRowStitches(row).length, rowIndex)"
+                :x2="getClosestPreviousStitchX(stitchIndex, rowIndex)" 
+                :y2="getClosestPreviousStitchY(stitchIndex, rowIndex)"
+                class="row-connection"
+                stroke="currentColor"
+                stroke-width="1"
+                :class="{ 'active-connection': rowIndex === activeRowIndex }"
+              />
+            </g>
+            
+            <!-- Draw row number at appropriate positions -->
+            <text 
+              v-if="isRowVisible(rowIndex)"
+              :x="centerX + getRowRadius(rowIndex) + 10" 
+              :y="centerY" 
+              font-size="12" 
+              fill="currentColor"
+              class="row-number-label"
+              :class="{ 'active-label': rowIndex === activeRowIndex }"
+            >
+              Row {{ row.number }}
+            </text>
+            
+            <!-- Draw stitches for visible rows -->
+            <g v-if="isRowVisible(rowIndex)">
+              <g v-if="getRowStitches(row).length > 0">
+                <g 
+                  v-for="(stitch, stitchIndex) in getRowStitches(row)" 
+                  :key="`stitch-${rowIndex}-${stitchIndex}`"
+                  :transform="`translate(${getStitchCenterX(stitchIndex, getRowStitches(row).length, rowIndex)}, ${getStitchCenterY(stitchIndex, getRowStitches(row).length, rowIndex)})`"
+                  class="stitch-symbol-container"
+                >
+                  <g :transform="`rotate(${getStitchRotation(stitchIndex, getRowStitches(row).length)})`">
+                  <foreignObject 
+                    x="-15"
+                    y="-15"
+                    width="30"
+                    height="30"
+                  >
+                    <StitchSymbol 
+                      :stitch="stitch"
+                      :showCount="false"
+                      class="circular-stitch"
+                      :class="{ 'active-stitch': rowIndex === activeRowIndex }"
+                    />
+                  </foreignObject>
+                  </g>
+                </g>
+              </g>
+            </g>
           </g>
         </svg>
         
@@ -173,8 +267,12 @@
           <button 
             v-for="(row, index) in rows" 
             :key="`selector-${index}`"
-            @click="activeRowIndex = index"
-            :class="{ active: index === activeRowIndex }"
+            @click="showMultipleRows ? toggleRowVisibility(index) : selectRow(index)"
+            :class="{ 
+              'active': index === activeRowIndex,
+              'visible': isRowVisible(index) && showMultipleRows
+            }"
+            :title="showMultipleRows ? 'Toggle row visibility' : 'Set as active row'"
           >
             {{ row.number }}
           </button>
@@ -219,7 +317,6 @@ const props = defineProps({
 
 // View mode (linear, circular, or 3d)
 const viewMode = ref('linear');
-const activeRowIndex = ref(0);
 
 // Pattern shape detection
 const patternShape = ref({ type: 'unknown', confidence: 0 });
@@ -238,46 +335,356 @@ watch(() => [props.rows, props.rawContent], () => {
 const svgSize = 500;
 const centerX = svgSize / 2;
 const centerY = svgSize / 2;
-const baseRadius = 50;
-const radiusIncrement = 40;
+const baseRadius = 30;
+const radiusIncrement = 20;
 
 // Active row for circular view
+const activeRowIndex = ref(0);
 const activeRow = computed(() => {
   return props.rows[activeRowIndex.value] || null;
 });
 
+// Multiple row selection
+const visibleRows = ref([0]); // Start with just the first row visible
+const showMultipleRows = ref(false);
+
+const toggleRowVisibility = (rowIndex) => {
+  if (visibleRows.value.includes(rowIndex)) {
+    // If already visible and not the only visible row, remove it
+    if (visibleRows.value.length > 1) {
+      visibleRows.value = visibleRows.value.filter(index => index !== rowIndex);
+    }
+  } else {
+    // Add to visible rows
+    visibleRows.value.push(rowIndex);
+  }
+};
+
+// When clicking a row number, make it active and visible
+const selectRow = (rowIndex) => {
+  activeRowIndex.value = rowIndex;
+  if (!visibleRows.value.includes(rowIndex)) {
+    visibleRows.value.push(rowIndex);
+  }
+};
+
+// Helper function to safely check if a row is visible
+const isRowVisible = (rowIndex) => {
+  return visibleRows.value && visibleRows.value.includes(rowIndex);
+};
+
+// Zoom and pan functionality
+const zoomLevel = ref(1);
+const panOffset = ref({ x: 0, y: 0 });
+const isPanning = ref(false);
+const panStart = ref({ x: 0, y: 0 });
+const circularContainer = ref(null);
+
+// Computed viewBox for SVG
+const viewBox = computed(() => {
+  const width = svgSize / zoomLevel.value;
+  const height = svgSize / zoomLevel.value;
+  const x = centerX - (width / 2) + panOffset.value.x;
+  const y = centerY - (height / 2) + panOffset.value.y;
+  return { x, y, width, height };
+});
+
+// Zoom functions
+const zoomIn = () => {
+  zoomLevel.value = Math.min(zoomLevel.value * 1.2, 5);
+};
+
+const zoomOut = () => {
+  zoomLevel.value = Math.max(zoomLevel.value / 1.2, 0.5);
+};
+
+const resetZoom = () => {
+  zoomLevel.value = 1;
+  panOffset.value = { x: 0, y: 0 };
+};
+
+const handleZoom = (event) => {
+  event.preventDefault();
+  if (event.deltaY < 0) {
+    zoomIn();
+  } else {
+    zoomOut();
+  }
+};
+
+// Pan functions
+const startPan = (event) => {
+  if (event.button === 0) { // Left mouse button
+    isPanning.value = true;
+    panStart.value = {
+      x: event.clientX,
+      y: event.clientY
+    };
+  }
+};
+
+const pan = (event) => {
+  if (!isPanning.value) return;
+  
+  const dx = (event.clientX - panStart.value.x) / zoomLevel.value;
+  const dy = (event.clientY - panStart.value.y) / zoomLevel.value;
+  
+  panOffset.value = {
+    x: panOffset.value.x - dx,
+    y: panOffset.value.y - dy
+  };
+  
+  panStart.value = {
+    x: event.clientX,
+    y: event.clientY
+  };
+};
+
+const endPan = () => {
+  isPanning.value = false;
+};
+
+// Option to display repeated stitches separately
+const displayRepeatedStitchesSeparately = ref(true);
+
+// Extract count from stitch string (e.g., "3dc" -> 3)
+const getStitchCount = (stitch) => {
+  const match = stitch.match(/^(\d+)/);
+  return match ? parseInt(match[1]) : 1;
+};
+
+// Extract stitch type from stitch string (e.g., "3dc" -> "dc")
+const getStitchType = (stitch) => {
+  const match = stitch.match(/^(\d+)?([a-zA-Z]+)/);
+  return match ? match[2] : stitch;
+};
+
 // Get radius for a specific row
 const getRowRadius = (rowIndex) => {
-  return baseRadius + (rowIndex * radiusIncrement);
+  // Use a logarithmic scale for row spacing to handle many rows more compactly
+  // First few rows have more space, then spacing decreases for higher row numbers
+  if (rowIndex <= 3) {
+    return baseRadius + (rowIndex * radiusIncrement);
+  } else {
+    const additionalRows = rowIndex - 3;
+    return baseRadius + (3 * radiusIncrement) + (additionalRows * (radiusIncrement / 2));
+  }
 };
 
 // Calculate X position for a stitch in circular view
-const getStitchX = (stitchIndex, totalStitches) => {
-  const angle = (stitchIndex / totalStitches) * 2 * Math.PI;
-  const radius = getRowRadius(activeRowIndex.value);
-  return centerX + radius * Math.cos(angle);
+const getStitchX = (index, total, rowIndex = activeRowIndex.value) => {
+  const angle = (index / total) * 2 * Math.PI;
+  const radius = getRowRadius(rowIndex);
+  return centerX + radius * Math.cos(angle - Math.PI/2) - 15;
 };
 
-// Calculate Y position for a stitch in circular view
-const getStitchY = (stitchIndex, totalStitches) => {
-  const angle = (stitchIndex / totalStitches) * 2 * Math.PI;
-  const radius = getRowRadius(activeRowIndex.value);
-  return centerY + radius * Math.sin(angle);
+const getStitchY = (index, total, rowIndex = activeRowIndex.value) => {
+  const angle = (index / total) * 2 * Math.PI;
+  const radius = getRowRadius(rowIndex);
+  return centerY + radius * Math.sin(angle - Math.PI/2) - 15;
+};
+
+// Get the center position of a stitch (for connecting lines)
+const getStitchCenterX = (index, total, rowIndex = activeRowIndex.value) => {
+  const angle = (index / total) * 2 * Math.PI;
+  const radius = getRowRadius(rowIndex);
+  return centerX + radius * Math.cos(angle - Math.PI/2);
+};
+
+const getStitchCenterY = (index, total, rowIndex = activeRowIndex.value) => {
+  const angle = (index / total) * 2 * Math.PI;
+  const radius = getRowRadius(rowIndex);
+  return centerY + radius * Math.sin(angle - Math.PI/2);
+};
+
+// Calculate rotation angle for a stitch so bottom faces center
+const getStitchRotation = (index, total) => {
+  // Calculate the angle of the stitch from the center (in radians)
+  const angleRad = (index / total) * 2 * Math.PI - Math.PI/2;
+  // Convert to degrees and adjust so the bottom end faces the center
+  // We need to rotate in the opposite direction of the angle
+  const angleDeg = (angleRad * 180 / Math.PI) + 90;
+  return angleDeg;
+};
+
+// Find the closest stitch in the previous row for connecting lines
+const getClosestPreviousStitchX = (currentIndex, currentRowIndex) => {
+  if (currentRowIndex <= 0) return centerX;
+  
+  const prevRow = props.rows[currentRowIndex - 1];
+  const prevRowStitches = getRowStitches(prevRow);
+  if (!prevRowStitches.length) return centerX;
+  
+  const currentTotal = getRowStitches(props.rows[currentRowIndex]).length;
+  const prevTotal = prevRowStitches.length;
+  
+  // Find the closest angle match in the previous row
+  const currentAngle = (currentIndex / currentTotal) * 2 * Math.PI;
+  let closestIndex = 0;
+  let minAngleDiff = Infinity;
+  
+  for (let i = 0; i < prevTotal; i++) {
+    const prevAngle = (i / prevTotal) * 2 * Math.PI;
+    const angleDiff = Math.abs(currentAngle - prevAngle);
+    if (angleDiff < minAngleDiff) {
+      minAngleDiff = angleDiff;
+      closestIndex = i;
+    }
+  }
+  
+  return getStitchCenterX(closestIndex, prevTotal, currentRowIndex - 1);
+};
+
+const getClosestPreviousStitchY = (currentIndex, currentRowIndex) => {
+  if (currentRowIndex <= 0) return centerY;
+  
+  const prevRow = props.rows[currentRowIndex - 1];
+  const prevRowStitches = getRowStitches(prevRow);
+  if (!prevRowStitches.length) return centerY;
+  
+  const currentTotal = getRowStitches(props.rows[currentRowIndex]).length;
+  const prevTotal = prevRowStitches.length;
+  
+  // Find the closest angle match in the previous row
+  const currentAngle = (currentIndex / currentTotal) * 2 * Math.PI;
+  let closestIndex = 0;
+  let minAngleDiff = Infinity;
+  
+  for (let i = 0; i < prevTotal; i++) {
+    const prevAngle = (i / prevTotal) * 2 * Math.PI;
+    const angleDiff = Math.abs(currentAngle - prevAngle);
+    if (angleDiff < minAngleDiff) {
+      minAngleDiff = angleDiff;
+      closestIndex = i;
+    }
+  }
+  
+  return getStitchCenterY(closestIndex, prevTotal, currentRowIndex - 1);
+};
+
+// Generate a path for connecting stitches in the same row
+const getStitchConnectionPath = (stitches, rowIndex) => {
+  if (!stitches || stitches.length < 2) return '';
+  
+  const total = stitches.length;
+  let path = `M ${getStitchCenterX(0, total, rowIndex)} ${getStitchCenterY(0, total, rowIndex)}`;
+  
+  for (let i = 1; i < total; i++) {
+    path += ` L ${getStitchCenterX(i, total, rowIndex)} ${getStitchCenterY(i, total, rowIndex)}`;
+  }
+  
+  // Close the path for a complete circle
+  path += ` L ${getStitchCenterX(0, total, rowIndex)} ${getStitchCenterY(0, total, rowIndex)}`;
+  
+  return path;
+};
+
+// Get all stitches for a row, handling both regular and repeated stitch formats
+const getRowStitches = (row) => {
+  if (!row || !row.stitches) return [];
+  
+  if (Array.isArray(row.stitches)) {
+    if (displayRepeatedStitchesSeparately.value) {
+      // Expand repeated stitches into individual stitches
+      const expandedStitches = [];
+      row.stitches.forEach(stitch => {
+        const count = getStitchCount(stitch);
+        const type = getStitchType(stitch);
+        for (let i = 0; i < count; i++) {
+          expandedStitches.push(type);
+        }
+      });
+      return expandedStitches;
+    }
+    return row.stitches;
+  } else if (row.stitches.repeated) {
+    return getExpandedStitches(row.stitches);
+  }
+  
+  return [];
+};
+
+// Calculate the total count of stitches when expanded
+const getExpandedStitchesCount = (stitches, upToIndex = null) => {
+  let count = 0;
+  const limit = upToIndex !== null ? upToIndex : stitches.length;
+  
+  for (let i = 0; i < limit; i++) {
+    if (displayRepeatedStitchesSeparately.value) {
+      count += getStitchCount(stitches[i]);
+    } else {
+      count += 1;
+    }
+  }
+  
+  return count;
+};
+
+// Calculate the index for a stitch in the expanded view
+const getExpandedStitchIndex = (stitches, index) => {
+  if (!displayRepeatedStitchesSeparately.value) return index;
+  
+  let expandedIndex = 0;
+  for (let i = 0; i < index; i++) {
+    expandedIndex += getStitchCount(stitches[i]);
+  }
+  
+  return expandedIndex;
 };
 
 // Expand repeated stitches for circular view
-const getExpandedStitches = (stitches) => {
-  if (!stitches || !stitches.repeated) return [];
+const getExpandedStitches = (repeatedStitches) => {
+  const result = [];
   
-  const result = [...(stitches.beforeRepeat || [])];
+  // Add before repeat stitches
+  if (repeatedStitches.beforeRepeat) {
+    if (displayRepeatedStitchesSeparately.value) {
+      // Expand each stitch based on its count
+      repeatedStitches.beforeRepeat.forEach(stitch => {
+        const count = getStitchCount(stitch);
+        const type = getStitchType(stitch);
+        for (let i = 0; i < count; i++) {
+          result.push(type);
+        }
+      });
+    } else {
+      result.push(...repeatedStitches.beforeRepeat);
+    }
+  }
   
   // Add repeated stitches
-  for (let i = 0; i < stitches.repeatCount; i++) {
-    result.push(...stitches.repeatedStitches);
+  if (repeatedStitches.repeatedStitches && repeatedStitches.repeatCount) {
+    for (let i = 0; i < repeatedStitches.repeatCount; i++) {
+      if (displayRepeatedStitchesSeparately.value) {
+        // Expand each stitch based on its count
+        repeatedStitches.repeatedStitches.forEach(stitch => {
+          const count = getStitchCount(stitch);
+          const type = getStitchType(stitch);
+          for (let j = 0; j < count; j++) {
+            result.push(type);
+          }
+        });
+      } else {
+        result.push(...repeatedStitches.repeatedStitches);
+      }
+    }
   }
   
   // Add after repeat stitches
-  result.push(...(stitches.afterRepeat || []));
+  if (repeatedStitches.afterRepeat) {
+    if (displayRepeatedStitchesSeparately.value) {
+      // Expand each stitch based on its count
+      repeatedStitches.afterRepeat.forEach(stitch => {
+        const count = getStitchCount(stitch);
+        const type = getStitchType(stitch);
+        for (let i = 0; i < count; i++) {
+          result.push(type);
+        }
+      });
+    } else {
+      result.push(...repeatedStitches.afterRepeat);
+    }
+  }
   
   return result;
 };
@@ -473,6 +880,12 @@ const commonStitches = {
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.circular-container:active {
+  cursor: grabbing;
 }
 
 .circular-chart {
@@ -480,8 +893,60 @@ const commonStitches = {
   height: auto;
 }
 
+.view-controls {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.zoom-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.multi-row-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background: var(--background-secondary, #333);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border-color, #444);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.multi-row-btn:hover,
+.multi-row-btn.active {
+  background: var(--accent-color, #4f87ff);
+  border-color: var(--accent-color, #4f87ff);
+}
+
+.zoom-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--background-secondary, #333);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border-color, #444);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.zoom-btn:hover {
+  background: var(--accent-color, #4f87ff);
+  border-color: var(--accent-color, #4f87ff);
+}
+
+.zoom-icon {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
 .circular-chart circle {
-  opacity: 0.5;
+  opacity: 0.3;
   transition: opacity 0.2s ease, stroke 0.2s ease;
   stroke: var(--border-color, rgba(255, 255, 255, 0.3));
 }
@@ -494,7 +959,29 @@ const commonStitches = {
 }
 
 .circular-stitch {
-  transform: scale(0.8);
+  transform: scale(0.7);
+}
+
+.grid-line {
+  stroke: var(--border-color, rgba(255, 255, 255, 0.1));
+  stroke-width: 0.5;
+}
+
+.stitch-connection {
+  opacity: 0.6;
+}
+
+.row-connection {
+  opacity: 0.5;
+  stroke-dasharray: 2,2;
+}
+
+.active-row-group {
+  opacity: 1;
+}
+
+.row-number-label {
+  font-weight: 500;
 }
 
 .row-selector {
@@ -524,6 +1011,28 @@ const commonStitches = {
   background: var(--accent-color, #4f87ff);
   color: white;
   border-color: var(--accent-color, #4f87ff);
+}
+
+.row-selector button.visible {
+  background: rgba(79, 135, 255, 0.3);
+  border-color: var(--accent-color, #4f87ff);
+}
+
+.active-connection {
+  opacity: 1;
+  stroke-width: 1.5;
+}
+
+.active-label {
+  font-weight: bold;
+}
+
+.active-stitch {
+  transform: scale(0.8);
+}
+
+.visible-row-group {
+  opacity: 1;
 }
 
 /* Stitch key styles */
@@ -663,9 +1172,29 @@ const commonStitches = {
 }
 
 :root.light .row-selector button {
-  color: #333;
-  border-color: #e0e0e0;
-  background: #f8f9fa;
+  color: white;
+  border-color: #222;
+  background: #333;
+}
+
+:root.light .zoom-btn,
+:root.light .multi-row-btn {
+  background: #333;
+  color: white;
+  border-color: #222;
+}
+
+:root.light .zoom-btn:hover,
+:root.light .multi-row-btn:hover,
+:root.light .multi-row-btn.active {
+  background: #2979ff;
+  color: white;
+  border-color: #2979ff;
+}
+
+:root.light .row-selector button.visible {
+  background: rgba(41, 121, 255, 0.2);
+  border-color: #2979ff;
 }
 
 :root.light .row-selector button.active {
