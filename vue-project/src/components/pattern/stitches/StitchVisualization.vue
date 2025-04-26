@@ -1,0 +1,334 @@
+<template>
+  <div class="stitch-visualization">
+    <!-- Stitches per view control -->
+    <div class="stitch-control">
+      <label for="stitchesPerView">Stitches per view:</label>
+      <div class="number-control">
+        <button 
+          @click="decreaseStitches" 
+          :disabled="stitchesPerView <= 1"
+        >
+          −
+        </button>
+        <span>{{ stitchesPerView }}</span>
+        <button 
+          @click="increaseStitches" 
+          :disabled="stitchesPerView >= maxStitchesPerView"
+        >
+          +
+        </button>
+      </div>
+    </div>
+
+    <!-- Stitch navigation -->
+    <div class="stitch-navigation">
+      <button 
+        @click="previousStitches" 
+        class="nav-button"
+        :disabled="currentStitchIndex === 0"
+      >
+        <span>←</span>
+      </button>
+      
+      <!-- Current stitches display -->
+      <div class="stitch-content">
+        <div class="current-stitches">
+          <slot name="current-stitches"></slot>
+        </div>
+        <div class="stitch-progress">
+          <span class="progress-indicator">
+            {{ stitchProgress }}
+          </span>
+        </div>
+      </div>
+      
+      <button 
+        @click="nextStitches" 
+        class="nav-button"
+        :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
+      >
+        <span>→</span>
+      </button>
+    </div>
+
+    <!-- Full row preview section -->
+    <div class="full-row-preview">
+      <h3>Full Row Preview</h3>
+      <div class="preview-content">
+        <slot name="row-preview"></slot>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
+
+const props = defineProps({
+  totalStitches: {
+    type: Number,
+    required: true
+  },
+  initialStitchesPerView: {
+    type: Number,
+    default: 3
+  },
+  maxStitchesPerView: {
+    type: Number,
+    default: 5
+  }
+});
+
+const emits = defineEmits(['update:currentStitchIndex', 'update:stitchesPerView']);
+
+// Navigation state
+const currentStitchIndex = ref(0);
+const stitchesPerView = ref(props.initialStitchesPerView);
+
+// Stitch progress indicator
+const stitchProgress = computed(() => {
+  if (!props.totalStitches) return '0 of 0';
+  
+  const start = currentStitchIndex.value + 1;
+  const end = Math.min(currentStitchIndex.value + stitchesPerView.value, props.totalStitches);
+  
+  return `${start}-${end} of ${props.totalStitches} stitches`;
+});
+
+// Navigation methods
+const nextStitches = () => {
+  if (currentStitchIndex.value + stitchesPerView.value < props.totalStitches) {
+    currentStitchIndex.value += stitchesPerView.value;
+    emits('update:currentStitchIndex', currentStitchIndex.value);
+    nextTick(() => {
+      updateScrollPosition();
+    });
+  }
+};
+
+const previousStitches = () => {
+  if (currentStitchIndex.value > 0) {
+    currentStitchIndex.value = Math.max(0, currentStitchIndex.value - stitchesPerView.value);
+    emits('update:currentStitchIndex', currentStitchIndex.value);
+    nextTick(() => {
+      updateScrollPosition();
+    });
+  }
+};
+
+// Stitch view controls
+const decreaseStitches = () => {
+  if (stitchesPerView.value > 1) {
+    stitchesPerView.value--;
+    emits('update:stitchesPerView', stitchesPerView.value);
+  }
+};
+
+const increaseStitches = () => {
+  if (stitchesPerView.value < props.maxStitchesPerView) {
+    stitchesPerView.value++;
+    emits('update:stitchesPerView', stitchesPerView.value);
+  }
+};
+
+// Update scroll position in the preview
+const updateScrollPosition = () => {
+  try {
+    // Wait for DOM to update
+    setTimeout(() => {
+      const container = document.querySelector('.preview-content');
+      if (!container) return; // Guard against missing container
+
+      const activeStitches = container.querySelectorAll('.current-stitch');
+      if (activeStitches && activeStitches.length > 0) {
+        const firstActiveStitch = activeStitches[0];
+        if (!firstActiveStitch) return; // Guard against missing element
+        
+        const containerWidth = container.offsetWidth;
+        const scrollPosition = firstActiveStitch.offsetLeft - (containerWidth / 2) + (firstActiveStitch.offsetWidth * stitchesPerView.value / 2);
+        
+        container.scrollTo({
+          left: Math.max(0, scrollPosition),
+          behavior: 'smooth'
+        });
+      }
+    }, 100); // Increased delay to ensure DOM has updated
+  } catch (error) {
+    console.error('Error updating scroll position:', error);
+  }
+};
+
+// Watch for changes to update scroll position
+watch([currentStitchIndex, stitchesPerView], () => {
+  nextTick(() => {
+    updateScrollPosition();
+  });
+});
+
+// Expose methods and state to parent component
+defineExpose({
+  currentStitchIndex,
+  stitchesPerView,
+  nextStitches,
+  previousStitches
+});
+</script>
+
+<style scoped>
+/* Stitch control */
+.stitch-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text-primary, #fff);
+  margin-bottom: 1rem;
+}
+
+.number-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.number-control button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--button-bg, #333);
+  color: var(--button-text, #fff);
+  border: 1px solid var(--border-color, #444);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.number-control button:hover:not(:disabled) {
+  background: var(--button-hover-bg, #444);
+  border-color: var(--accent-color, #4f87ff);
+}
+
+.number-control button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Navigation buttons */
+.nav-button {
+  padding: 0.5rem 1rem;
+  background: var(--button-bg, #333);
+  color: var(--button-text, #fff);
+  border: 1px solid var(--border-color, #444);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-button:hover:not(:disabled) {
+  background: var(--button-hover-bg, #444);
+  border-color: var(--accent-color, #4f87ff);
+}
+
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Stitch navigation */
+.stitch-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.stitch-content {
+  flex: 1;
+  text-align: center;
+}
+
+.current-stitches {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.stitch-progress {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #aaa);
+}
+
+/* Full row preview */
+.full-row-preview {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.full-row-preview h3 {
+  font-size: 1.1rem;
+  margin: 0 0 1rem 0;
+  color: var(--text-primary, #fff);
+}
+
+.preview-content {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 70px;
+  align-items: center;
+  scroll-behavior: smooth;
+}
+
+/* Light theme overrides */
+:root.light .stitch-navigation,
+:root.light .preview-content {
+  background: rgba(0, 0, 0, 0.03);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+:root.light .nav-button {
+  background: #f5f5f5;
+  color: #333;
+  border-color: #e0e0e0;
+}
+
+:root.light .nav-button:hover:not(:disabled) {
+  background: #e0e0e0;
+  border-color: #2979ff;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .stitch-navigation {
+    padding: 0.75rem;
+  }
+
+  .current-stitches {
+    gap: 1rem;
+  }
+
+  .preview-content {
+    padding: 0.75rem;
+  }
+}
+</style> 

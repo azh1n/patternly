@@ -100,95 +100,13 @@
           ></textarea>
         </div>
         
-        <!-- Focused stitch navigation -->
-        <div class="stitch-navigation">
-          <button 
-            @click="previousStitches" 
-            class="nav-button"
-            :disabled="currentStitchIndex === 0"
-          >
-            <span>←</span>
-          </button>
-          
-          <!-- Current stitches display -->
-          <div class="stitch-content">
-            <div class="current-stitches">
-              <template v-if="currentRow && currentRow.codes && currentRow.codes.length">
-                <div v-for="(stitch, i) in currentStitchesView" 
-                  :key="`focused-stitch-${i}`" 
-                  class="stitch-wrapper"
-                >
-                  <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
-                    <template v-if="checkSymbolExists(stitch)">
-                      <img 
-                        :src="getSymbolPath(stitch)" 
-                        :alt="stitch" 
-                        class="stitch-svg"
-                      />
-                    </template>
-                    <template v-else>
-                      {{ getStitchType(stitch) }}
-                    </template>
-                    <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
-                      {{ getStitchCount(stitch) }}
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </div>
-            <div class="stitch-progress">
-              <span class="progress-indicator">
-                {{ stitchProgress }}
-              </span>
-            </div>
-          </div>
-          
-          <button 
-            @click="nextStitches" 
-            class="nav-button"
-            :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
-          >
-            <span>→</span>
-          </button>
-        </div>
-
-        <!-- Full row preview section -->
-        <div class="full-row-preview">
-          <h3>Full Row Preview</h3>
-          <div class="preview-content">
-            <template v-if="currentRow && currentRow.codes && currentRow.codes.length">
-              <div 
-                v-for="(stitch, i) in processRowStitches(currentRow.codes, displayRepeatedStitchesSeparately)" 
-                :key="`preview-stitch-${i}`" 
-                class="stitch-wrapper"
-                :class="{ 
-                  'preview-stitch': true,
-                  'current-stitch': i >= currentStitchIndex && i < currentStitchIndex + stitchesPerView,
-                  'completed-stitch': i < currentStitchIndex 
-                }"
-              >
-                <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
-                  <template v-if="checkSymbolExists(stitch)">
-                    <img 
-                      :src="getSymbolPath(stitch)" 
-                      :alt="stitch" 
-                      class="stitch-svg"
-                    />
-                  </template>
-                  <template v-else>
-                    {{ getStitchType(stitch) }}
-                  </template>
-                  <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
-                    {{ getStitchCount(stitch) }}
-                  </div>
-                </div>
-              </div>
-            </template>
-            <div v-else class="no-stitches">
-              No stitches defined for this row
-            </div>
-          </div>
-        </div>
+        <!-- Swappable stitch visualization -->
+        <SwappableStitchVisualization
+          :currentRow="currentRow"
+          :maxStitchesPerView="maxStitchesPerView"
+          :initialStitchesPerView="3"
+          ref="stitchVisRef"
+        />
         
         <!-- Row navigation controls -->
         <div class="row-navigation">
@@ -255,9 +173,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { hasStitchSymbol, getStitchSymbolPath, stitchSymbolMapping } from '@/assets/crochet-symbols/stitch-mapping.js';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
+import SwappableStitchVisualization from './SwappableStitchVisualization.vue';
 
 // Component state
 const mounted = ref(false);
@@ -272,17 +190,13 @@ const props = defineProps({
   }
 });
 
-// Local state for expand/collapse stitches
-const displayRepeatedStitchesSeparately = ref(true);
-
 // View mode (linear or circular)
 const viewMode = ref('linear');
 
 // Navigation state
 const currentRowIndex = ref(0);
-const currentStitchIndex = ref(0);
-const stitchesPerView = ref(3);
 const maxStitchesPerView = 5;
+const stitchVisRef = ref(null);
 
 // Notes feature state
 const currentRowNotes = ref('');
@@ -320,39 +234,12 @@ const hasRowNotes = computed(() => {
   return !!props.pattern.rowNotes[rowKey] && props.pattern.rowNotes[rowKey].trim() !== '';
 });
 
-// Total stitches in current row
-const totalStitches = computed(() => {
-  if (!currentRow.value || !currentRow.value.codes) return 0;
-  
-  return processRowStitches(currentRow.value.codes, displayRepeatedStitchesSeparately.value).length;
-});
-
-// Get current stitches for the focused view
-const currentStitchesView = computed(() => {
-  if (!currentRow.value || !currentRow.value.codes || !currentRow.value.codes.length) return [];
-  
-  const processedStitches = processRowStitches(currentRow.value.codes, displayRepeatedStitchesSeparately.value);
-  return processedStitches.slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value);
-});
-
-// Stitch progress indicator
-const stitchProgress = computed(() => {
-  if (!currentRow.value || !totalStitches.value) return '0 of 0';
-  
-  const start = currentStitchIndex.value + 1;
-  const end = Math.min(currentStitchIndex.value + stitchesPerView.value, totalStitches.value);
-  
-  return `${start}-${end} of ${totalStitches.value} stitches`;
-});
-
 // Navigation methods
 const nextRow = () => {
   if (!mounted.value) return;
   if (currentRowIndex.value < safeRows.value.length - 1) {
     currentRowIndex.value++;
-    currentStitchIndex.value = 0; // Reset stitch index when changing rows
     nextTick(() => {
-      updateScrollPosition();
       loadRowNotes();
     });
   }
@@ -362,30 +249,8 @@ const previousRow = () => {
   if (!mounted.value) return;
   if (currentRowIndex.value > 0) {
     currentRowIndex.value--;
-    currentStitchIndex.value = 0; // Reset stitch index when changing rows
     nextTick(() => {
-      updateScrollPosition();
       loadRowNotes();
-    });
-  }
-};
-
-const nextStitches = () => {
-  if (!mounted.value) return;
-  if (currentStitchIndex.value + stitchesPerView.value < totalStitches.value) {
-    currentStitchIndex.value += stitchesPerView.value;
-    nextTick(() => {
-      updateScrollPosition();
-    });
-  }
-};
-
-const previousStitches = () => {
-  if (!mounted.value) return;
-  if (currentStitchIndex.value > 0) {
-    currentStitchIndex.value = Math.max(0, currentStitchIndex.value - stitchesPerView.value);
-    nextTick(() => {
-      updateScrollPosition();
     });
   }
 };
@@ -477,138 +342,30 @@ const markAsUnsaved = () => {
   notesSaved.value = false;
 };
 
-// Stitch view controls
-const decreaseStitches = () => {
-  if (!mounted.value) return;
-  if (stitchesPerView.value > 1) {
-    stitchesPerView.value--;
+// New method to safely set view mode
+const safeSetViewMode = (mode) => {
+  if (mounted.value) {
+    viewMode.value = mode;
   }
 };
 
-const increaseStitches = () => {
-  if (!mounted.value) return;
-  if (stitchesPerView.value < maxStitchesPerView) {
-    stitchesPerView.value++;
-  }
-};
-
-// Update scroll position in the preview
-const updateScrollPosition = () => {
-  if (!mounted.value) return;
-  
-  try {
-    // Wait for DOM to update
-    setTimeout(() => {
-      const container = document.querySelector('.preview-content');
-      if (!container) return; // Guard against missing container
-
-      const activeStitches = container.querySelectorAll('.current-stitch');
-      if (activeStitches && activeStitches.length > 0) {
-        const firstActiveStitch = activeStitches[0];
-        if (!firstActiveStitch) return; // Guard against missing element
-        
-        const containerWidth = container.offsetWidth;
-        const scrollPosition = firstActiveStitch.offsetLeft - (containerWidth / 2) + (firstActiveStitch.offsetWidth * stitchesPerView.value / 2);
-        
-        container.scrollTo({
-          left: Math.max(0, scrollPosition),
-          behavior: 'smooth'
-        });
-      }
-    }, 100); // Increased delay to ensure DOM has updated
-  } catch (error) {
-    console.error('Error updating scroll position:', error);
-  }
-};
-
-// Wrapper functions for stitch symbols
-function checkSymbolExists(stitch) {
-  return window.hasStitchSymbol ? window.hasStitchSymbol(stitch) : hasStitchSymbol(stitch);
-}
-
-function getSymbolPath(stitch) {
-  return getStitchSymbolPath(stitch);
-}
-
-// Fix the stitch symbol display function
+// Set mounted state on component mount
 onMounted(() => {
-  try {
-    // Override the hasStitchSymbol function to also check if the SVG file actually exists
-    // This is needed because some stitch symbols might be defined in the mapping but don't have SVG files
-    const originalHasStitchSymbol = hasStitchSymbol;
-    
-    // Create a set of available SVG files
-    const availableSvgs = new Set([
-      'chain.svg', 
-      'slip-stitch.svg', 
-      'sc.svg', 
-      'hdc.svg', 
-      'dc.svg', 
-      'tr.svg', 
-      'dtr.svg',
-      'sc-inc.svg',
-      'hdc-inc.svg',
-      'dc-inc.svg',
-      'sc-dec.svg',
-      'hdc-dec.svg',
-      'dc-dec.svg',
-      'front-post-dc.svg'
-    ]);
-    
-    // Override the original function temporarily for this component
-    window.originalHasStitchSymbol = hasStitchSymbol;
-    window.hasStitchSymbol = function(stitchType) {
-      if (!stitchType) return false;
-      
-      // Extract the stitch type without any number prefix
-      const cleanType = stitchType.toString().replace(/^\d+/, '').toLowerCase();
-      
-      // Check if we have a mapping for this stitch type AND the SVG exists
-      return !!stitchSymbolMapping[cleanType] && availableSvgs.has(stitchSymbolMapping[cleanType]);
-    };
-    
-    // Set mounted state
-    mounted.value = true;
-    
-    // Use nextTick to ensure the component is fully rendered
-    nextTick(() => {
-      // Initialize the scroll position after mounting
-      updateScrollPosition();
-      
-      // Load notes for the initial row
-      loadRowNotes();
-    });
-  } catch (error) {
-    console.error('Error in onMounted:', error);
-  }
+  mounted.value = true;
+  
+  // Use nextTick to ensure the component is fully rendered
+  nextTick(() => {
+    // Load notes for the initial row
+    loadRowNotes();
+  });
 });
 
 // Clean up when component is unmounted
 onUnmounted(() => {
-  try {
-    // Set mounted to false to prevent any further updates
-    mounted.value = false;
-    
-    // Restore the original function if it was saved
-    if (window.originalHasStitchSymbol) {
-      window.hasStitchSymbol = window.originalHasStitchSymbol;
-      delete window.originalHasStitchSymbol;
-    }
-  } catch (error) {
-    console.error('Error in onUnmounted:', error);
-  }
+  mounted.value = false;
 });
 
-// Watch for changes to update scroll position and load notes - with safety checks
-watch([currentRowIndex, currentStitchIndex, stitchesPerView], () => {
-  if (!mounted.value) return;
-  
-  nextTick(() => {
-    updateScrollPosition();
-  });
-});
-
-// Watch for changes in currentRowIndex
+// Watch for changes to currentRowIndex to load notes
 watch(currentRowIndex, (newIndex, oldIndex) => {
   if (!mounted.value) return;
   
@@ -623,139 +380,6 @@ watch(currentRowIndex, (newIndex, oldIndex) => {
     }
   });
 });
-
-// Simpler stitch processing function
-function processRowStitches(codes, expandRepeated) {
-  if (!codes || !Array.isArray(codes)) return [];
-  
-  if (!expandRepeated) {
-    // Just return the codes as is when not expanding
-    return codes;
-  } else {
-    // Expand repeated stitches (e.g., "3sc" becomes ["sc", "sc", "sc"])
-    const expandedStitches = [];
-    
-    codes.forEach(stitch => {
-      if (!stitch) return;
-      
-      const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-      if (match) {
-        const count = parseInt(match[1]);
-        const type = match[2];
-        
-        for (let i = 0; i < count; i++) {
-          expandedStitches.push(type);
-        }
-      } else {
-        // If no match (no number prefix), just add the stitch as is
-        expandedStitches.push(stitch);
-      }
-    });
-    
-    return expandedStitches;
-  }
-}
-
-// Get stitch class for styling
-function getStitchClass(stitch) {
-  if (!stitch) return '';
-  
-  // Extract the stitch type (removing any number prefix)
-  const type = stitch.toString().replace(/^\d+/, '');
-  
-  // Map common stitch types to classes
-  const stitchClasses = {
-    'sc': 'stitch-sc',
-    'dc': 'stitch-dc',
-    'hdc': 'stitch-hdc',
-    'tr': 'stitch-tr',
-    'dtr': 'stitch-dtr',
-    'ch': 'stitch-ch',
-    'sl': 'stitch-sl',
-    'inc': 'stitch-inc',
-    'dec': 'stitch-dec',
-    'bs': 'stitch-bs',
-    'ns': 'stitch-ns'
-  };
-  
-  return stitchClasses[type] || '';
-}
-
-// Color hex mapping
-const getColorHex = (colorName) => {
-  if (!colorName) return '#888888';
-  
-  const colorMap = {
-    'red': '#ff5252',
-    'blue': '#4f87ff',
-    'green': '#4caf50',
-    'yellow': '#ffc107',
-    'purple': '#9c27b0',
-    'pink': '#e91e63',
-    'orange': '#ff9800',
-    'teal': '#009688',
-    'brown': '#795548',
-    'gray': '#9e9e9e',
-    'black': '#000000',
-    'white': '#ffffff',
-    'a': '#ff5252',
-    'b': '#4f87ff',
-    'c': '#4caf50',
-    'd': '#ffc107',
-    'e': '#9c27b0',
-    'f': '#e91e63',
-    'g': '#ff9800',
-    'h': '#009688'
-  };
-  
-  return colorMap[colorName.toLowerCase()] || colorName;
-};
-
-// Common stitches for the key
-const commonStitches = {
-  'ch': { label: 'Chain (ch)' },
-  'sl': { label: 'Slip Stitch (sl st)' },
-  'sc': { label: 'Single Crochet (sc)' },
-  'hdc': { label: 'Half Double Crochet (hdc)' },
-  'dc': { label: 'Double Crochet (dc)' },
-  'tr': { label: 'Treble Crochet (tr)' },
-  'dtr': { label: 'Double Treble Crochet (dtr)' }
-};
-
-// New method to safely set view mode
-const safeSetViewMode = (mode) => {
-  if (mounted.value) {
-    viewMode.value = mode;
-  }
-};
-
-// New method to toggle stitch display
-const toggleStitchDisplay = () => {
-  if (mounted.value) {
-    displayRepeatedStitchesSeparately.value = !displayRepeatedStitchesSeparately.value;
-  }
-};
-
-// Additional helper functions
-function getStitchCount(stitch) {
-  if (!stitch) return 1;
-  
-  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-  if (match) {
-    return parseInt(match[1]);
-  }
-  return 1;
-}
-
-function getStitchType(stitch) {
-  if (!stitch) return '';
-  
-  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-  if (match) {
-    return match[2];
-  }
-  return stitch;
-}
 </script>
 
 <style scoped>
@@ -1040,6 +664,30 @@ function getStitchType(stitch) {
   outline: none;
 }
 
+/* Row navigation */
+.row-navigation {
+  margin-top: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border-color, #444);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.row-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.row-counter {
+  color: var(--text-secondary, #aaa);
+  font-size: 0.9rem;
+}
+
 /* Navigation buttons */
 .nav-button {
   padding: 0.5rem 1rem;
@@ -1068,87 +716,6 @@ function getStitchType(stitch) {
 .nav-button.large {
   padding: 0.8rem 1.2rem;
   font-size: 1rem;
-}
-
-/* Stitch navigation */
-.stitch-navigation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  width: 100%;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.stitch-content {
-  flex: 1;
-  text-align: center;
-}
-
-.current-stitches {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.stitch-progress {
-  font-size: 0.9rem;
-  color: var(--text-secondary, #aaa);
-}
-
-/* Full row preview */
-.full-row-preview {
-  margin-top: 1rem;
-  width: 100%;
-}
-
-.full-row-preview h3 {
-  font-size: 1.1rem;
-  margin: 0 0 1rem 0;
-  color: var(--text-primary, #fff);
-}
-
-.preview-content {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  min-height: 70px;
-  align-items: center;
-  scroll-behavior: smooth;
-}
-
-/* Row navigation */
-.row-navigation {
-  margin-top: 1rem;
-  padding: 1rem 0;
-  border-top: 1px solid var(--border-color, #444);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.row-selector {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  flex: 1;
-}
-
-.row-counter {
-  color: var(--text-secondary, #aaa);
-  font-size: 0.9rem;
 }
 
 /* Row select dropdown */
@@ -1185,38 +752,6 @@ function getStitchType(stitch) {
 .row-select:focus {
   outline: none;
   border-color: var(--accent-color, #4f87ff);
-}
-
-/* Stitch wrapper in preview */
-.stitch-wrapper {
-  display: inline-block;
-  margin: 2px;
-}
-
-.stitch-wrapper.preview-stitch {
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.stitch-wrapper.preview-stitch.current-stitch {
-  transform: translateY(-5px);
-}
-
-.stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
-  border: 2px solid var(--accent-color, #4f87ff);
-  box-shadow: 0 0 8px rgba(79, 135, 255, 0.4);
-}
-
-.stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
-  opacity: 0.7;
-  background-color: var(--completed-bg, #555) !important;
-  border-color: var(--completed-border, #444) !important;
-}
-
-.stitch-svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
 }
 
 .no-stitches, .no-data-message {
