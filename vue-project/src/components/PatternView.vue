@@ -1591,6 +1591,10 @@ defineExpose({
 .stitch-content {
   flex: 1;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .current-stitches {
@@ -1601,6 +1605,7 @@ defineExpose({
   gap: 1rem;
   flex-wrap: wrap;
   color: var(--accent-color);
+  width: 100%;
 }
 
 .current-stitches span {
@@ -1642,6 +1647,8 @@ defineExpose({
 .stitch-progress {
   color: var(--text-secondary);
   font-size: 0.9rem;
+  text-align: center;
+  width: 100%;
 }
 
 /* Full row preview styles */
