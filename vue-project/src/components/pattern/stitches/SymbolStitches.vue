@@ -126,7 +126,7 @@ const props = defineProps({
 
 // Local state for component
 const mounted = ref(false);
-const displayRepeatedStitchesSeparately = ref(true);
+const displayRepeatedStitchesSeparately = ref(false);
 const currentStitchIndex = ref(0);
 const stitchesPerView = ref(props.initialStitchesPerView);
 const stitchVisRef = ref(null);
