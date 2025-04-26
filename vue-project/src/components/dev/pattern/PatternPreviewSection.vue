@@ -4,7 +4,12 @@
       <h4>Pattern Preview ({{ rows.length }} rows)</h4>
       <button @click="$emit('add-new-row')" class="add-row-button">+ Add Row</button>
     </div>
-    <div class="pattern-preview">
+    
+    <!-- View mode toggle -->
+    <PatternViewToggle v-model:viewMode="viewMode" class="view-toggle" />
+    
+    <!-- Text-based pattern preview -->
+    <div v-if="viewMode === 'text'" class="pattern-preview">
       <div v-for="(row, index) in rows" :key="index" class="preview-row">
         <div class="preview-row-header">
           <span class="preview-row-number">Row {{ row.number }}</span>
@@ -73,10 +78,17 @@
         </div>
       </div>
     </div>
+    
+    <!-- Crochet chart notation view -->
+    <CrochetNotationView v-else-if="viewMode === 'chart'" :rows="rows" />
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue';
+import PatternViewToggle from './PatternViewToggle.vue';
+import CrochetNotationView from './crochet/CrochetNotationView.vue';
+
 const props = defineProps({
   rows: {
     type: Array,
@@ -85,6 +97,9 @@ const props = defineProps({
 });
 
 defineEmits(['add-new-row', 'edit-row']);
+
+// View mode state (text or chart)
+const viewMode = ref('text');
 
 // Helper functions for stitch display
 const getStitchCount = (stitch) => {
@@ -121,33 +136,22 @@ const getStitchClass = (stitch) => {
 
 // Helper function to get color hex
 const getColorHex = (colorName) => {
-  // Map color names to hex values
   const colorMap = {
     'red': '#ff5252',
     'blue': '#4f87ff',
     'green': '#4caf50',
-    'yellow': '#ffeb3b',
-    'orange': '#ff9800',
+    'yellow': '#ffc107',
     'purple': '#9c27b0',
     'pink': '#e91e63',
+    'orange': '#ff9800',
+    'teal': '#009688',
     'brown': '#795548',
-    'black': '#000000',
-    'white': '#ffffff',
     'gray': '#9e9e9e',
-    'grey': '#9e9e9e'
+    'black': '#000000',
+    'white': '#ffffff'
   };
   
-  // Try to match the color name to our map
-  const lowerColor = colorName.toLowerCase();
-  
-  for (const [key, value] of Object.entries(colorMap)) {
-    if (lowerColor.includes(key)) {
-      return value;
-    }
-  }
-  
-  // Default color if no match
-  return '#9e9e9e';
+  return colorMap[colorName.toLowerCase()] || colorName;
 };
 </script>
 
@@ -163,6 +167,10 @@ const getColorHex = (colorName) => {
   margin: 0 0 1rem;
   color: var(--text-primary, #fff);
   font-size: 1.125rem;
+}
+
+.view-toggle {
+  margin-bottom: 1rem;
 }
 
 .pattern-preview {
