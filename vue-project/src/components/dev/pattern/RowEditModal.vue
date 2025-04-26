@@ -169,7 +169,7 @@
         <!-- Action Buttons -->
         <div class="action-buttons">
           <button @click="saveRowEdit" class="save-button">Save Changes</button>
-          <button @click="closeModal" class="cancel-button">Cancel</button>
+          <button @click="closeModal" >Cancel</button>
         </div>
       </div>
     </div>
@@ -570,13 +570,14 @@ const getColorHex = (color) => {
 }
 
 .cancel-button {
-  background: var(--button-secondary-bg, #444);
-  color: var(--text-primary, #fff);
-  border: 1px solid var(--button-secondary-border, #555);
+  background: var(--button-bg, #2a2a2a);
+  color: var(--button-text, #ffffff);
+  border: 1px solid var(--button-border, #333333);
+  transition: all 0.2s ease;
 }
 
 .cancel-button:hover {
-  background: var(--button-secondary-hover, #555);
+  background: var(--button-hover-bg, #333333);
 }
 
 /* Preview Styles */
@@ -629,7 +630,6 @@ const getColorHex = (color) => {
   align-items: center;
   padding: 0.5rem;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.1);
 }
 
 .preview-stitch {
@@ -712,6 +712,22 @@ const getColorHex = (color) => {
   position: relative;
 }
 
+/* Custom light cancel button */
+.light-cancel-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #e0e0e0;
+  color: #333;
+  border: 1px solid #d0d0d0;
+  transition: all 0.2s ease;
+}
+
+.light-cancel-button:hover {
+  background: #d0d0d0;
+}
+
 /* Light theme overrides */
 :root.light .row-edit-modal {
   background: #ffffff;
@@ -755,17 +771,13 @@ const getColorHex = (color) => {
 }
 
 :root.light .cancel-button {
-  background: #e0e0e0;
-  color: #333;
-  border: 1px solid #d0d0d0;
+  background: #f2f2f2 !important;
+  color: #333 !important;
+  border: 1px solid #d0d0d0 !important;
 }
 
 :root.light .cancel-button:hover {
-  background: #d0d0d0;
-}
-
-:root.light .preview-stitches {
-  background: rgba(0, 0, 0, 0.05);
+  background: #e0e0e0 !important;
 }
 
 :root.light .preview-stitch {

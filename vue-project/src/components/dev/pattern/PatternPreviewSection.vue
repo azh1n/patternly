@@ -170,7 +170,7 @@ const getColorHex = (colorName) => {
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
-  background: var(--preview-bg, #1a1a1a);
+  background: var(--card-bg, #2a2a2a);
   border-radius: 8px;
   border: 1px solid var(--border-color, #444);
   max-height: 500px;
@@ -230,7 +230,6 @@ const getColorHex = (colorName) => {
   align-items: center;
   padding: 0.5rem;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.1);
 }
 
 .no-stitches-message {
@@ -345,8 +344,9 @@ const getColorHex = (colorName) => {
 
 /* Light theme overrides */
 :root.light .pattern-preview {
-  background: #f5f5f5;
+  background: #ffffff;
   border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 :root.light .preview-row-number {

@@ -1710,11 +1710,6 @@ const applyQuickFormat = (format) => {
     align-items: center;
     padding: 0.5rem;
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.1);
-}
-
-:root.light .preview-stitches {
-    background: rgba(0, 0, 0, 0.05);
 }
 
 .no-stitches-message {

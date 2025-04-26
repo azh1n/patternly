@@ -1613,7 +1613,7 @@ const handleRowSave = (updatedRow) => {
   display: flex;
   align-items: center;
   padding: 0.75rem;
-  background: var(--item-bg, #333);
+  background: var(--card-bg, #2a2a2a);
   border-radius: 6px;
   gap: 0.75rem;
 }
@@ -2003,6 +2003,7 @@ const handleRowSave = (updatedRow) => {
 
 :root.light .detection-item {
   background: #f5f5f5;
+  border: 1px solid #e0e0e0;
 }
 
 :root.light .detection-item .label {
@@ -2044,7 +2045,16 @@ const handleRowSave = (updatedRow) => {
   border-top: 1px solid #e0e0e0;
 }
 
+/* Light theme override for cancel button */
+:root.light .cancel-button {
+  background: #f2f2f2;
+  color: #333;
+  border: 1px solid #d0d0d0;
+}
 
+:root.light .cancel-button:hover {
+  background: #e0e0e0;
+}
 
 /* No rows message styles */
 .no-rows-message {
