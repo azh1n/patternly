@@ -157,7 +157,7 @@
               :currentRow="currentRow"
               :initialStitchesPerView="stitchesPerView"
               :maxStitchesPerView="totalStitches"
-              class="visualization-component"
+              class="visualization-component symbols-visualization"
             />
           </div>
           
@@ -171,7 +171,7 @@
         </div>
 
         <!-- Full row preview section -->
-        <div class="full-row-preview">
+        <div v-if="visualizationMode === 'text'" class="full-row-preview">
           <h3>Full Row Preview</h3>
           <div class="preview-content" :class="{ 'row-completed': isRowComplete }">
             <template v-if="windowWidth < 768">
@@ -2175,7 +2175,7 @@ const getStitchClass = (code) => {
 /* Style for visualization components */
 .visualization-component {
   width: 100%;
-  min-height: 120px;
+  min-height: 200px;
   margin: 1rem 0;
   display: flex;
   flex-direction: column;
@@ -2185,6 +2185,7 @@ const getStitchClass = (code) => {
   border-radius: 8px;
   padding: 1rem;
   border: 1px solid var(--border-color);
+  overflow: visible;
 }
 
 .visualization-component :deep(.stitch-visualization) {
@@ -2192,13 +2193,29 @@ const getStitchClass = (code) => {
   border: none;
   padding: 0;
   margin: 0;
+  min-height: 180px;
+}
+
+.visualization-component :deep(.stitch-content) {
+  min-height: 80px;
+}
+
+.visualization-component :deep(.preview-content) {
+  max-height: none;
+  overflow: visible;
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 50px));
+  gap: 8px;
+  justify-content: center;
 }
 
 .visualization-component :deep(.key-items) {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
+  justify-content: center;
 }
 
 .visualization-component :deep(.key-item) {
@@ -2211,16 +2228,88 @@ const getStitchClass = (code) => {
   font-size: 0.8rem;
 }
 
+.visualization-component :deep(.stitch-key) {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.visualization-component :deep(.stitch-key h5) {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
 /* Media queries for mobile */
 @media (max-width: 767px) {
   .visualization-component {
-    min-height: 100px;
+    min-height: 160px;
     padding: 0.5rem;
   }
   
   .visualization-component :deep(.stitch-control) {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  .visualization-component :deep(.stitch-visualization) {
+    min-height: 140px;
+  }
+  
+  .visualization-component :deep(.key-item) {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+.visualization-component :deep(.full-row-preview) {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.visualization-component :deep(.full-row-preview h3) {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.pattern-card {
+  padding: 2rem;
+  background-color: var(--card-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make sure the pattern card is tall enough to display all content */
+.pattern-card:has(.visualization-component) {
+  min-height: 500px;
+}
+
+.symbols-visualization {
+  min-height: 400px;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  overflow-y: auto;
+  position: relative;
+}
+
+.symbols-visualization :deep(.stitch-symbol img) {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.symbols-visualization :deep(.stitch-wrapper) {
+  margin: 0.25rem;
+}
+
+@media (max-width: 767px) {
+  .symbols-visualization {
+    min-height: 300px;
+    padding: 1rem;
   }
 }
 </style> 
