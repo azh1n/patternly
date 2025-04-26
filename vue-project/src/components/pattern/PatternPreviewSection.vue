@@ -11,16 +11,7 @@
     <!-- View mode toggle -->
     <PatternViewToggle v-model:viewMode="viewMode" class="view-toggle" />
 
-    <!-- Expand/Collapse stitches toggle (only for chart mode) -->
-    <button
-      v-if="viewMode === 'chart'"
-      class="expand-toggle"
-      :aria-pressed="displayRepeatedStitchesSeparately"
-      @click="displayRepeatedStitchesSeparately = !displayRepeatedStitchesSeparately"
-    >
-      <span v-if="displayRepeatedStitchesSeparately">Collapse Stitches</span>
-      <span v-else>Expand Stitches</span>
-    </button>
+
     
     <!-- Text-based pattern preview -->
     <div v-if="viewMode === 'text'" class="pattern-preview">
@@ -88,15 +79,12 @@
         </div>
       </div>
     </div>
-    
-    <!-- Crochet chart notation view -->
+    <!-- Chart-based pattern preview -->
     <CrochetNotationView 
       v-else-if="viewMode === 'chart'" 
       :rows="rows" 
       :rawContent="rawContent"
-      :patternShape="patternShape"
       :collapsed="collapsed"
-      :displayRepeatedStitchesSeparately="displayRepeatedStitchesSeparately"
     />
   </div>
 </template>
@@ -109,8 +97,7 @@ import CrochetNotationView from './crochet/CrochetNotationView.vue';
 // Collapsed state for expand/collapse toggle
 const collapsed = ref(false);
 
-// State for expanded/collapsed stitches
-const displayRepeatedStitchesSeparately = ref(true);
+
 
 const props = defineProps({
   rows: {
@@ -215,6 +202,104 @@ const getColorHex = (colorName) => {
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color, #444);
+}
+
+.pattern-meta {
+  background: var(--meta-bg, #232323);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--border-color, #333);
+  max-width: 480px;
+}
+:root.light .pattern-meta {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.meta-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary, #fff);
+}
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.meta-label {
+  color: var(--text-secondary, #aaa);
+  font-size: 1rem;
+  min-width: 70px;
+  font-weight: 500;
+}
+.meta-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--accent-color, #4CAF50);
+}
+.pattern-badge {
+  background: rgba(76,175,80,0.10);
+  border-radius: 6px;
+  padding: 0.15rem 0.7rem 0.15rem 0.5rem;
+  border: 1px solid rgba(76,175,80,0.18);
+  color: var(--accent-color, #4CAF50);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pattern-badge .meta-icon {
+  color: var(--accent-color, #4CAF50);
+  margin-right: 0.15rem;
+}
+.confidence {
+  font-size: 0.9em;
+  opacity: 0.7;
+  margin-left: 0.3rem;
+}
+.shape-btn.linear {
+  background: var(--accent-color, #4CAF50);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.25rem 1.1rem 0.25rem 0.7rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 1px 6px rgba(76,175,80,0.08);
+  transition: background 0.18s;
+  cursor: pointer;
+}
+.shape-btn.linear:hover {
+  background: var(--accent-hover, #388e3c);
+}
+.shape-btn .meta-icon {
+  color: #fff;
+  margin-right: 0.15rem;
+}
+@media (max-width: 600px) {
+  .pattern-meta {
+    padding: 1rem 0.5rem;
+    max-width: 100%;
+  }
+  .meta-title {
+    font-size: 1.05rem;
+  }
+  .meta-row, .meta-label, .meta-value {
+    font-size: 0.98rem;
+  }
 }
 
 .pattern-preview-section h4 {

@@ -2,43 +2,18 @@
   <div class="crochet-notation-view">
     <div class="notation-header">
       <h4>Crochet Chart Notation</h4>
-      <div class="pattern-info">
-        <div class="pattern-shape-indicator">
-          <span class="shape-label">Pattern Shape:</span>
-          <span class="shape-value" :class="props.patternShape && props.patternShape.type">
-            {{ props.patternShape && props.patternShape.type === 'circular' ? 'Circular' : props.patternShape && props.patternShape.type === 'rectangular' ? 'Rectangular' : 'Unknown' }}
-            <span class="confidence-indicator" v-if="props.patternShape && props.patternShape.type !== 'unknown'">
-              ({{ props.patternShape ? Math.round(props.patternShape.confidence * 100) : 0 }}% confidence)
-            </span>
-          </span>
-        </div>
-      </div>
-      <div class="view-toggle">
-        <button 
-          @click="viewMode = 'linear'" 
-          :class="{ active: viewMode === 'linear' }"
-          title="Show linear notation"
-        >
-          Linear
-        </button>
-        <button 
-          v-if="props.experimental"
-          @click="viewMode = 'circular'" 
-          :class="{ active: viewMode === 'circular' }"
-          title="Show circular notation"
-        >
-          Circular
-        </button>
-        <button 
-          v-if="props.experimental && (props.patternShape && props.patternShape.type === 'circular' || viewMode === '3d')"
-          @click="viewMode = '3d'" 
-          :class="{ active: viewMode === '3d' }"
-          title="Show 3D visualization"
-        >
-          3D View
-        </button>
-      </div>
     </div>
+
+    <!-- Expand/Collapse stitches toggle (always visible for chart/linear) -->
+    <button
+      class="expand-toggle"
+      :aria-pressed="displayRepeatedStitchesSeparately"
+      @click="displayRepeatedStitchesSeparately = !displayRepeatedStitchesSeparately"
+    >
+      <span v-if="displayRepeatedStitchesSeparately">Collapse Stitches</span>
+      <span v-else>Expand Stitches</span>
+    </button>
+
 
     <!-- Linear notation view -->
     <div v-if="viewMode === 'linear'" class="linear-notation">
@@ -54,7 +29,7 @@
           <div v-if="row.stitches && row.stitches.repeated" class="horizontal-stitches">
             <!-- Before repeat -->
             <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
-              <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+              <template v-if="displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
                 <div v-for="j in getStitchCount(stitch)" :key="`before-stitch-${i}-${j}`" class="stitch-wrapper">
                   <StitchSymbol
                     :stitch="getStitchType(stitch)"
@@ -76,7 +51,7 @@
               
               <!-- For repeated stitches, display them separately when expanded -->
               <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
-                <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+                <template v-if="displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
                   <div v-for="j in getStitchCount(stitch)" :key="`rep-stitch-${i}-${j}`" class="stitch-wrapper repeat-stitch">
                     <StitchSymbol
                       :stitch="getStitchType(stitch)"
@@ -98,7 +73,7 @@
             
             <!-- After repeat -->
             <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
-              <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+              <template v-if="displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
                 <div v-for="j in getStitchCount(stitch)" :key="`after-stitch-${i}-${j}`" class="stitch-wrapper">
                   <StitchSymbol
                     :stitch="getStitchType(stitch)"
@@ -120,7 +95,7 @@
             <!-- Flatten structure for better wrapping -->
             <template v-for="(stitch, i) in row.stitches" :key="`stitch-${i}`">
               <!-- For repeated stitches, display them separately -->
-              <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+              <template v-if="displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
                 <div v-for="j in getStitchCount(stitch)" :key="`stitch-${i}-${j}`" class="stitch-wrapper">
                   <StitchSymbol
                     :stitch="getStitchType(stitch)"
@@ -346,15 +321,13 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+
+// Local state for expand/collapse stitches
+const displayRepeatedStitchesSeparately = ref(true);
 import StitchSymbol from './StitchSymbol.vue';
 import Crochet3DView from './Crochet3DView.vue';
-import { detectPatternShape } from '@/utils/patternShapeDetector';
 
 const props = defineProps({
-  displayRepeatedStitchesSeparately: {
-    type: Boolean,
-    required: true
-  },
   rows: {
     type: Array,
     required: true
@@ -362,11 +335,6 @@ const props = defineProps({
   rawContent: {
     type: String,
     default: ''
-  },
-  patternShape: {
-    type: Object,
-    required: true,
-    default: () => ({ type: 'unknown', confidence: 0 })
   },
   collapsed: {
     type: Boolean,
@@ -657,7 +625,7 @@ const getRowStitches = (row) => {
   if (!row || !row.stitches) return [];
   
   if (Array.isArray(row.stitches)) {
-    if (props.displayRepeatedStitchesSeparately) {
+    if (displayRepeatedStitchesSeparately) {
       // Expand repeated stitches into individual stitches
       const expandedStitches = [];
       row.stitches.forEach(stitch => {
@@ -683,7 +651,7 @@ const getExpandedStitchesCount = (stitches, upToIndex = null) => {
   const limit = upToIndex !== null ? upToIndex : stitches.length;
   
   for (let i = 0; i < limit; i++) {
-    if (props.displayRepeatedStitchesSeparately) {
+    if (displayRepeatedStitchesSeparately) {
       count += getStitchCount(stitches[i]);
     } else {
       count += 1;
@@ -695,7 +663,7 @@ const getExpandedStitchesCount = (stitches, upToIndex = null) => {
 
 // Calculate the index for a stitch in the expanded view
 const getExpandedStitchIndex = (stitches, index) => {
-  if (!props.displayRepeatedStitchesSeparately) return index;
+  if (!displayRepeatedStitchesSeparately) return index;
   
   let expandedIndex = 0;
   for (let i = 0; i < index; i++) {
@@ -711,7 +679,7 @@ const getExpandedStitches = (repeatedStitches) => {
   
   // Add before repeat stitches
   if (repeatedStitches.beforeRepeat) {
-    if (props.displayRepeatedStitchesSeparately) {
+    if (displayRepeatedStitchesSeparately) {
       // Expand each stitch based on its count
       repeatedStitches.beforeRepeat.forEach(stitch => {
         const count = getStitchCount(stitch);
@@ -728,7 +696,7 @@ const getExpandedStitches = (repeatedStitches) => {
   // Add repeated stitches
   if (repeatedStitches.repeatedStitches && repeatedStitches.repeatCount) {
     for (let i = 0; i < repeatedStitches.repeatCount; i++) {
-      if (props.displayRepeatedStitchesSeparately) {
+      if (displayRepeatedStitchesSeparately) {
         // Expand each stitch based on its count
         repeatedStitches.repeatedStitches.forEach(stitch => {
           const count = getStitchCount(stitch);
@@ -745,7 +713,7 @@ const getExpandedStitches = (repeatedStitches) => {
   
   // Add after repeat stitches
   if (repeatedStitches.afterRepeat) {
-    if (props.displayRepeatedStitchesSeparately) {
+    if (displayRepeatedStitchesSeparately) {
       // Expand each stitch based on its count
       repeatedStitches.afterRepeat.forEach(stitch => {
         const count = getStitchCount(stitch);
@@ -795,27 +763,28 @@ const commonStitches = {
 </script>
 
 <style scoped>
-.expand-stitches-btn {
-  margin-left: auto;
-  padding: 0.25rem 1rem;
-  background: var(--accent-color, #4CAF50);
-  color: #fff;
+.expand-toggle {
+  margin: 0.5rem 0 1rem 0;
+  padding: 0.35rem 1.2rem;
+  background: var(--accent-color, #4f87ff);
+  color: white;
   border: none;
   border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.2s;
+  outline: none;
+  display: inline-block;
 }
-.expand-stitches-btn:hover {
-  background: var(--accent-color-hover, #388e3c);
+.expand-toggle[aria-pressed="true"] {
+  background: var(--accent-hover, #3a6fd9);
 }
-:root.light .expand-stitches-btn {
-  background: #4CAF50;
-  color: #fff;
+:root.light .expand-toggle {
+  background: #2979ff;
+  color: white;
 }
-:root.light .expand-stitches-btn:hover {
-  background: #388e3c;
+:root.light .expand-toggle[aria-pressed="true"] {
+  background: #1565c0;
 }
 
 .crochet-notation-view {
