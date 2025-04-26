@@ -101,6 +101,14 @@
               </div>
             </div>
             
+
+
+            <!-- Add to storage format preview -->
+            <div class="storage-format-preview">
+              <h4>Storage Format Preview</h4>
+              <pre class="storage-format-text">{{ JSON.stringify(getStorageFormat(), null, 2) }}</pre>
+            </div>
+
             <!-- Fallback for when rows couldn't be parsed -->
             <div v-if="patternText.trim() && !parsedRows.length" class="parsed-rows">
               <h4>Pattern Text</h4>
@@ -228,6 +236,7 @@
   
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
+import { v4 as uuidv4 } from 'uuid';
 import { usePatternStore } from '@/stores/pattern'
 import { auth } from '@/firebase'
 
@@ -248,24 +257,17 @@ const emit = defineEmits(['update:modelValue', 'pattern-added'])
 // Store
 const patternStore = usePatternStore()
 
-// Form state
-const patternName = ref('')
-const patternText = ref('')
-const errorMessage = ref('')
-
-// UI state
-const showAnalysis = ref(true)
-const showRowConfig = ref(false)
-const showColorConfig = ref(false)
-const expandedRows = ref({})
-
-// Pattern analysis state
-const detectedRowFormat = ref('')
-const userRowFormat = ref('')
-const detectedColors = ref([])
-const userColorFormat = ref('')
-const detectedStitches = ref([])
-const parsedRows = ref([])
+// Reactive state for UI
+const patternName = ref('');
+const patternText = ref('');
+const showAnalysis = ref(true);
+const parsedRows = ref([]);
+const detectedRowFormat = ref('');
+const detectedColors = ref([]);
+const showRowConfig = ref(false);
+const showColorConfig = ref(false);
+const userRowFormat = ref('');
+const userColorFormat = ref('');
 
 // Computed properties
 const canSave = computed(() => {
@@ -274,75 +276,6 @@ const canSave = computed(() => {
   
   // Allow saving if there's a name and pattern text, even if parsing is limited
   return hasValidName && hasInput;
-})
-
-// Add a computed property for the database format
-const formattedPatternForDB = computed(() => {
-  if (!parsedRows.value.length) return '';
-  
-  return parsedRows.value.map(row => {
-    const colorInfo = row.color ? row.color : '';
-    
-    // Handle stitches formatting, including repeats
-    let stitchesInfo = '';
-    
-    // Check if this is a repeated stitch pattern
-    if (row.stitches && row.stitches.repeated) {
-      // Format repeated section with parentheses and repeat count
-      const beforeRepeat = Array.isArray(row.stitches.beforeRepeat) ? row.stitches.beforeRepeat.join(', ') : '';
-      const repeatedPart = Array.isArray(row.stitches.repeatedStitches) ? row.stitches.repeatedStitches.join(', ') : '';
-      const afterRepeat = Array.isArray(row.stitches.afterRepeat) ? row.stitches.afterRepeat.join(', ') : '';
-      
-      // Get repeat count from the object
-      const repeatCount = row.stitches.repeatCount || '0';
-      
-      // Build stitches parts array and filter out empty segments
-      const stitchesParts = [];
-      
-      if (beforeRepeat) {
-        stitchesParts.push(beforeRepeat);
-      }
-      
-      // Format the repeat part with consistent spacing
-      if (repeatedPart) {
-        stitchesParts.push(`(${repeatedPart}) x${repeatCount}`);
-      }
-      
-      if (afterRepeat) {
-        stitchesParts.push(afterRepeat);
-      }
-      
-      // Join the parts that have content with consistent spacing
-      stitchesInfo = stitchesParts.join(', ');
-    } else if (Array.isArray(row.stitches)) {
-      // Regular stitch array
-      stitchesInfo = row.stitches.join(', ');
-    } else if (typeof row.stitches === 'string') {
-      // Handle case where stitches might be a string
-      stitchesInfo = row.stitches;
-    } else {
-      // If we can't parse it, use the original row text after stripping row markers
-      const cleanedText = row.text.replace(/^(Round|Row)\s*\d+\s*:?\s*/i, '').trim();
-      // Check for repeat patterns in the raw text
-      const repeatMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
-      if (repeatMatch) {
-        // Preserve the repeat pattern as is
-        const beforeRepeatMatch = cleanedText.match(/^(.*?)\s*\(/);
-        const afterRepeatMatch = cleanedText.match(/x\d+\s*(.*?)$/);
-        
-        const beforeRepeat = beforeRepeatMatch && beforeRepeatMatch[1].trim() ? beforeRepeatMatch[1].trim() + ', ' : '';
-        const repeatedPart = repeatMatch[1].trim();
-        const repeatCount = repeatMatch[2];
-        const afterRepeat = afterRepeatMatch && afterRepeatMatch[1].trim() ? ', ' + afterRepeatMatch[1].trim() : '';
-        
-        stitchesInfo = `${beforeRepeat}(${repeatedPart}) x${repeatCount}${afterRepeat}`;
-      } else {
-        stitchesInfo = cleanedText;
-      }
-    }
-    
-    return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
-  }).join(', ');
 })
 
 // Common patterns for detection
@@ -1150,6 +1083,11 @@ const applyQuickFormat = (format) => {
   showRowConfig.value = false;
   parseRows();
 }
+
+// Watch for changes in parsed rows to update color detection
+watch(parsedRows, () => {
+  detectColors();
+}, { deep: true });
 </script>
   
 <style scoped>
@@ -1878,6 +1816,8 @@ const applyQuickFormat = (format) => {
   color: var(--text-primary, #ffffff);
 }
 
+
+
 .pattern-preview {
   background: var(--card-bg, #2a2a2a);
   border: 1px solid var(--border-color, #333333);
@@ -1912,4 +1852,10 @@ const applyQuickFormat = (format) => {
 .preview-stitch {
   border: 1px solid var(--border-color, #333333);
 }
-</style> 
+
+:root.light .preview-stitch {
+  border: 1px solid var(--border-color, #333333);
+}
+
+
+</style>

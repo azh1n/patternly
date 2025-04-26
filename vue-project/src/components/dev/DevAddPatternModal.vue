@@ -207,11 +207,15 @@
             />
 
             <!-- Pattern Preview Section -->
-            <PatternPreviewSection
-              :rows="parsedRows"
-              @add-new-row="addNewRow"
+            <PatternPreviewSection 
+              v-if="parsedRows.length" 
+              :rows="parsedRows" 
+              :patternShape="detectedPatternShape"
+              @add-new-row="addNewRow" 
               @edit-row="editRow"
             />
+            
+            <!-- Pattern Notation View -->
           </div>
         </div>
         
@@ -246,6 +250,9 @@
   
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
+import { v4 as uuidv4 } from 'uuid'
+import CrochetNotationView from './pattern/crochet/CrochetNotationView.vue'
+import { detectPatternShape } from '@/utils/patternShapeDetector'
 import { usePatternStore } from '@/stores/pattern'
 import { auth } from '@/firebase'
 import RowEditModal from './pattern/RowEditModal.vue'
@@ -281,6 +288,9 @@ const showColorConfig = ref(false)
 const expandedRows = ref({})
 const showRowEditModal = ref(false)
 const showUnparsedContent = ref(true)
+
+// Pattern shape detection
+const detectedPatternShape = ref({ type: 'unknown', confidence: 0 })
 
 // Pattern analysis state
 const detectedRowFormat = ref('')
@@ -422,6 +432,12 @@ const stitchPatterns = [
   { pattern: /\b(\d+)ns\b/i, name: 'ns' },     // net stitch with no space
   { pattern: /\b(\d+)\s*ns\b/i, name: 'ns' }   // net stitch
 ]
+
+// Watch for changes in parsed rows to update color detection and pattern shape
+watch(parsedRows, () => {
+  detectColors();
+  detectedPatternShape.value = detectPatternShape(parsedRows.value, patternText.value);
+}, { deep: true });
 
 // Reset the form when modal opens
 watch(() => props.modelValue, (newVal) => {
@@ -698,9 +714,9 @@ const parseRows = () => {
   if (!detectedRowFormat.value && !userRowFormat.value) {
     // Set default for Round format seen in the screenshot
     if (patternText.value.includes('Round')) {
-      detectedRowFormat.value = 'Round #'
+      detectedRowFormat.value = 'Round #';
     } else if (patternText.value.includes('Row')) {
-      detectedRowFormat.value = 'Row #'
+      detectedRowFormat.value = 'Row #';
     } else {
       parsedRows.value = []
       return
@@ -1237,9 +1253,10 @@ const getColorHex = (color) => {
   if (!color) return '#888888';
   
   // First check if we have a user-defined mapping for this color
-  for (const [mappedColor, hexValue] of Object.entries(colorMappings.value)) {
-    if (color.toLowerCase() === mappedColor.toLowerCase() && hexValue) {
-      return hexValue;
+  for (const [mappedColor, colorValue] of Object.entries(colorMappings.value)) {
+    if (color.toLowerCase() === mappedColor.toLowerCase() && colorValue) {
+      // Return the actual color value instead of the ambiguous one
+      return colorValue;
     }
   }
   
@@ -1508,6 +1525,37 @@ const handleRowSave = (updatedRow) => {
   font-weight: 600;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color, #444);
+}
+
+.storage-format-text {
+  color: var(--text-primary, #ffffff);
+}
+
+.notation-view-container {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pattern-shape-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+.pattern-shape-badge.circular {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--accent-color, #4CAF50);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.pattern-shape-badge.rectangular {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.3);
 }
 
 /* Form Elements */
@@ -2054,6 +2102,24 @@ const handleRowSave = (updatedRow) => {
 
 :root.light .cancel-button:hover {
   background: #e0e0e0;
+}
+
+:root.light .stitch {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .pattern-shape-badge.circular {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+:root.light .pattern-shape-badge.rectangular {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.2);
 }
 
 /* No rows message styles */

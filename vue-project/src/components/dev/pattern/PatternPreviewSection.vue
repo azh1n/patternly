@@ -1,7 +1,13 @@
 <template>
   <div v-if="rows.length" class="pattern-preview-section">
     <div class="preview-header">
-      <h4>Pattern Preview ({{ rows.length }} rows)</h4>
+      <h4>
+        Pattern Preview ({{ rows.length }} rows)
+        <span v-if="patternShape && patternShape.type !== 'unknown'" class="pattern-shape-badge" :class="patternShape.type">
+          {{ patternShape.type === 'circular' ? 'Circular' : 'Rectangular' }}
+          <span class="confidence">({{ Math.round(patternShape.confidence * 100) }}%)</span>
+        </span>
+      </h4>
       <button @click="$emit('add-new-row')" class="add-row-button">+ Add Row</button>
     </div>
     
@@ -80,7 +86,11 @@
     </div>
     
     <!-- Crochet chart notation view -->
-    <CrochetNotationView v-else-if="viewMode === 'chart'" :rows="rows" />
+    <CrochetNotationView 
+      v-else-if="viewMode === 'chart'" 
+      :rows="rows" 
+      :rawContent="rawContent"
+    />
   </div>
 </template>
 
@@ -93,6 +103,14 @@ const props = defineProps({
   rows: {
     type: Array,
     required: true
+  },
+  patternShape: {
+    type: Object,
+    default: () => ({ type: 'unknown', confidence: 0 })
+  },
+  rawContent: {
+    type: String,
+    default: ''
   }
 });
 
@@ -350,6 +368,35 @@ const getColorHex = (colorName) => {
   background: var(--accent-hover, #3a6fd9);
 }
 
+/* Pattern shape badge styles */
+.pattern-shape-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+.pattern-shape-badge.circular {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--accent-color, #4CAF50);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.pattern-shape-badge.rectangular {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.pattern-shape-badge .confidence {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-left: 0.25rem;
+}
+
 /* Light theme overrides */
 :root.light .pattern-preview {
   background: #ffffff;
@@ -386,5 +433,17 @@ const getColorHex = (colorName) => {
 :root.light .repeat-bracket,
 :root.light .repeat-count {
   color: #2979ff;
+}
+
+:root.light .pattern-shape-badge.circular {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+:root.light .pattern-shape-badge.rectangular {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.2);
 }
 </style>

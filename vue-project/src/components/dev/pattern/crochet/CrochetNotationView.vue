@@ -2,6 +2,17 @@
   <div class="crochet-notation-view">
     <div class="notation-header">
       <h4>Crochet Chart Notation</h4>
+      <div class="pattern-info">
+        <div class="pattern-shape-indicator">
+          <span class="shape-label">Pattern Shape:</span>
+          <span class="shape-value" :class="patternShape.type">
+            {{ patternShape.type === 'circular' ? 'Circular' : patternShape.type === 'rectangular' ? 'Rectangular' : 'Unknown' }}
+            <span class="confidence-indicator" v-if="patternShape.type !== 'unknown'">
+              ({{ Math.round(patternShape.confidence * 100) }}% confidence)
+            </span>
+          </span>
+        </div>
+      </div>
       <div class="view-toggle">
         <button 
           @click="viewMode = 'linear'" 
@@ -16,6 +27,14 @@
           title="Show circular notation"
         >
           Circular
+        </button>
+        <button 
+          v-if="patternShape.type === 'circular' || viewMode === '3d'"
+          @click="viewMode = '3d'" 
+          :class="{ active: viewMode === '3d' }"
+          title="Show 3D visualization"
+        >
+          3D View
         </button>
       </div>
     </div>
@@ -162,6 +181,11 @@
         </div>
       </div>
     </div>
+
+    <!-- 3D View -->
+    <div v-else-if="viewMode === '3d'" class="threed-view-container">
+      <Crochet3DView :rows="rows" />
+    </div>
     
     <!-- Stitch key -->
     <div class="stitch-key">
@@ -177,19 +201,38 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import StitchSymbol from './StitchSymbol.vue';
+import Crochet3DView from './Crochet3DView.vue';
+import { detectPatternShape } from '@/utils/patternShapeDetector';
 
 const props = defineProps({
   rows: {
     type: Array,
     required: true
+  },
+  rawContent: {
+    type: String,
+    default: ''
   }
 });
 
-// View mode (linear or circular)
+// View mode (linear, circular, or 3d)
 const viewMode = ref('linear');
 const activeRowIndex = ref(0);
+
+// Pattern shape detection
+const patternShape = ref({ type: 'unknown', confidence: 0 });
+
+// Detect pattern shape when rows or content changes
+watch(() => [props.rows, props.rawContent], () => {
+  patternShape.value = detectPatternShape(props.rows, props.rawContent);
+  
+  // Auto-switch to circular or 3d view if pattern is detected as circular with high confidence
+  if (patternShape.value.type === 'circular' && patternShape.value.confidence > 0.8 && viewMode.value === 'linear') {
+    viewMode.value = 'circular';
+  }
+}, { immediate: true, deep: true });
 
 // SVG dimensions for circular view
 const svgSize = 500;
@@ -513,6 +556,53 @@ const commonStitches = {
   color: var(--text-primary, #fff);
 }
 
+/* Pattern shape indicator styles */
+.pattern-info {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+  margin-left: 1rem;
+}
+
+.pattern-shape-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.shape-label {
+  color: var(--text-secondary, #aaa);
+}
+
+.shape-value {
+  font-weight: 500;
+}
+
+.shape-value.circular {
+  color: var(--accent-color, #4CAF50);
+}
+
+.shape-value.rectangular {
+  color: #2196F3;
+}
+
+.shape-value.unknown {
+  color: var(--text-secondary, #aaa);
+}
+
+.confidence-indicator {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+/* 3D View container */
+.threed-view-container {
+  width: 100%;
+  min-height: 400px;
+}
+
 /* Light theme overrides */
 :root.light .crochet-notation-view {
   background: #ffffff;
@@ -590,5 +680,21 @@ const commonStitches = {
 
 :root.light .key-label {
   color: #333;
+}
+
+:root.light .shape-label {
+  color: #666;
+}
+
+:root.light .shape-value.circular {
+  color: #4CAF50;
+}
+
+:root.light .shape-value.rectangular {
+  color: #2196F3;
+}
+
+:root.light .shape-value.unknown {
+  color: #999;
 }
 </style>
