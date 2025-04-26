@@ -15,11 +15,8 @@
             :key="`focused-stitch-${i}`" 
             class="stitch-wrapper"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
-              {{ getStitchType(stitch) }}
-              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
-                {{ getStitchCount(stitch) }}
-              </div>
+            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+              <span v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
         </template>
@@ -38,11 +35,8 @@
               'completed-stitch': i < currentStitchIndex 
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
-              {{ getStitchType(stitch) }}
-              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
-                {{ getStitchCount(stitch) }}
-              </div>
+            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+              <span v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
         </template>
@@ -449,5 +443,13 @@ defineExpose({
     top: -5px;
     right: -5px;
   }
+}
+
+/* Add the inline stitch count styling */
+.stitch-count-inline {
+  font-weight: bold;
+  margin-right: 1px;
+  position: relative;
+  z-index: 1;
 }
 </style> 

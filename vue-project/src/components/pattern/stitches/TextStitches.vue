@@ -15,11 +15,8 @@
             :key="`focused-stitch-${i}`" 
             class="stitch-wrapper"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': getStitchCount(stitch) > 1 }]">
-              {{ getStitchType(stitch) }}
-              <div v-if="getStitchCount(stitch) > 1" class="stitch-count-badge">
-                {{ getStitchCount(stitch) }}
-              </div>
+            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+              <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
         </template>
@@ -38,11 +35,8 @@
               'completed-stitch': i < currentStitchIndex 
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': getStitchCount(stitch) > 1 }]">
-              {{ getStitchType(stitch) }}
-              <div v-if="getStitchCount(stitch) > 1" class="stitch-count-badge">
-                {{ getStitchCount(stitch) }}
-              </div>
+            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+              <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
         </template>
@@ -272,28 +266,10 @@ defineExpose({
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Stitch count badge */
-.stitch-count-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 18px;
-  height: 18px;
-  background-color: var(--accent-color, #4f87ff);
-  color: white;
-  border-radius: 9px;
-  font-size: 0.75rem;
+/* Inline stitch count styling */
+.stitch-count-inline {
   font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid white;
-  padding: 0 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.stitch-symbol.with-count {
-  overflow: visible;
+  margin-right: 1px;
 }
 
 .no-stitches {
@@ -358,27 +334,27 @@ defineExpose({
 }
 
 .stitch-symbol.stitch-bs {
-  background-color: #009688;
+  background-color: #00bcd4;
   color: white;
-  border-color: #00796b;
+  border-color: #0097a7;
 }
 
 .stitch-symbol.stitch-ns {
   background-color: #607d8b;
   color: white;
-  border-color: #455a64;
+  border-color: #546e7a;
 }
 
 /* Stitch key */
 .stitch-key {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #444);
+  border-top: 1px solid var(--border-color);
 }
 
 .stitch-key h5 {
   margin: 0 0 1rem;
-  color: var(--text-primary, #fff);
+  color: var(--text-primary);
   font-size: 1rem;
   text-align: center;
 }
@@ -402,7 +378,7 @@ defineExpose({
 
 .key-label {
   font-size: 0.875rem;
-  color: var(--text-primary, #fff);
+  color: var(--text-primary);
 }
 
 /* Light theme overrides */
@@ -438,12 +414,8 @@ defineExpose({
     font-size: 0.8rem;
   }
   
-  .stitch-count-badge {
-    min-width: 16px;
-    height: 16px;
+  .stitch-count-inline {
     font-size: 0.7rem;
-    top: -5px;
-    right: -5px;
   }
 
   .stitch-key {

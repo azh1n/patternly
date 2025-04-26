@@ -525,14 +525,6 @@ defineExpose({
     font-size: 0.8rem;
   }
   
-  .stitch-count-badge {
-    min-width: 16px;
-    height: 16px;
-    font-size: 0.7rem;
-    top: -5px;
-    right: -5px;
-  }
-
   .stitch-key {
     margin-top: 1rem;
   }
@@ -544,6 +536,14 @@ defineExpose({
   .key-item .stitch-symbol {
     width: 32px;
     height: 32px;
+  }
+  
+  .stitch-count-badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.7rem;
+    top: -5px;
+    right: -5px;
   }
 }
 </style> 
