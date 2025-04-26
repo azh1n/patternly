@@ -46,15 +46,21 @@
       </template>
     </StitchVisualization>
 
-    <!-- Stitch key -->
-    <div class="stitch-key">
-      <h5>Stitch Key</h5>
-      <div class="key-items">
-        <div v-for="(symbol, abbr) in commonStitches" :key="`key-${abbr}`" class="key-item">
-          <div class="stitch-symbol" :class="getStitchClass(abbr)">
-            {{ abbr }}
+    <!-- Stitch key tooltip -->
+    <div class="stitch-key-wrapper">
+      <button class="stitch-key-trigger" aria-label="Show stitch key">
+        <span class="question-mark">?</span>
+        <span class="tooltip-text">Key</span>
+      </button>
+      <div class="stitch-key-tooltip">
+        <h5>Stitch Key</h5>
+        <div class="key-items">
+          <div v-for="(symbol, abbr) in commonStitches" :key="`key-${abbr}`" class="key-item">
+            <div class="stitch-symbol" :class="getStitchClass(abbr)">
+              {{ abbr }}
+            </div>
+            <span class="key-label">{{ symbol.label }}</span>
           </div>
-          <span class="key-label">{{ symbol.label }}</span>
         </div>
       </div>
     </div>
@@ -380,43 +386,125 @@ defineExpose({
   border-color: #546e7a;
 }
 
-/* Stitch key */
-.stitch-key {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+/* Stitch key tooltip */
+.stitch-key-wrapper {
+  position: relative;
+  display: inline-block;
+  align-self: flex-end;
+  margin: 0.5rem 0;
 }
 
-.stitch-key h5 {
-  margin: 0 0 1rem;
+.stitch-key-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary, #aaa);
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.stitch-key-trigger:hover {
   color: var(--text-primary);
-  font-size: 1rem;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.question-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--text-secondary, #aaa);
+  color: var(--bg-primary, #222);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.tooltip-text {
+  font-size: 0.75rem;
+}
+
+.stitch-key-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  width: 420px;
+  background-color: var(--bg-secondary, #333);
+  border: 1px solid var(--border-color, #444);
+  border-radius: 6px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.stitch-key-wrapper:hover .stitch-key-tooltip {
+  display: block;
+}
+
+.stitch-key-tooltip h5 {
+  margin: 0 0 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
   text-align: center;
 }
 
 .key-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
+  gap: 0.75rem;
+  justify-content: flex-start;
 }
 
 .key-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   background-color: rgba(0, 0, 0, 0.05);
-  padding: 0.35rem 0.6rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  width: calc(50% - 0.375rem);
+  min-width: 180px;
 }
 
 .key-label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 140px;
 }
 
-/* Light theme overrides */
+/* Light theme overrides for the tooltip */
+:root.light .stitch-key-tooltip {
+  background-color: white;
+  border-color: #e0e0e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+:root.light .question-mark {
+  background-color: #aaa;
+  color: white;
+}
+
+:root.light .stitch-key-trigger:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+:root.light .key-item {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Restored light theme overrides */
 :root.light .stitch-symbol.stitch-sc { background-color: #ffcdd2; color: #000; border-color: #ef9a9a; }
 :root.light .stitch-symbol.stitch-dc { background-color: #bbdefb; color: #000; border-color: #90caf9; }
 :root.light .stitch-symbol.stitch-hdc { background-color: #d1c4e9; color: #000; border-color: #b39ddb; }
@@ -429,41 +517,27 @@ defineExpose({
 :root.light .stitch-symbol.stitch-bs { background-color: #b2dfdb; color: #000; border-color: #80cbc4; }
 :root.light .stitch-symbol.stitch-ns { background-color: #cfd8dc; color: #000; border-color: #b0bec5; }
 
-:root.light .stitch-key {
-  border-top-color: #e0e0e0;
-}
-
-:root.light .key-item {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-
 :root.light .key-label {
   color: #333;
 }
 
 /* Mobile adjustments */
 @media (max-width: 767px) {
-  .stitch-symbol {
-    width: 36px;
-    height: 36px;
-    font-size: 0.8rem;
+  .stitch-key-tooltip {
+    width: 340px;
+    left: auto;
+    right: 0;
   }
   
-  .stitch-count-inline {
+  .key-item {
+    width: 100%;
     font-size: 0.7rem;
-  }
-
-  .stitch-key {
-    margin-top: 1rem;
+    min-width: 0;
   }
   
-  .key-items {
-    gap: 0.75rem;
-  }
-  
-  .key-item .stitch-symbol {
-    width: 32px;
-    height: 32px;
+  .key-label {
+    font-size: 0.7rem;
+    min-width: 0;
   }
 }
 </style> 
