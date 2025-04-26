@@ -61,35 +61,6 @@
           </button>
 
         </div>
-        
-        <!-- Stitches per view control -->
-        <div class="stitch-control">
-          <label for="stitchesPerView">Stitches per view:</label>
-          <div class="number-control">
-            <button 
-              @click="decreaseStitches" 
-              class="control-button"
-              :disabled="stitchesPerView <= 1"
-            >
-              −
-            </button>
-            <input 
-              type="number" 
-              id="stitchesPerView" 
-              v-model="stitchesPerView" 
-              min="1"
-              :max="totalStitches"
-              class="number-input"
-            />
-            <button 
-              @click="increaseStitches" 
-              class="control-button"
-              :disabled="stitchesPerView >= totalStitches"
-            >
-              +
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Row notes section -->
