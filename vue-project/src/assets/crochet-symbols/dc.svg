@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30" height="50" viewBox="0 0 30 50" xmlns="http://www.w3.org/2000/svg">
+  <!-- Horizontal line at top -->
+  <path d="M5 5 L25 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Vertical line -->
+  <path d="M15 5 L15 45" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Diagonal line through the middle -->
+  <path d="M10 20 L20 25" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

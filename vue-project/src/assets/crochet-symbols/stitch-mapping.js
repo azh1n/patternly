@@ -6,11 +6,11 @@ export const stitchSymbolMapping = {
   // Basic stitches
   'ch': 'chain.svg',
   'sl': 'slip-stitch.svg',
-  'sc': 'single-crochet.svg',
-  'hdc': 'half-double-crochet.svg',
-  'dc': 'double-crochet.svg',
-  'tr': 'treble-crochet.svg',
-  'dtr': 'double-treble-crochet.svg',
+  'sc': 'sc.svg',
+  'hdc': 'hdc.svg',
+  'dc': 'dc.svg',
+  'tr': 'tr.svg',
+  'dtr': 'dtr.svg',
   
   // Increases
   'inc': 'sc-inc.svg',  // Default increase (single crochet)
@@ -30,23 +30,9 @@ export const stitchSymbolMapping = {
   'hdcdec': 'hdc-dec.svg',  // Alternative abbreviation
   'dc2tog': 'dc-dec.svg',   // Double crochet decrease
   'dcdec': 'dc-dec.svg',    // Alternative abbreviation
-  'sc3tog': 'sc3tog.svg',
-  'dc3tog': 'dc3tog.svg',
-  
-  // Clusters and special stitches
-  '3dc': '3dc-cluster.svg',
-  '3hdc': '3hdc-cluster.svg',
-  '5dc': '5dc-popcorn.svg',
-  '5dcshell': '5dc-shell.svg',
-  'picot': 'ch-3-picot.svg',
   
   // Post stitches
-  'fpdc': 'front-post-dc.svg',
-  'bpdc': 'back-post-dc.svg',
-  
-  // Loop indicators
-  'blo': 'back-loop-only.svg',
-  'flo': 'front-loop-only.svg'
+  'fpdc': 'front-post-dc.svg'
 };
 
 /**

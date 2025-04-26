@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-  <path d="M5 10 C5 40, 35 40, 35 10" stroke="currentColor" stroke-width="2" fill="none"/>
-  <path d="M10 25 L30 25" stroke="currentColor" stroke-width="2" fill="none"/>
-  <path d="M8 15 C8 35, 32 35, 32 15" stroke="currentColor" stroke-width="2" fill="none"/>
-  <path d="M12 20 C12 30, 28 30, 28 20" stroke="currentColor" stroke-width="2" fill="none"/>
-  <path d="M20 10 L20 45" stroke="currentColor" stroke-width="2" fill="none"/>
-</svg>

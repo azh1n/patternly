@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="20" height="50" viewBox="0 0 20 50" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 5 L10 45" stroke="currentColor" stroke-width="2" fill="none"/>
-  <path d="M5 25 L15 25" stroke="currentColor" stroke-width="2" fill="none"/>
-  <path d="M15 35 C15 35, 15 40, 10 40" stroke="currentColor" stroke-width="2" fill="none"/>
+<svg width="30" height="60" viewBox="0 0 30 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Horizontal line at top -->
+  <path d="M5 5 L25 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Vertical line -->
+  <path d="M15 5 L15 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Diagonal crossing mark -->
+  <path d="M10 25 L20 20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Hook at bottom -->
+  <path d="M15 40 C15 40, 15 55, 5 55" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
 </svg>
