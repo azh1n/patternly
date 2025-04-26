@@ -82,23 +82,25 @@
           </div>
           
           <!-- Regular stitches -->
-          <div v-else-if="row.stitches && Array.isArray(row.stitches)">
-            <div v-for="(stitch, i) in row.stitches" :key="`stitch-${i}`">
+          <div v-else-if="row.stitches && Array.isArray(row.stitches)" class="horizontal-stitches">
+            <!-- Flatten structure for better wrapping -->
+            <template v-for="(stitch, i) in row.stitches" :key="`stitch-${i}`">
               <!-- For repeated stitches, display them separately -->
-              <div v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
-                <StitchSymbol 
-                  v-for="j in getStitchCount(stitch)" 
-                  :key="`stitch-${i}-${j}`"
-                  :stitch="getStitchType(stitch)"
-                  :showCount="false"
+              <template v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+                <div v-for="j in getStitchCount(stitch)" :key="`stitch-${i}-${j}`" class="stitch-wrapper">
+                  <StitchSymbol
+                    :stitch="getStitchType(stitch)"
+                    :showCount="false"
+                  />
+                </div>
+              </template>
+              <div v-else class="stitch-wrapper">
+                <StitchSymbol
+                  :stitch="stitch"
+                  :showCount="true"
                 />
               </div>
-              <StitchSymbol 
-                v-else
-                :stitch="stitch"
-                :showCount="true"
-              />
-            </div>
+            </template>
           </div>
           
           <!-- No stitches detected -->
@@ -784,10 +786,13 @@ const commonStitches = {
 
 .crochet-notation-view {
   margin-top: 2rem;
-  padding: 1.5rem;
-  background: var(--card-bg, #2a2a2a);
+  padding: 1rem;
   border-radius: 8px;
+  background: var(--card-bg, #2a2a2a);
   border: 1px solid var(--border-color, #444);
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .notation-header {
@@ -832,7 +837,9 @@ const commonStitches = {
   gap: 1.5rem;
   max-height: 500px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 0.5rem;
+  width: 100%;
 }
 
 .notation-row {
@@ -862,6 +869,7 @@ const commonStitches = {
 
 .row-stitches {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
@@ -869,6 +877,8 @@ const commonStitches = {
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.1);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .no-stitches-message {
@@ -879,6 +889,38 @@ const commonStitches = {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   border: 1px dashed var(--border-color, #444);
+}
+
+/* Stitch container styling */
+.horizontal-stitches {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.stitch-container {
+  display: flex;
+  flex-direction: row;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.stitch-wrapper {
+  display: inline-block;
+  margin: 0.25rem;
+}
+
+.repeated-stitch-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  align-items: center;
 }
 
 /* Repeat group styling */
