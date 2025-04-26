@@ -276,27 +276,25 @@ defineExpose({
 /* Full row preview */
 .full-row-preview {
   margin-top: 1rem;
-  width: 100%;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
 }
 
 .full-row-preview h3 {
-  font-size: 1.1rem;
-  margin: 0 0 1rem 0;
-  color: var(--text-primary, #fff);
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: var(--text-primary);
 }
 
 .preview-content {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
   overflow-x: auto;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  min-height: 70px;
-  align-items: center;
-  scroll-behavior: smooth;
+  padding: 0.5rem;
+  margin-top: 1rem;
 }
 
 /* Light theme overrides */

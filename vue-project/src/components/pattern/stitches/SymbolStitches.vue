@@ -346,10 +346,11 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  width: 100%;
 }
 
 .expand-toggle {
-  margin: 0.5rem 0 1rem 0;
+  margin: 0.5rem auto 1rem auto;
   padding: 0.35rem 1.2rem;
   background: var(--accent-color, #4f87ff);
   color: white;
@@ -360,7 +361,7 @@ defineExpose({
   transition: background 0.2s;
   outline: none;
   display: inline-block;
-  align-self: flex-start;
+  align-self: center;
 }
 
 .expand-toggle[aria-pressed="true"] {
@@ -379,7 +380,7 @@ defineExpose({
 }
 
 .stitch-wrapper.preview-stitch.current-stitch {
-  transform: translateY(-5px);
+  transform: translateY(-3px);
 }
 
 .stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
@@ -457,18 +458,24 @@ defineExpose({
   margin: 0 0 1rem;
   color: var(--text-primary, #fff);
   font-size: 1rem;
+  text-align: center;
 }
 
 .key-items {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+  justify-content: center;
 }
 
 .key-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
 }
 
 .key-label {
@@ -491,6 +498,10 @@ defineExpose({
 
 :root.light .stitch-key {
   border-top-color: #e0e0e0;
+}
+
+:root.light .key-item {
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 :root.light .key-label {

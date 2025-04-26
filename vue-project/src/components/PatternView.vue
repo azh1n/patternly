@@ -120,14 +120,6 @@
       <!-- Pattern card with stitch navigation -->
       <div class="pattern-card">
         <div class="stitch-navigation">
-          <button 
-            @click="previousStitches" 
-            class="nav-button"
-            :disabled="currentStitchIndex === 0"
-          >
-            <font-awesome-icon icon="chevron-left" />
-          </button>
-          
           <!-- Current stitches display -->
           <div class="stitch-content">
             <!-- Text mode visualization (original) -->
@@ -160,14 +152,6 @@
               class="visualization-component symbols-visualization"
             />
           </div>
-          
-          <button 
-            @click="nextStitches" 
-            class="nav-button"
-            :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
-          >
-            <font-awesome-icon icon="chevron-right" />
-          </button>
         </div>
 
         <!-- Full row preview section -->
@@ -213,13 +197,6 @@
 
       <!-- Row navigation controls -->
       <div class="row-navigation">
-        <button 
-          @click="previousRow" 
-          class="nav-button large"
-          :disabled="currentRowIndex === 0"
-        >
-          <font-awesome-icon icon="arrow-left" />
-        </button>
         <div class="row-selector">
           <span class="row-label desktop-only">Row</span>
           <select 
@@ -241,13 +218,6 @@
           </select>
           <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
         </div>
-        <button 
-          @click="nextRow" 
-          class="nav-button large"
-          :disabled="currentRowIndex === parsedRows.length - 1"
-        >
-          <font-awesome-icon icon="arrow-right" />
-        </button>
       </div>
       
       <!-- Experimental features section -->
@@ -1547,14 +1517,17 @@ defineExpose({
 .pattern-card {
   padding: 2rem;
   background-color: var(--card-bg);
+  display: flex;
+  flex-direction: column;
 }
 
-/* Stitch navigation styles */
+/* Stitch navigation */
 .stitch-navigation {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
   margin-bottom: 2rem;
+  width: 100%;
 }
 
 /* Navigation button styles */
@@ -1739,8 +1712,7 @@ defineExpose({
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
+  justify-content: center;
 }
 
 .row-selector {
@@ -1748,7 +1720,8 @@ defineExpose({
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  flex: 1;
+  max-width: 400px;
+  width: 100%;
 }
 
 .row-label {
@@ -2200,16 +2173,15 @@ defineExpose({
 /* Style for visualization components */
 .visualization-component {
   width: 100%;
-  min-height: 200px;
-  margin: 1rem 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: stretch;
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid var(--border-color);
+  background-color: transparent;
+  border-radius: 0;
+  padding: 0;
+  border: none;
   overflow: visible;
 }
 
@@ -2218,105 +2190,11 @@ defineExpose({
   border: none;
   padding: 0;
   margin: 0;
-  min-height: 180px;
-}
-
-.visualization-component :deep(.stitch-content) {
-  min-height: 80px;
-}
-
-.visualization-component :deep(.preview-content) {
-  max-height: none;
-  overflow: visible;
-  margin-top: 1rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(50px, 50px));
-  gap: 8px;
-  justify-content: center;
-}
-
-.visualization-component :deep(.key-items) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  justify-content: center;
-}
-
-.visualization-component :deep(.key-item) {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.05);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-.visualization-component :deep(.stitch-key) {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.visualization-component :deep(.stitch-key h5) {
-  text-align: center;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  color: var(--text-primary);
-}
-
-/* Media queries for mobile */
-@media (max-width: 767px) {
-  .visualization-component {
-    min-height: 160px;
-    padding: 0.5rem;
-  }
-  
-  .visualization-component :deep(.stitch-control) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .visualization-component :deep(.stitch-visualization) {
-    min-height: 140px;
-  }
-  
-  .visualization-component :deep(.key-item) {
-    font-size: 0.75rem;
-    padding: 0.2rem 0.4rem;
-  }
-}
-
-.visualization-component :deep(.full-row-preview) {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.visualization-component :deep(.full-row-preview h3) {
-  text-align: center;
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
-.pattern-card {
-  padding: 2rem;
-  background-color: var(--card-bg);
-  display: flex;
-  flex-direction: column;
-}
-
-/* Make sure the pattern card is tall enough to display all content */
-.pattern-card:has(.visualization-component) {
-  min-height: 500px;
 }
 
 .symbols-visualization {
-  min-height: 400px;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
+  min-height: 200px;
+  margin-bottom: 1rem;
   overflow-y: auto;
   position: relative;
 }
@@ -2333,8 +2211,8 @@ defineExpose({
 
 @media (max-width: 767px) {
   .symbols-visualization {
-    min-height: 300px;
-    padding: 1rem;
+    min-height: 150px;
+    padding: 0.75rem;
   }
 }
 
