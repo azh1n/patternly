@@ -32,26 +32,32 @@ export const stitchSymbolMapping = {
   'dcdec': 'dc-dec.svg',    // Alternative abbreviation
   
   // Post stitches
-  'fpdc': 'front-post-dc.svg'
+  'fpdc': 'front-post-dc.svg',
+  
+  // Stitch codes specific to patterns
+  'ns': 'negative-stitch.svg',
+  'bs': 'border-stitch.svg'
 };
 
 /**
  * Maps a stitch abbreviation to its corresponding symbol file path
  * @param {string} stitchType - The stitch abbreviation (e.g., 'sc', 'dc')
- * @returns {string} - Path to the SVG symbol or null if not found
+ * @returns {string} - Path to the SVG symbol or empty string if not found
  */
 export function getStitchSymbolPath(stitchType) {
-  if (!stitchType) return null;
+  if (!stitchType) return '';
   
   const lowerType = stitchType.toLowerCase();
   const symbolFile = stitchSymbolMapping[lowerType];
   
   if (symbolFile) {
-    // Use relative path to ensure proper loading
-    return new URL(`/src/assets/crochet-symbols/${symbolFile}`, import.meta.url).href;
+    // For now, return an empty string since actual SVG files might not exist yet
+    // In a real implementation, this would return a path to the SVG file
+    // return new URL(`/src/assets/crochet-symbols/${symbolFile}`, import.meta.url).href;
+    return '';
   }
   
-  return null;
+  return '';
 }
 
 /**
@@ -61,5 +67,9 @@ export function getStitchSymbolPath(stitchType) {
  */
 export function hasStitchSymbol(stitchType) {
   if (!stitchType) return false;
-  return !!stitchSymbolMapping[stitchType.toLowerCase()];
+  
+  // For now, always return false to use text fallback
+  // When actual SVG files are implemented, this should be:
+  // return !!stitchSymbolMapping[stitchType.toLowerCase()];
+  return false;
 }

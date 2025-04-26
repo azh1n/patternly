@@ -247,6 +247,20 @@
             <font-awesome-icon icon="code" />
             {{ showRawPattern ? 'Hide Raw Pattern' : 'View Raw Pattern' }}
           </button>
+          
+          <!-- Add pattern chart view toggle button -->
+          <button class="feature-button" @click="showChartView = !showChartView">
+            <font-awesome-icon icon="chart-pie" />
+            {{ showChartView ? 'Hide Chart View' : 'Show Chart View' }}
+          </button>
+        </div>
+        
+        <!-- Pattern Chart View (experimental) -->
+        <div v-if="showChartView" class="chart-view-container">
+          <PatternChartView 
+            :pattern="{ ...props.pattern, parsedRows }" 
+            :experimental="true" 
+          />
         </div>
         
         <!-- Raw Pattern Display for Debugging -->
@@ -266,6 +280,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import PatternChartView from './pattern/PatternChartView.vue'
 
 // Component props
 const props = defineProps({
@@ -296,6 +311,7 @@ const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
 const showRawPattern = ref(false)  // State for showing raw pattern
+const showChartView = ref(false)   // State for showing chart view
 
 // Notes feature state
 const currentRowNotes = ref('')  // Current row notes content
@@ -2018,5 +2034,15 @@ const getStitchClass = (code) => {
   box-shadow: 0 0 10px rgba(66, 184, 131, 0.5);
   outline: 2px solid rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
+}
+
+.chart-view-container {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.feature-button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 </style> 

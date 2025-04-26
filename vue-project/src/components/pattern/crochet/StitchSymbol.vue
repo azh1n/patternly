@@ -18,7 +18,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { getStitchSymbolPath, hasStitchSymbol } from '@/assets/crochet-symbols/stitch-mapping';
+import { hasStitchSymbol, getStitchSymbolPath } from '../../../assets/crochet-symbols/stitch-mapping.js';
 
 const props = defineProps({
   stitch: {
@@ -38,22 +38,29 @@ const count = computed(() => {
 });
 
 const stitchType = computed(() => {
+  // Handle cases where stitch might already be sanitized (no numbers)
+  if (!props.stitch.match(/^\d+/)) {
+    return props.stitch;
+  }
+  
   const match = props.stitch.match(/^(\d+)?([a-zA-Z]+)/);
   return match ? match[2] : props.stitch;
 });
 
+// Check if we have a symbol for this stitch type
 const hasSymbol = computed(() => {
   return hasStitchSymbol(stitchType.value);
 });
 
+// Get the path to the stitch symbol
 const symbolPath = computed(() => {
   return getStitchSymbolPath(stitchType.value);
 });
 
 const getStitchClass = () => {
-  const type = stitchType.value;
-  const lowerType = type.toLowerCase();
+  const type = stitchType.value.toLowerCase();
   
+  // Handle special cases like bs, ns which may not be in the mapping
   // Map common stitch types to classes
   const stitchClasses = {
     'sc': 'stitch-sc',
@@ -66,10 +73,18 @@ const getStitchClass = () => {
     'inc': 'stitch-inc',
     'dec': 'stitch-dec',
     'bs': 'stitch-bs',
-    'ns': 'stitch-ns'
+    'ns': 'stitch-ns',
+    '1sc': 'stitch-sc',
+    '1dc': 'stitch-dc',
+    '2sc': 'stitch-sc',
+    '2dc': 'stitch-dc',
+    '3sc': 'stitch-sc',
+    '3dc': 'stitch-dc',
+    '4sc': 'stitch-sc',
+    '4dc': 'stitch-dc'
   };
   
-  return stitchClasses[lowerType] || '';
+  return stitchClasses[type] || '';
 };
 </script>
 
@@ -91,7 +106,6 @@ const getStitchClass = () => {
   transition: all 0.2s ease;
 }
 
-/* Remove height increase for counted stitches */
 .with-count {
   position: relative;
 }
@@ -154,40 +168,101 @@ const getStitchClass = () => {
 }
 
 /* Stitch type-specific styling */
-.stitch-symbol.stitch-sc,
-.stitch-symbol.stitch-dc,
-.stitch-symbol.stitch-hdc,
-.stitch-symbol.stitch-tr,
+.stitch-symbol.stitch-sc {
+  background: var(--stitch-sc-bg, #e91e63);
+  color: white;
+}
+
+.stitch-symbol.stitch-dc {
+  background: var(--stitch-dc-bg, #4caf50);
+  color: white;
+}
+
+.stitch-symbol.stitch-hdc {
+  background: var(--stitch-hdc-bg, #ff9800);
+  color: white;
+}
+
+.stitch-symbol.stitch-tr {
+  background: var(--stitch-tr-bg, #2196f3);
+  color: white;
+}
+
 .stitch-symbol.stitch-dtr {
-  background: var(--stitch-bg, #333);
+  background: var(--stitch-dtr-bg, #9c27b0);
+  color: white;
 }
 
-:root.light .stitch-symbol.stitch-sc,
-:root.light .stitch-symbol.stitch-dc,
-:root.light .stitch-symbol.stitch-hdc,
-:root.light .stitch-symbol.stitch-tr,
-:root.light .stitch-symbol.stitch-dtr {
-  background: #ffffff;
+.stitch-symbol.stitch-ch {
+  background: var(--stitch-ch-bg, #607d8b);
+  color: white;
 }
 
-.stitch-symbol.stitch-ch,
 .stitch-symbol.stitch-sl {
+  background: var(--stitch-sl-bg, #795548);
+  color: white;
+}
+
+.stitch-symbol.stitch-inc,
+.stitch-symbol.stitch-dec {
   background: var(--stitch-special-bg, #444);
+  color: white;
 }
 
-:root.light .stitch-symbol.stitch-ch,
-:root.light .stitch-symbol.stitch-sl {
-  background: #ffffff;
-}
-
-/* Fallback styles for non-matched stitches */
 .stitch-symbol.stitch-bs,
 .stitch-symbol.stitch-ns {
   background: var(--stitch-special-bg, #444);
+  color: white;
 }
 
+:root.light .stitch-symbol.stitch-sc {
+  background: #ffcdd2;
+  color: #c2185b;
+  border-color: #e91e63;
+}
+
+:root.light .stitch-symbol.stitch-dc {
+  background: #c8e6c9;
+  color: #2e7d32;
+  border-color: #4caf50;
+}
+
+:root.light .stitch-symbol.stitch-hdc {
+  background: #ffe0b2;
+  color: #e65100;
+  border-color: #ff9800;
+}
+
+:root.light .stitch-symbol.stitch-tr {
+  background: #bbdefb;
+  color: #0d47a1;
+  border-color: #2196f3;
+}
+
+:root.light .stitch-symbol.stitch-dtr {
+  background: #e1bee7;
+  color: #6a1b9a;
+  border-color: #9c27b0;
+}
+
+:root.light .stitch-symbol.stitch-ch {
+  background: #cfd8dc;
+  color: #37474f;
+  border-color: #607d8b;
+}
+
+:root.light .stitch-symbol.stitch-sl {
+  background: #d7ccc8;
+  color: #4e342e;
+  border-color: #795548;
+}
+
+:root.light .stitch-symbol.stitch-inc,
+:root.light .stitch-symbol.stitch-dec,
 :root.light .stitch-symbol.stitch-bs,
 :root.light .stitch-symbol.stitch-ns {
-  background: #ffffff;
+  background: #f5f5f5;
+  color: #333;
+  border-color: #9e9e9e;
 }
 </style>
