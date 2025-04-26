@@ -50,6 +50,7 @@ VITE_FIREBASE_APP_ID=
 ```
 
 ## Potential Future Features
+- Chart Notation
 
 ### Community Features
 - Pattern sharing and marketplace
