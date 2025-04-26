@@ -150,8 +150,8 @@
         </button>
       </div>
       
-      <!-- Experimental features section -->
-      <div class="experimental-features">
+      <!-- Experimental features section - visible only when experimental features are enabled -->
+      <div v-if="experimentalFeatures" class="experimental-features">
         <h3>Experimental Features</h3>
         <div class="feature-section">
           <button class="feature-button" @click="showRawPattern = !showRawPattern">
@@ -221,6 +221,8 @@ import PatternChartView from './pattern/PatternChartView.vue'
 // Import components for visualization modes
 import SymbolStitches from './pattern/stitches/SymbolStitches.vue'
 import TextStitches from './pattern/stitches/TextStitches.vue'
+// Import user settings to check experimental features status
+import { useUserSettings } from '@/services/userSettings'
 
 // Component props
 const props = defineProps({
@@ -261,6 +263,9 @@ const notesSaved = ref(true)  // Track if notes have been saved
 
 // Error handling for chart view
 const chartViewError = ref(false);
+
+// Get experimental features state
+const { experimentalFeatures } = useUserSettings()
 
 // Handle errors from the chart view component
 const handleChartViewError = (error) => {
@@ -1250,7 +1255,7 @@ defineExpose({
 
 /* Pattern card styles */
 .pattern-card {
-  padding: 2rem;
+  padding: 0 2rem;
   background-color: var(--card-bg);
   display: flex;
   flex-direction: column;
