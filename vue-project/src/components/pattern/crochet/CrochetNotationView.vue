@@ -22,6 +22,7 @@
           Linear
         </button>
         <button 
+          v-if="props.experimental"
           @click="viewMode = 'circular'" 
           :class="{ active: viewMode === 'circular' }"
           title="Show circular notation"
@@ -29,7 +30,7 @@
           Circular
         </button>
         <button 
-          v-if="props.patternShape && props.patternShape.type === 'circular' || viewMode === '3d'"
+          v-if="props.experimental && (props.patternShape && props.patternShape.type === 'circular' || viewMode === '3d')"
           @click="viewMode = '3d'" 
           :class="{ active: viewMode === '3d' }"
           title="Show 3D visualization"
@@ -317,6 +318,10 @@ const props = defineProps({
     type: Object,
     required: true,
     default: () => ({ type: 'unknown', confidence: 0 })
+  },
+  experimental: {
+    type: Boolean,
+    default: false
   }
 });
 
