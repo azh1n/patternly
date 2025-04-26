@@ -47,14 +47,13 @@ export const stitchSymbolMapping = {
 export function getStitchSymbolPath(stitchType) {
   if (!stitchType) return '';
   
-  const lowerType = stitchType.toLowerCase();
-  const symbolFile = stitchSymbolMapping[lowerType];
+  // Extract the stitch type without any number prefix
+  const cleanType = stitchType.toString().replace(/^\d+/, '').toLowerCase();
+  const symbolFile = stitchSymbolMapping[cleanType];
   
   if (symbolFile) {
-    // For now, return an empty string since actual SVG files might not exist yet
-    // In a real implementation, this would return a path to the SVG file
-    // return new URL(`/src/assets/crochet-symbols/${symbolFile}`, import.meta.url).href;
-    return '';
+    // Return the path to the SVG file using a relative path that will work in the browser
+    return new URL(`/src/assets/crochet-symbols/${symbolFile}`, import.meta.url).href;
   }
   
   return '';
@@ -68,8 +67,9 @@ export function getStitchSymbolPath(stitchType) {
 export function hasStitchSymbol(stitchType) {
   if (!stitchType) return false;
   
-  // For now, always return false to use text fallback
-  // When actual SVG files are implemented, this should be:
-  // return !!stitchSymbolMapping[stitchType.toLowerCase()];
-  return false;
+  // Extract the stitch type without any number prefix
+  const cleanType = stitchType.toString().replace(/^\d+/, '').toLowerCase();
+  
+  // Check if we have a mapping for this stitch type
+  return !!stitchSymbolMapping[cleanType];
 }

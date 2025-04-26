@@ -47,7 +47,16 @@
                   class="stitch-wrapper"
                 >
                   <div class="stitch-symbol" :class="getStitchClass(stitch)">
-                    {{ stitch }}
+                    <template v-if="checkSymbolExists(stitch)">
+                      <img 
+                        :src="getSymbolPath(stitch)" 
+                        :alt="stitch" 
+                        class="stitch-svg"
+                      />
+                    </template>
+                    <template v-else>
+                      {{ stitch }}
+                    </template>
                   </div>
                 </div>
               </template>
@@ -69,7 +78,16 @@
       <div class="key-items">
         <div v-for="(symbol, abbr) in commonStitches" :key="`key-${abbr}`" class="key-item">
           <div class="stitch-symbol" :class="getStitchClass(abbr)">
-            {{ abbr }}
+            <template v-if="checkSymbolExists(abbr)">
+              <img 
+                :src="getSymbolPath(abbr)" 
+                :alt="abbr" 
+                class="stitch-svg"
+              />
+            </template>
+            <template v-else>
+              {{ abbr }}
+            </template>
           </div>
           <span class="key-label">{{ symbol.label }}</span>
         </div>
@@ -79,8 +97,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { hasStitchSymbol, getStitchSymbolPath } from '@/assets/crochet-symbols/stitch-mapping.js';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { hasStitchSymbol, getStitchSymbolPath, stitchSymbolMapping } from '@/assets/crochet-symbols/stitch-mapping.js';
 
 const props = defineProps({
   pattern: {
@@ -107,6 +125,61 @@ const safeRows = computed(() => {
 // Check if we have rows to display
 const hasRows = computed(() => {
   return safeRows.value.length > 0;
+});
+
+// Wrapper functions for stitch symbols
+function checkSymbolExists(stitch) {
+  return window.hasStitchSymbol ? window.hasStitchSymbol(stitch) : hasStitchSymbol(stitch);
+}
+
+function getSymbolPath(stitch) {
+  return getStitchSymbolPath(stitch);
+}
+
+// Fix the stitch symbol display function
+onMounted(() => {
+  // Override the hasStitchSymbol function to also check if the SVG file actually exists
+  // This is needed because some stitch symbols might be defined in the mapping but don't have SVG files
+  const originalHasStitchSymbol = hasStitchSymbol;
+  
+  // Create a set of available SVG files
+  const availableSvgs = new Set([
+    'chain.svg', 
+    'slip-stitch.svg', 
+    'sc.svg', 
+    'hdc.svg', 
+    'dc.svg', 
+    'tr.svg', 
+    'dtr.svg',
+    'sc-inc.svg',
+    'hdc-inc.svg',
+    'dc-inc.svg',
+    'sc-dec.svg',
+    'hdc-dec.svg',
+    'dc-dec.svg',
+    'front-post-dc.svg'
+  ]);
+  
+  // Override the original function temporarily for this component
+  window.originalHasStitchSymbol = hasStitchSymbol;
+  window.hasStitchSymbol = function(stitchType) {
+    if (!stitchType) return false;
+    
+    // Extract the stitch type without any number prefix
+    const cleanType = stitchType.toString().replace(/^\d+/, '').toLowerCase();
+    
+    // Check if we have a mapping for this stitch type AND the SVG exists
+    return !!stitchSymbolMapping[cleanType] && availableSvgs.has(stitchSymbolMapping[cleanType]);
+  };
+});
+
+// Clean up when component is unmounted
+onUnmounted(() => {
+  // Restore the original function if it was saved
+  if (window.originalHasStitchSymbol) {
+    window.hasStitchSymbol = window.originalHasStitchSymbol;
+    delete window.originalHasStitchSymbol;
+  }
 });
 
 // Simpler stitch processing function
@@ -349,6 +422,12 @@ const commonStitches = {
 .stitch-wrapper {
   display: inline-block;
   margin: 2px;
+}
+
+.stitch-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .no-stitches, .no-data-message {
