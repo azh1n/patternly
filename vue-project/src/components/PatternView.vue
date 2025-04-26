@@ -257,9 +257,15 @@
         
         <!-- Pattern Chart View (experimental) -->
         <div v-if="showChartView" class="chart-view-container">
+          <div v-if="chartViewError" class="chart-view-error">
+            <p>There was an error loading the chart view. Please try again.</p>
+            <button class="retry-button" @click="retryChartView">Retry</button>
+          </div>
           <PatternChartView 
+            v-else
             :pattern="{ ...props.pattern, parsedRows }" 
             :experimental="true" 
+            @error="handleChartViewError"
           />
         </div>
         
@@ -276,7 +282,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, onErrorCaptured } from 'vue'
 import { useRouter } from 'vue-router'
 import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -318,6 +324,30 @@ const currentRowNotes = ref('')  // Current row notes content
 const saveNotesTimeout = ref(null)  // For debouncing notes save
 const showNotes = ref(false)  // Control visibility of notes section
 const notesSaved = ref(true)  // Track if notes have been saved
+
+// Error handling for chart view
+const chartViewError = ref(false);
+
+// Handle errors from the chart view component
+const handleChartViewError = (error) => {
+  console.error('Chart view error:', error);
+  chartViewError.value = true;
+};
+
+// Reset error state and retry loading chart view
+const retryChartView = () => {
+  chartViewError.value = false;
+};
+
+// Capture errors that occur in the chart view component
+onErrorCaptured((error, instance, info) => {
+  if (instance?.$options?.name === 'PatternChartView') {
+    console.error('Captured error in chart view:', error, info);
+    chartViewError.value = true;
+    return true; // Prevent the error from propagating further
+  }
+  return false; // Let other errors propagate
+});
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
@@ -2037,12 +2067,51 @@ const getStitchClass = (code) => {
 }
 
 .chart-view-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 20px;
   margin-top: 1rem;
+}
+
+.chart-view-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #fff8f8;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  color: #d32f2f;
+}
+
+.chart-view-error p {
   margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.chart-view-error .retry-button {
+  padding: 0.5rem 1rem;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.chart-view-error .retry-button:hover {
+  background-color: #d32f2f;
 }
 
 .feature-button {
   margin-right: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+.checkbox-row {
+  /* ... existing code ... */
 }
 </style> 
