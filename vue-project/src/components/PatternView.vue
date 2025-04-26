@@ -583,14 +583,11 @@ const currentRow = computed(() => {
   return row;
 })
 
-// Total stitches in current row
-const totalStitches = computed(() => {
-  if (!currentRow.value) return 0
+// Helper function to calculate total stitches correctly
+const calculateTotalStitches = (codes) => {
+  if (!codes || !Array.isArray(codes)) return 0;
   
-  // Sum the numbers in each stitch code instead of counting codes
-  return currentRow.value.codes.reduce((total, code) => {
-    // Extract the number from the stitch code (e.g., "22dc" -> 22)
-    const match = code.match(/^(\d+)/);
+  return codes.reduce((total, code) => {
     // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
     if (code.includes('(') && code.includes(')') && code.includes('x')) {
       // Extract content inside parentheses and repeat count
@@ -599,18 +596,32 @@ const totalStitches = computed(() => {
         const repeatedContent = repeatMatch[1];
         const repeatCount = parseInt(repeatMatch[2], 10);
         
-        // Split the repeated content by commas and sum each stitch count
-        const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
-          const countMatch = stitch.trim().match(/^(\d+)/);
-          return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
-        }, 0);
+        // Split the repeated content by commas
+        const stitches = repeatedContent.split(',').map(s => s.trim());
         
+        // Calculate stitches in each repeat
+        let stitchesPerRepeat = 0;
+        for (const stitch of stitches) {
+          // Extract the number from each stitch code
+          const countMatch = stitch.match(/^(\d+)/);
+          stitchesPerRepeat += (countMatch ? parseInt(countMatch[1], 10) : 1);
+        }
+        
+        // Multiply by repeat count
         return total + (stitchesPerRepeat * repeatCount);
       }
+    } else {
+      // For normal stitches like "22dc", extract the number
+      const match = code.match(/^(\d+)/);
+      return total + (match ? parseInt(match[1], 10) : 1);
     }
-    
-    return total + (match ? parseInt(match[1], 10) : 1);
   }, 0);
+};
+
+// Total stitches in current row - corrected version
+const totalStitches = computed(() => {
+  if (!currentRow.value) return 0;
+  return calculateTotalStitches(currentRow.value.codes);
 })
 
 // Get completion status for current row

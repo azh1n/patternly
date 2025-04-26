@@ -139,7 +139,43 @@ const toggleStitchDisplay = () => {
 // Computed values 
 const totalStitches = computed(() => {
   if (!props.currentRow || !props.currentRow.codes) return 0;
-  return processRowStitches(props.currentRow.codes, displayRepeatedStitchesSeparately.value).length;
+  
+  // Use the correct calculation method
+  const calculateTotalStitches = (codes) => {
+    if (!codes || !Array.isArray(codes)) return 0;
+    
+    return codes.reduce((total, code) => {
+      // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
+      if (code.includes('(') && code.includes(')') && code.includes('x')) {
+        // Extract content inside parentheses and repeat count
+        const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          const repeatedContent = repeatMatch[1];
+          const repeatCount = parseInt(repeatMatch[2], 10);
+          
+          // Split the repeated content by commas
+          const stitches = repeatedContent.split(',').map(s => s.trim());
+          
+          // Calculate stitches in each repeat
+          let stitchesPerRepeat = 0;
+          for (const stitch of stitches) {
+            // Extract the number from each stitch code
+            const countMatch = stitch.match(/^(\d+)/);
+            stitchesPerRepeat += (countMatch ? parseInt(countMatch[1], 10) : 1);
+          }
+          
+          // Multiply by repeat count
+          return total + (stitchesPerRepeat * repeatCount);
+        }
+      } else {
+        // For normal stitches like "22dc", extract the number
+        const match = code.match(/^(\d+)/);
+        return total + (match ? parseInt(match[1], 10) : 1);
+      }
+    }, 0);
+  };
+  
+  return calculateTotalStitches(props.currentRow.codes);
 });
 
 // Get current stitches for the focused view
@@ -268,7 +304,7 @@ const commonStitches = {
   'tr': { label: 'Treble Crochet (tr)' },
   'dtr': { label: 'Double Treble Crochet (dtr)' },
   'bs': { label: 'Border Stitch (bs)' },
-  'ns': { label: 'Normal Stitch (ns)' }
+  'ns': { label: 'Negative Stitch (ns)' }
 };
 
 // Fix the stitch symbol display function
