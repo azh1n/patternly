@@ -1879,13 +1879,13 @@ const handleRowSave = (updatedRow) => {
 }
 
 .cancel-button {
-  background: var(--button-secondary-bg, #444);
-  color: var(--text-primary, #fff);
-  border: 1px solid var(--button-secondary-border, #555);
+  background: var(--button-bg, #2a2a2a);
+  color: var(--button-text, #ffffff);
+  border: 1px solid var(--button-border, #333333);
 }
 
 .cancel-button:hover {
-  background: var(--button-secondary-hover, #555);
+  background: var(--button-hover-bg, #333333);
 }
 
 /* Color Mapping Styles */
@@ -1938,10 +1938,25 @@ const handleRowSave = (updatedRow) => {
   margin-top: 1rem;
 }
 
+/* CSS Variables for theming */
+:root {
+  --button-secondary-bg: #444;
+  --button-secondary-text: #fff;
+  --button-secondary-border: #555;
+  --button-secondary-hover: #555;
+}
+
 /* Light Theme Overrides */
 :root.light .pattern-modal {
   background: #ffffff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+:root.light {
+  --button-secondary-bg-light: #e0e0e0;
+  --button-secondary-text-light: #333;
+  --button-secondary-border-light: #d0d0d0;
+  --button-secondary-hover-light: #d0d0d0;
 }
 
 :root.light .color-mapping-label {
@@ -2029,15 +2044,7 @@ const handleRowSave = (updatedRow) => {
   border-top: 1px solid #e0e0e0;
 }
 
-:root.light .cancel-button {
-  background: #e0e0e0;
-  color: #333;
-  border: 1px solid #d0d0d0;
-}
 
-:root.light .cancel-button:hover {
-  background: #d0d0d0;
-}
 
 /* No rows message styles */
 .no-rows-message {
