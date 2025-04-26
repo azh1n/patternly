@@ -118,7 +118,7 @@
                   :key="`focused-stitch-${i}`" 
                   class="stitch-wrapper"
                 >
-                  <div class="stitch-symbol" :class="getStitchClass(stitch)">
+                  <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
                     <template v-if="checkSymbolExists(stitch)">
                       <img 
                         :src="getSymbolPath(stitch)" 
@@ -127,8 +127,11 @@
                       />
                     </template>
                     <template v-else>
-                      {{ stitch }}
+                      {{ getStitchType(stitch) }}
                     </template>
+                    <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
+                      {{ getStitchCount(stitch) }}
+                    </div>
                   </div>
                 </div>
               </template>
@@ -164,7 +167,7 @@
                   'completed-stitch': i < currentStitchIndex 
                 }"
               >
-                <div class="stitch-symbol" :class="getStitchClass(stitch)">
+                <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
                   <template v-if="checkSymbolExists(stitch)">
                     <img 
                       :src="getSymbolPath(stitch)" 
@@ -173,8 +176,11 @@
                     />
                   </template>
                   <template v-else>
-                    {{ stitch }}
+                    {{ getStitchType(stitch) }}
                   </template>
+                  <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
+                    {{ getStitchCount(stitch) }}
+                  </div>
                 </div>
               </div>
             </template>
@@ -729,6 +735,27 @@ const toggleStitchDisplay = () => {
     displayRepeatedStitchesSeparately.value = !displayRepeatedStitchesSeparately.value;
   }
 };
+
+// Additional helper functions
+function getStitchCount(stitch) {
+  if (!stitch) return 1;
+  
+  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
+  if (match) {
+    return parseInt(match[1]);
+  }
+  return 1;
+}
+
+function getStitchType(stitch) {
+  if (!stitch) return '';
+  
+  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
+  if (match) {
+    return match[2];
+  }
+  return stitch;
+}
 </script>
 
 <style scoped>
@@ -1245,6 +1272,36 @@ const toggleStitchDisplay = () => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Stitch count badge */
+.stitch-count-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  background-color: var(--accent-color, #4f87ff);
+  color: white;
+  border-radius: 9px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid white;
+  padding: 0 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.stitch-symbol.with-count {
+  overflow: visible;
+}
+
+/* Light theme override for count badge */
+:root.light .stitch-count-badge {
+  background-color: #2979ff;
+  border: 1px solid white;
+}
+
 /* Stitch type-specific styling */
 .stitch-symbol.stitch-sc {
   background: var(--stitch-sc-bg, #e91e63);
@@ -1556,6 +1613,15 @@ const toggleStitchDisplay = () => {
   
   .mobile-only {
     display: inline-block;
+  }
+  
+  /* Mobile styles for stitch count badge */
+  .stitch-count-badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.7rem;
+    top: -5px;
+    right: -5px;
   }
 }
 </style> 
