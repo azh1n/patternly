@@ -119,7 +119,17 @@
 
       <!-- Pattern card with stitch navigation -->
       <div class="pattern-card">
-        <div class="stitch-navigation">
+        <div class="stitch-navigation" :class="{ 'symbols-only': visualizationMode === 'symbols' }">
+          <!-- Only show navigation arrows for text mode -->
+          <button 
+            v-if="visualizationMode === 'text'"
+            @click="previousStitches" 
+            class="nav-button"
+            :disabled="currentStitchIndex === 0"
+          >
+            <font-awesome-icon icon="chevron-left" />
+          </button>
+          
           <!-- Current stitches display -->
           <div class="stitch-content">
             <!-- Text mode visualization (original) -->
@@ -152,6 +162,16 @@
               class="visualization-component symbols-visualization"
             />
           </div>
+          
+          <!-- Only show navigation arrows for text mode -->
+          <button 
+            v-if="visualizationMode === 'text'"
+            @click="nextStitches" 
+            class="nav-button"
+            :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
+          >
+            <font-awesome-icon icon="chevron-right" />
+          </button>
         </div>
 
         <!-- Full row preview section -->
@@ -1525,9 +1545,14 @@ defineExpose({
 .stitch-navigation {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   margin-bottom: 2rem;
   width: 100%;
+}
+
+/* When in symbols mode, center the content */
+.stitch-navigation.symbols-only {
+  justify-content: center;
 }
 
 /* Navigation button styles */
@@ -1613,7 +1638,7 @@ defineExpose({
 .preview-stitch.completed-stitch {
   background-color: #9e9e9e !important;
   color: white !important;
-  border-color: #848484;
+  border-color: #8e8e8e !important;
   position: relative;
 }
 
