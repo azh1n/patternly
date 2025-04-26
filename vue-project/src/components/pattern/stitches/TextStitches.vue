@@ -55,7 +55,7 @@
       <div class="stitch-key-tooltip">
         <h5>Stitch Key</h5>
         <div class="key-items">
-          <div v-for="(symbol, abbr) in commonStitches" :key="`key-${abbr}`" class="key-item">
+          <div v-for="(symbol, abbr) in filteredStitches" :key="`key-${abbr}`" class="key-item">
             <div class="stitch-symbol" :class="getStitchClass(abbr)">
               {{ abbr }}
             </div>
@@ -131,6 +131,47 @@ const totalStitches = computed(() => {
   };
   
   return calculateTotalStitches(props.currentRow.codes);
+});
+
+// Filter stitches to only show those present in the current row
+const filteredStitches = computed(() => {
+  if (!props.currentRow || !props.currentRow.codes || !props.currentRow.codes.length) {
+    return {};
+  }
+  
+  const result = {};
+  const stitchTypes = new Set();
+  
+  // Extract stitch types from the current row
+  props.currentRow.codes.forEach(code => {
+    if (!code) return;
+    
+    // Handle repeat patterns like "(1sc, 1inc) x6"
+    if (code.includes('(') && code.includes(')') && code.includes('x')) {
+      const repeatMatch = code.match(/\(([^)]+)\)\s*x\d+/);
+      if (repeatMatch) {
+        const repeatedContent = repeatMatch[1];
+        // Split by commas and process each stitch
+        repeatedContent.split(',').forEach(stitch => {
+          const stitchType = stitch.trim().replace(/^\d+/, '');
+          stitchTypes.add(stitchType);
+        });
+      }
+    } else {
+      // Handle normal stitches like "22dc"
+      const stitchType = code.toString().replace(/^\d+/, '');
+      stitchTypes.add(stitchType);
+    }
+  });
+  
+  // Only include stitches that are in the current row
+  for (const type of stitchTypes) {
+    if (commonStitches[type]) {
+      result[type] = commonStitches[type];
+    }
+  }
+  
+  return result;
 });
 
 // Get current stitches for the focused view
