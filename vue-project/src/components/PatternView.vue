@@ -177,7 +177,7 @@
             <template v-if="windowWidth < 768">
               <span 
                 v-for="(item, index) in mobilePreviewStitches" 
-                :key="index"
+                :key="index" 
                 :class="[
                   'preview-stitch',
                   { 'completed-stitch': item.status === 'completed' },
@@ -194,7 +194,7 @@
             <template v-else>
               <span 
                 v-for="(item, index) in getCompletedCodes" 
-                :key="index"
+                :key="index" 
                 :class="[
                   'preview-stitch',
                   { 'completed-stitch': item.isCompleted },
@@ -352,6 +352,7 @@ const windowWidth = ref(window.innerWidth)  // Current window width
 const showRawPattern = ref(false)  // State for showing raw pattern
 const showChartView = ref(false)   // State for showing chart view
 const visualizationMode = ref('text')  // State for visualization mode
+const displayRepeatedStitchesSeparately = ref(false)  // Flag for handling repeat patterns
 
 // Notes feature state
 const currentRowNotes = ref('')  // Current row notes content
@@ -1180,6 +1181,23 @@ const getStitchClass = (code) => {
   
   return '';
 }
+
+function getStitchType(stitch) {
+  if (!stitch) return '';
+  
+  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
+  if (match) {
+    return match[2];
+  }
+  return stitch;
+}
+
+// Expose some methods/properties to parent
+defineExpose({
+  currentStitchIndex,
+  stitchesPerView,
+  displayRepeatedStitchesSeparately
+});
 </script>
 
 <style scoped>
@@ -2311,5 +2329,29 @@ const getStitchClass = (code) => {
     min-height: 300px;
     padding: 1rem;
   }
+}
+
+/* Add the stitch-grid styling */
+.stitch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  width: 100%;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  justify-items: center;
+}
+
+.stitch-grid span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  min-width: 65px;
+  min-height: 65px;
+  position: relative;
 }
 </style> 
