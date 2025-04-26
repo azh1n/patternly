@@ -36,7 +36,8 @@ import {
   faChartLine,
   faCode,
   faStickyNote,
-  faTimes
+  faTimes,
+  faChartPie
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -69,7 +70,8 @@ library.add(
   faChartLine,
   faCode,
   faStickyNote,
-  faTimes
+  faTimes,
+  faChartPie
 )
 
 const app = createApp(App)
