@@ -130,7 +130,7 @@
           
           <!-- Current stitches display -->
           <div class="stitch-content">
-            <!-- Text mode visualization (default) -->
+            <!-- Text mode visualization (original) -->
             <div v-if="visualizationMode === 'text'" class="current-stitches">
               <span 
                 v-for="(stitch, index) in currentStitches" 
@@ -143,16 +143,13 @@
               >
                 {{ stitch.code }}
               </span>
+              
+              <div class="stitch-progress">
+                <span class="progress-indicator">
+                  {{ stitchProgress }}
+                </span>
+              </div>
             </div>
-            
-            <!-- Color blocks visualization mode -->
-            <ColorBlockStitches
-              v-else-if="visualizationMode === 'color-blocks'"
-              :currentRow="currentRow"
-              :initialStitchesPerView="stitchesPerView"
-              :maxStitchesPerView="totalStitches"
-              class="visualization-component"
-            />
             
             <!-- Symbol visualization mode -->
             <SymbolStitches
@@ -162,12 +159,6 @@
               :maxStitchesPerView="totalStitches"
               class="visualization-component"
             />
-            
-            <div class="stitch-progress">
-              <span class="progress-indicator">
-                {{ stitchProgress }}
-              </span>
-            </div>
           </div>
           
           <button 
@@ -286,14 +277,6 @@
             </button>
             <button 
               class="feature-button" 
-              :class="{ 'active-toggle': visualizationMode === 'color-blocks' }"
-              @click="visualizationMode = 'color-blocks'"
-            >
-              <font-awesome-icon icon="palette" />
-              Color Blocks
-            </button>
-            <button 
-              class="feature-button" 
               :class="{ 'active-toggle': visualizationMode === 'symbols' }"
               @click="visualizationMode = 'symbols'"
             >
@@ -336,7 +319,6 @@ import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import PatternChartView from './pattern/PatternChartView.vue'
 // Import components for visualization modes
-import ColorBlockStitches from './pattern/stitches/ColorBlockStitches.vue'
 import SymbolStitches from './pattern/stitches/SymbolStitches.vue'
 
 // Component props
