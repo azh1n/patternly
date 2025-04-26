@@ -15,9 +15,9 @@
             :key="`focused-stitch-${i}`" 
             class="stitch-wrapper"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
+            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': getStitchCount(stitch) > 1 }]">
               {{ getStitchType(stitch) }}
-              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
+              <div v-if="getStitchCount(stitch) > 1" class="stitch-count-badge">
                 {{ getStitchCount(stitch) }}
               </div>
             </div>
@@ -29,7 +29,7 @@
       <template #row-preview>
         <template v-if="currentRow && currentRow.codes && currentRow.codes.length">
           <div 
-            v-for="(stitch, i) in processRowStitches(currentRow.codes, displayRepeatedStitchesSeparately)" 
+            v-for="(stitch, i) in processRowStitches(currentRow.codes, false)" 
             :key="`preview-stitch-${i}`" 
             class="stitch-wrapper"
             :class="{ 
@@ -38,9 +38,9 @@
               'completed-stitch': i < currentStitchIndex 
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
+            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': getStitchCount(stitch) > 1 }]">
               {{ getStitchType(stitch) }}
-              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
+              <div v-if="getStitchCount(stitch) > 1" class="stitch-count-badge">
                 {{ getStitchCount(stitch) }}
               </div>
             </div>
@@ -51,16 +51,6 @@
         </div>
       </template>
     </StitchVisualization>
-
-    <!-- Toggle for expand/collapse stitches -->
-    <button
-      class="expand-toggle"
-      :aria-pressed="displayRepeatedStitchesSeparately"
-      @click="toggleStitchDisplay"
-    >
-      <span v-if="displayRepeatedStitchesSeparately">Collapse Stitches</span>
-      <span v-else>Expand Stitches</span>
-    </button>
 
     <!-- Stitch key -->
     <div class="stitch-key">
@@ -97,27 +87,22 @@ const props = defineProps({
 });
 
 // Local state for component
-const displayRepeatedStitchesSeparately = ref(true);
+const displayRepeatedStitchesSeparately = ref(false);
 const currentStitchIndex = ref(0);
 const stitchesPerView = ref(props.initialStitchesPerView);
 const stitchVisRef = ref(null);
 
-// Toggle for expanding/collapsing stitches
-const toggleStitchDisplay = () => {
-  displayRepeatedStitchesSeparately.value = !displayRepeatedStitchesSeparately.value;
-};
-
 // Computed values 
 const totalStitches = computed(() => {
   if (!props.currentRow || !props.currentRow.codes) return 0;
-  return processRowStitches(props.currentRow.codes, displayRepeatedStitchesSeparately.value).length;
+  return processRowStitches(props.currentRow.codes, false).length;
 });
 
 // Get current stitches for the focused view
 const currentStitchesView = computed(() => {
   if (!props.currentRow || !props.currentRow.codes || !props.currentRow.codes.length) return [];
   
-  const processedStitches = processRowStitches(props.currentRow.codes, displayRepeatedStitchesSeparately.value);
+  const processedStitches = processRowStitches(props.currentRow.codes, false);
   return processedStitches.slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value);
 });
 
@@ -131,8 +116,8 @@ const updateStitchesPerView = (count) => {
 };
 
 // Watch for changes to total stitches
-watch([() => props.currentRow, displayRepeatedStitchesSeparately], () => {
-  // Reset index when row changes or stitch display mode changes
+watch([() => props.currentRow], () => {
+  // Reset index when row changes
   currentStitchIndex.value = 0;
   
   // Sync with child component
@@ -235,8 +220,7 @@ const commonStitches = {
 // Expose some methods/properties to parent
 defineExpose({
   currentStitchIndex,
-  stitchesPerView,
-  displayRepeatedStitchesSeparately
+  stitchesPerView
 });
 </script>
 
@@ -246,25 +230,6 @@ defineExpose({
   flex-direction: column;
   gap: 1rem;
   width: 100%;
-}
-
-.expand-toggle {
-  margin: 0.5rem auto 1rem auto;
-  padding: 0.35rem 1.2rem;
-  background: var(--accent-color, #4f87ff);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  outline: none;
-  display: inline-block;
-  align-self: center;
-}
-
-.expand-toggle[aria-pressed="true"] {
-  background: var(--accent-hover, #3a6fd9);
 }
 
 /* Stitch wrapper */
@@ -463,15 +428,6 @@ defineExpose({
 
 :root.light .key-label {
   color: #333;
-}
-
-:root.light .expand-toggle {
-  background: #2979ff;
-  color: white;
-}
-
-:root.light .expand-toggle[aria-pressed="true"] {
-  background: #1565c0;
 }
 
 /* Mobile adjustments */
