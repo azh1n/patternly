@@ -8,56 +8,35 @@
       </div>
       
       <div class="modal-body">
-        <!-- Pattern Name -->
-        <div class="form-group">
-            <label for="patternName">Pattern Name</label>
-            <input
-              type="text"
-              id="patternName"
-              v-model="patternName"
-              placeholder="Enter pattern name"
-              class="form-input"
-            />
-        </div>
-  
-        <!-- Pattern Input -->
-        <div class="form-group">
-          <label for="patternText">Pattern Instructions</label>
-          <textarea
-            id="patternText" 
-            v-model="patternText" 
-            placeholder="Paste your pattern here..."
-            class="form-textarea"
-            @input="analyzePattern"
-          ></textarea>
-        </div>
-  
-        <!-- Analysis Results -->
-        <div v-if="patternText" class="analysis-section">
-          <h3 class="section-title">
-            <span>Pattern Analysis</span>
-            <button class="toggle-button" @click="showAnalysis = !showAnalysis">
-              {{ showAnalysis ? '−' : '+' }}
-            </button>
-          </h3>
-          
-          <div v-if="showAnalysis" class="analysis-content">
-            <!-- Detection Results -->
-            <div class="detection-results">
-              <div class="detection-item">
-                <span class="label">Row Format:</span>
-                <span class="value">{{ detectedRowFormat || 'Not detected' }}</span>
-              </div>
-  
-              <div class="detection-item">
-                <span class="label">Colors:</span>
-                <span class="value">{{ detectedColors.length ? detectedColors.join(', ') : 'Not detected' }}</span>
-                <button v-if="!detectedColors.length" class="action-button" @click="showColorConfig = true">
-                  Define
-                </button>
-              </div>
+        <div class="modal-columns">
+          <!-- Left Column: Input -->  
+          <div class="modal-column input-column">
+            <h3 class="column-title">Pattern Input</h3>
+            
+            <!-- Pattern Name -->
+            <div class="form-group">
+                <label for="patternName">Pattern Name</label>
+                <input
+                  type="text"
+                  id="patternName"
+                  v-model="patternName"
+                  placeholder="Enter pattern name"
+                  class="form-input"
+                />
             </div>
-  
+      
+            <!-- Pattern Input -->
+            <div class="form-group">
+              <label for="patternText">Pattern Instructions</label>
+              <textarea
+                id="patternText" 
+                v-model="patternText" 
+                placeholder="Paste your pattern here..."
+                class="form-textarea"
+                @input="analyzePattern"
+              ></textarea>
+            </div>
+
             <!-- Configuration Panel -->
             <div v-if="showRowConfig || showColorConfig" class="config-panel">
               <!-- Row Format Configuration -->
@@ -96,22 +75,102 @@
                   <button @click="applyColorFormat" class="apply-button">Apply</button>
                 </div>
                 <div class="examples">
-                  <p>Examples: "Color A", "MC", "Pink", etc.</p>
+                  <p>Examples: "Black", "Orange", "Color A", etc.</p>
+                </div>
+                
+                <!-- Color Mapping Section -->
+                <div v-if="detectedColors.length > 0" class="color-mapping-section">
+                  <h4>Map Colors</h4>
+                  <p class="help-text">Map ambiguous colors to specific colors</p>
+                  <div v-for="(color, index) in detectedColors" :key="index" class="color-mapping-item">
+                    <div class="color-mapping-label">{{ color }}:</div>
+                    <div class="color-mapping-input">
+                      <select 
+                        v-model="colorMappings[color]" 
+                        class="color-select"
+                      >
+                        <option value="">Select a color</option>
+                        <option value="#ff5252">Red</option>
+                        <option value="#4caf50">Green</option>
+                        <option value="#2196f3">Blue</option>
+                        <option value="#ffc107">Yellow</option>
+                        <option value="#9c27b0">Purple</option>
+                        <option value="#ff9800">Orange</option>
+                        <option value="#e91e63">Pink</option>
+                        <option value="#00bcd4">Turquoise</option>
+                        <option value="#333333">Black</option>
+                        <option value="#ffffff">White</option>
+                        <option value="#795548">Brown</option>
+                        <option value="#607d8b">Gray</option>
+                      </select>
+                      <div 
+                        class="color-preview" 
+                        :style="{ backgroundColor: colorMappings[color] || '#888888' }"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="color-mapping-actions">
+                    <button @click="applyColorMappings" class="apply-button">Apply Color Mappings</button>
+                  </div>
                 </div>
               </div>
             </div>
-            
+          </div>
 
+          <!-- Right Column: Preview -->  
+          <div class="modal-column preview-column">
+            <h3 class="column-title">Pattern Preview</h3>
+  
+            <!-- Detection Results -->
+            <div v-if="patternText" class="detection-results">
+              <div class="detection-item">
+                <span class="label">Row Format:</span>
+                <span class="value">{{ detectedRowFormat || 'Not detected' }}</span>
+                <button v-if="!detectedRowFormat" class="action-button" @click="showRowConfig = true">
+                  Define
+                </button>
+              </div>
 
-            <!-- Add to storage format preview -->
-            <div class="storage-format-preview">
-              <h4>Storage Format Preview</h4>
-              <pre class="storage-format-text">{{ JSON.stringify(getStorageFormat(), null, 2) }}</pre>
+              <div class="detection-item">
+                <span class="label">Colors:</span>
+                <span class="value">
+                  <template v-if="detectedColors.length">
+                    <template v-for="(color, index) in detectedColors" :key="index">
+                      <span 
+                        class="color-chip"
+                        :style="{ backgroundColor: getColorHex(getMappedColorName(color)) }"
+                      ></span>
+                      <span class="color-name">{{ getMappedColorName(color) }}</span>
+                      <span v-if="index < detectedColors.length - 1" class="color-separator">, </span>
+                    </template>
+                  </template>
+                  <template v-else>Not detected</template>
+                </span>
+                <button 
+                  v-if="!detectedColors.length" 
+                  class="action-button" 
+                  @click="showColorConfig = true"
+                >
+                  Define
+                </button>
+                <button 
+                  v-if="detectedColors.length" 
+                  class="action-button" 
+                  @click="openColorMapping"
+                >
+                  Map Colors
+                </button>
+              </div>
             </div>
-
+            
             <!-- Fallback for when rows couldn't be parsed -->
             <div v-if="patternText.trim() && !parsedRows.length" class="parsed-rows">
-              <h4>Pattern Text</h4>
+              <div class="no-rows-message">
+                <div class="icon-warning">⚠️</div>
+                <h4>No Rows Detected</h4>
+                <p>The pattern couldn't be parsed. Try defining the row format manually.</p>
+                <button class="action-button" @click="showRowConfig = true">Define Row Format</button>
+              </div>
               <div class="help-text">No rows were detected in your pattern. Please check if your pattern follows the standard format (Row 1: ... or Round 1: ...), or manually define a row format below.</div>
               <div class="config-panel">
                 <div class="config-section">
@@ -137,82 +196,29 @@
               </div>
             </div>
                     
+            <!-- Unparsed Content Section -->
+            <UnparsedContentSection
+              :unparsedContent="unparsedContent"
+              :showUnparsedContent="showUnparsedContent"
+              :isVisible="patternText.trim() && unparsedContent.trim()"
+              @add-new-row="addNewRow"
+              @ignore-unparsed-content="ignoreUnparsedContent"
+              @toggle-show="showUnparsedContent = !showUnparsedContent"
+            />
+
             <!-- Pattern Preview Section -->
-            <div v-if="parsedRows.length" class="pattern-preview-section">
-              <h4>Pattern Preview ({{ parsedRows.length }} rows)</h4>
-              <div class="pattern-preview">
-                <div v-for="(row, index) in parsedRows" :key="index" class="preview-row">
-                  <div class="preview-row-header">
-                    <span class="preview-row-number">Row {{ row.number }}</span>
-                    <div v-if="row.color" class="color-indicator" :style="{ backgroundColor: getColorHex(row.color) }"></div>
-                  </div>
-                  <div class="preview-row-content">
-                    <div v-if="!row.stitches || (Array.isArray(row.stitches) && row.stitches.length === 0)" class="no-stitches-message">
-                      No stitches detected. Original text: {{ row.text }}
-                    </div>
-                    <div v-else-if="row.stitches.repeated" class="preview-stitches">
-                      <!-- Show stitches before the repeat -->
-                      <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
-                        <div 
-                          class="preview-stitch" 
-                          :class="getStitchClass(stitch)"
-                          :title="stitch"
-                        >
-                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                        </div>
-                      </template>
-                      
-                      <!-- Show the repeat group -->
-                      <div class="repeat-group">
-                        <span class="repeat-bracket left-bracket">(</span>
-                        
-                        <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
-                          <div 
-                            class="preview-stitch" 
-                            :class="getStitchClass(stitch)"
-                            :title="stitch"
-                          >
-                            <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                            <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                          </div>
-                        </template>
-                        
-                        <span class="repeat-bracket right-bracket">)</span>
-                        <span class="repeat-count">x{{ row.stitches.repeatCount }}</span>
-                      </div>
-                      
-                      <!-- Show stitches after the repeat -->
-                      <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
-                        <div 
-                          class="preview-stitch" 
-                          :class="getStitchClass(stitch)"
-                          :title="stitch"
-                        >
-                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                        </div>
-                      </template>
-                    </div>
-                    <div v-else class="preview-stitches">
-                      <template v-for="(stitch, i) in row.stitches" :key="i">
-                        <div 
-                          class="preview-stitch" 
-                          :class="getStitchClass(stitch)"
-                          :title="stitch"
-                        >
-                          <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                          <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PatternPreviewSection 
+              v-if="parsedRows.length" 
+              :rows="parsedRows" 
+              :patternShape="detectedPatternShape"
+              @add-new-row="addNewRow" 
+              @edit-row="editRow"
+            />
+            
+            <!-- Pattern Notation View -->
           </div>
         </div>
-  
+        
         <!-- Error Messages -->
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
@@ -232,13 +238,26 @@
       </div>
     </div>
   </div>
+
+  <!-- Row Edit Modal -->
+  <RowEditModal 
+    v-model="showRowEditModal"
+    :row="editingRow"
+    :is-new-row="editingRowIndex === -2"
+    @save="handleRowSave"
+  />
 </template>
   
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid'
+import CrochetNotationView from './pattern/crochet/CrochetNotationView.vue'
+import { detectPatternShape } from '@/utils/patternShapeDetector'
 import { usePatternStore } from '@/stores/pattern'
 import { auth } from '@/firebase'
+import RowEditModal from './pattern/RowEditModal.vue'
+import UnparsedContentSection from './pattern/UnparsedContentSection.vue'
+import PatternPreviewSection from './pattern/PatternPreviewSection.vue'
 
 // Props and emits
 const props = defineProps({
@@ -257,17 +276,37 @@ const emit = defineEmits(['update:modelValue', 'pattern-added'])
 // Store
 const patternStore = usePatternStore()
 
-// Reactive state for UI
-const patternName = ref('');
-const patternText = ref('');
-const showAnalysis = ref(true);
-const parsedRows = ref([]);
-const detectedRowFormat = ref('');
-const detectedColors = ref([]);
-const showRowConfig = ref(false);
-const showColorConfig = ref(false);
-const userRowFormat = ref('');
-const userColorFormat = ref('');
+// Form state
+const patternName = ref('')
+const patternText = ref('')
+const errorMessage = ref('')
+
+// UI state
+const showAnalysis = ref(true)
+const showRowConfig = ref(false)
+const showColorConfig = ref(false)
+const expandedRows = ref({})
+const showRowEditModal = ref(false)
+const showUnparsedContent = ref(true)
+
+// Pattern shape detection
+const detectedPatternShape = ref({ type: 'unknown', confidence: 0 })
+
+// Pattern analysis state
+const detectedRowFormat = ref('')
+const userRowFormat = ref('')
+const detectedColors = ref([])
+const userColorFormat = ref('')
+const detectedStitches = ref([])
+const parsedRows = ref([])
+const unparsedContent = ref('')
+
+// Color mapping state
+const colorMappings = ref({}) // Maps color identifiers to hex values
+
+// Row editing state
+const editingRowIndex = ref(-1)
+const editingRow = ref(null)
 
 // Computed properties
 const canSave = computed(() => {
@@ -276,6 +315,75 @@ const canSave = computed(() => {
   
   // Allow saving if there's a name and pattern text, even if parsing is limited
   return hasValidName && hasInput;
+})
+
+// Add a computed property for the database format
+const formattedPatternForDB = computed(() => {
+  if (!parsedRows.value.length) return '';
+  
+  return parsedRows.value.map(row => {
+    const colorInfo = row.color ? row.color : '';
+    
+    // Handle stitches formatting, including repeats
+    let stitchesInfo = '';
+    
+    // Check if this is a repeated stitch pattern
+    if (row.stitches && row.stitches.repeated) {
+      // Format repeated section with parentheses and repeat count
+      const beforeRepeat = Array.isArray(row.stitches.beforeRepeat) ? row.stitches.beforeRepeat.join(', ') : '';
+      const repeatedPart = Array.isArray(row.stitches.repeatedStitches) ? row.stitches.repeatedStitches.join(', ') : '';
+      const afterRepeat = Array.isArray(row.stitches.afterRepeat) ? row.stitches.afterRepeat.join(', ') : '';
+      
+      // Get repeat count from the object
+      const repeatCount = row.stitches.repeatCount || '0';
+      
+      // Build stitches parts array and filter out empty segments
+      const stitchesParts = [];
+      
+      if (beforeRepeat) {
+        stitchesParts.push(beforeRepeat);
+      }
+      
+      // Format the repeat part with consistent spacing
+      if (repeatedPart) {
+        stitchesParts.push(`(${repeatedPart}) x${repeatCount}`);
+      }
+      
+      if (afterRepeat) {
+        stitchesParts.push(afterRepeat);
+      }
+      
+      // Join the parts that have content with consistent spacing
+      stitchesInfo = stitchesParts.join(', ');
+    } else if (Array.isArray(row.stitches)) {
+      // Regular stitch array
+      stitchesInfo = row.stitches.join(', ');
+    } else if (typeof row.stitches === 'string') {
+      // Handle case where stitches might be a string
+      stitchesInfo = row.stitches;
+    } else {
+      // If we can't parse it, use the original row text after stripping row markers
+      const cleanedText = row.text.replace(/^(Round|Row)\s*\d+\s*:?\s*/i, '').trim();
+      // Check for repeat patterns in the raw text
+      const repeatMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
+      if (repeatMatch) {
+        // Preserve the repeat pattern as is
+        const beforeRepeatMatch = cleanedText.match(/^(.*?)\s*\(/);
+        const afterRepeatMatch = cleanedText.match(/x\d+\s*(.*?)$/);
+        
+        const beforeRepeat = beforeRepeatMatch && beforeRepeatMatch[1].trim() ? beforeRepeatMatch[1].trim() + ', ' : '';
+        const repeatedPart = repeatMatch[1].trim();
+        const repeatCount = repeatMatch[2];
+        const afterRepeat = afterRepeatMatch && afterRepeatMatch[1].trim() ? ', ' + afterRepeatMatch[1].trim() : '';
+        
+        stitchesInfo = `${beforeRepeat}(${repeatedPart}) x${repeatCount}${afterRepeat}`;
+      } else {
+        stitchesInfo = cleanedText;
+      }
+    }
+    
+    return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
+  }).join(', ');
 })
 
 // Common patterns for detection
@@ -325,6 +433,12 @@ const stitchPatterns = [
   { pattern: /\b(\d+)\s*ns\b/i, name: 'ns' }   // net stitch
 ]
 
+// Watch for changes in parsed rows to update color detection and pattern shape
+watch(parsedRows, () => {
+  detectColors();
+  detectedPatternShape.value = detectPatternShape(parsedRows.value, patternText.value);
+}, { deep: true });
+
 // Reset the form when modal opens
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
@@ -346,6 +460,7 @@ const resetForm = () => {
   detectedStitches.value = []
   parsedRows.value = []
   expandedRows.value = {}
+  colorMappings.value = {}
   showRowConfig.value = false
   showColorConfig.value = false
   showAnalysis.value = true
@@ -378,6 +493,9 @@ const analyzePattern = () => {
     
     // Parse rows based on detected or user-defined format
     parseRows()
+    
+    // Extract unparsed content
+    extractUnparsedContent()
   } catch (error) {
     console.error('Error analyzing pattern:', error)
     errorMessage.value = 'Error analyzing pattern: ' + error.message
@@ -596,9 +714,9 @@ const parseRows = () => {
   if (!detectedRowFormat.value && !userRowFormat.value) {
     // Set default for Round format seen in the screenshot
     if (patternText.value.includes('Round')) {
-      detectedRowFormat.value = 'Round #'
+      detectedRowFormat.value = 'Round #';
     } else if (patternText.value.includes('Row')) {
-      detectedRowFormat.value = 'Row #'
+      detectedRowFormat.value = 'Row #';
     } else {
       parsedRows.value = []
       return
@@ -724,6 +842,9 @@ const parseRows = () => {
   
   // Make sure we set parsedRows last
   parsedRows.value = foundRows;
+  
+  // After parsing rows, extract unparsed content
+  extractUnparsedContent();
 }
 
 // Extract color from row text
@@ -956,6 +1077,60 @@ const applyColorFormat = () => {
   }
 }
 
+// Get the mapped color name for a given color
+const getMappedColorName = (color) => {
+  // Check if this color has a mapping
+  for (const [mappedColor, colorValue] of Object.entries(colorMappings.value)) {
+    if (color.toLowerCase() === mappedColor.toLowerCase() && colorValue) {
+      // Return the actual color name instead of the ambiguous one
+      return getColorNameFromHex(colorValue)
+    }
+  }
+  // If no mapping found, return the original color
+  return color
+}
+
+// Apply color mappings when user clicks the Apply button
+const applyColorMappings = () => {
+  // Update the actual color values in each row
+  parsedRows.value = parsedRows.value.map(row => {
+    // Clone the row to avoid mutating the original
+    const updatedRow = { ...row }
+    
+    // Check if this row has a color that needs to be mapped
+    if (updatedRow.color) {
+      // Find if any of our color mappings apply to this row's color
+      for (const [mappedColor, colorValue] of Object.entries(colorMappings.value)) {
+        if (updatedRow.color.toLowerCase().includes(mappedColor.toLowerCase()) && colorValue) {
+          // Get the color name from the selected value
+          const colorName = getColorNameFromHex(colorValue)
+          // Replace the ambiguous color with the actual color name
+          updatedRow.color = colorName
+          break
+        }
+      }
+    }
+    
+    return updatedRow
+  })
+  
+  // Show a confirmation and close the color config panel
+  showColorConfig.value = false
+}
+
+// Open color mapping section
+const openColorMapping = () => {
+  showColorConfig.value = true
+  // Use setTimeout to ensure the DOM is updated before scrolling
+  setTimeout(() => {
+    // Find the color mapping section and scroll to it
+    const colorMappingSection = document.querySelector('.color-mapping-section')
+    if (colorMappingSection) {
+      colorMappingSection.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, 100)
+}
+
 // Toggle row details visibility
 const toggleRowDetails = (index) => {
   expandedRows.value = {
@@ -1026,35 +1201,87 @@ const getStitchClass = (stitch) => {
   }
 }
 
+// Color mapping for hex values to color names and vice versa
+const colorMap = {
+  // Hex to name mapping
+  '#ff5252': 'Red',
+  '#4caf50': 'Green',
+  '#2196f3': 'Blue',
+  '#ffc107': 'Yellow',
+  '#9c27b0': 'Purple',
+  '#ff9800': 'Orange',
+  '#e91e63': 'Pink',
+  '#00bcd4': 'Turquoise',
+  '#333333': 'Black',
+  '#ffffff': 'White',
+  '#795548': 'Brown',
+  '#607d8b': 'Gray',
+  
+  // Name to hex mapping
+  'Red': '#ff5252',
+  'Green': '#4caf50',
+  'Blue': '#2196f3',
+  'Yellow': '#ffc107',
+  'Purple': '#9c27b0',
+  'Orange': '#ff9800',
+  'Pink': '#e91e63',
+  'Turquoise': '#00bcd4',
+  'Black': '#333333',
+  'White': '#ffffff',
+  'Brown': '#795548',
+  'Gray': '#607d8b',
+  
+  // Letter-based colors
+  'A': '#ff5252', // Red
+  'B': '#4caf50', // Green
+  'C': '#2196f3', // Blue
+  'D': '#ffc107', // Yellow
+  'E': '#9c27b0', // Purple
+  'F': '#ff9800', // Orange
+  'MC': '#333333', // Main Color (dark)
+  'CC': '#e91e63', // Contrast Color (pink)
+  'CC1': '#e91e63', // Contrast Color 1
+  'CC2': '#00bcd4'  // Contrast Color 2
+}
+
+// Get color name from hex value
+const getColorNameFromHex = (hexValue) => {
+  return colorMap[hexValue] || 'Custom Color'
+}
+
 const getColorHex = (color) => {
-  // Map color identifiers to hex values
-  const colorMap = {
-    'A': '#ff5252', // Red
-    'B': '#4caf50', // Green
-    'C': '#2196f3', // Blue
-    'D': '#ffc107', // Yellow
-    'E': '#9c27b0', // Purple
-    'F': '#ff9800', // Orange
-    'MC': '#333333', // Main Color (dark)
-    'CC': '#e91e63', // Contrast Color (pink)
-    'CC1': '#e91e63', // Contrast Color 1
-    'CC2': '#00bcd4', // Contrast Color 2
-    'Red': '#ff5252',
-    'Green': '#4caf50',
-    'Blue': '#2196f3',
-    'Yellow': '#ffc107',
-    'Purple': '#9c27b0',
-    'Orange': '#ff9800',
-    'Pink': '#e91e63',
-    'Turquoise': '#00bcd4'
+  if (!color) return '#888888';
+  
+  // First check if we have a user-defined mapping for this color
+  for (const [mappedColor, colorValue] of Object.entries(colorMappings.value)) {
+    if (color.toLowerCase() === mappedColor.toLowerCase() && colorValue) {
+      // Return the actual color value instead of the ambiguous one
+      return colorValue;
+    }
   }
   
-  // If we can match the color to our map, return the hex
-  const colorKey = Object.keys(colorMap).find(key => 
-    color.toLowerCase().includes(key.toLowerCase())
-  )
+  // Check for exact match in our color map
+  if (colorMap[color]) {
+    return colorMap[color];
+  }
   
-  return colorKey ? colorMap[colorKey] : '#888888' // Default gray
+  // Check for color names (case insensitive)
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (typeof value === 'string' && value.startsWith('#') && 
+        color.toLowerCase() === key.toLowerCase()) {
+      return value;
+    }
+  }
+  
+  // Check for partial matches (for 'Color A' type formats)
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (!key.startsWith('#') && 
+        color.toLowerCase().includes(key.toLowerCase())) {
+      return value;
+    }
+  }
+  
+  return '#888888'; // Default gray
 }
 
 const extractRepeatPattern = (text) => {
@@ -1084,33 +1311,150 @@ const applyQuickFormat = (format) => {
   parseRows();
 }
 
-// Watch for changes in parsed rows to update color detection
-watch(parsedRows, () => {
-  detectColors();
-}, { deep: true });
+// Extract content that couldn't be parsed into rows
+const extractUnparsedContent = () => {
+  if (!patternText.value.trim() || !parsedRows.value.length) {
+    // If there's no pattern text or no parsed rows, set all content as unparsed
+    unparsedContent.value = patternText.value.trim()
+    return
+  }
+  
+  // Get all the text that was successfully parsed into rows
+  const parsedTexts = new Set()
+  
+  // For each parsed row, add its text to the set
+  parsedRows.value.forEach(row => {
+    if (row.text) {
+      parsedTexts.add(row.text.trim())
+    }
+  })
+  
+  // Split the original text into lines
+  const lines = patternText.value.split('\n')
+  
+  // Filter out lines that were successfully parsed
+  const unparsedLines = lines.filter(line => {
+    const trimmedLine = line.trim()
+    if (!trimmedLine) return false // Skip empty lines
+    
+    // Check if this line or a part of it was parsed
+    for (const parsedText of parsedTexts) {
+      if (parsedText.includes(trimmedLine) || trimmedLine.includes(parsedText)) {
+        return false
+      }
+    }
+    
+    return true
+  })
+  
+  // Join the unparsed lines
+  unparsedContent.value = unparsedLines.join('\n')
+}
+
+// Add a new row manually
+const addNewRow = () => {
+  // Set up for adding a new row
+  editingRowIndex.value = -2 // Special value to indicate new row
+  
+  // Determine the next row number
+  const nextRowNumber = parsedRows.value.length > 0 
+    ? Math.max(...parsedRows.value.map(row => row.number)) + 1 
+    : 1
+  
+  // Create a basic row object with just the number
+  editingRow.value = {
+    number: nextRowNumber,
+    text: `Row ${nextRowNumber}`,
+    stitches: []
+  }
+  
+  // Show the edit modal
+  showRowEditModal.value = true
+}
+
+// Ignore unparsed content
+const ignoreUnparsedContent = () => {
+  // Clear the unparsed content
+  unparsedContent.value = ''
+  // Hide the unparsed content section
+  showUnparsedContent.value = false
+}
+
+// Row editing methods
+const editRow = (index) => {
+  editingRowIndex.value = index
+  editingRow.value = index >= 0 ? { ...parsedRows.value[index] } : null
+  
+  // Show the edit modal
+  showRowEditModal.value = true
+}
+
+// Handle save from row edit modal
+const handleRowSave = (updatedRow) => {
+  // Update or add the row in the parsedRows array
+  if (editingRowIndex.value === -2) {
+    // Add new row
+    parsedRows.value.push(updatedRow)
+  } else {
+    // Update existing row
+    parsedRows.value[editingRowIndex.value] = updatedRow
+  }
+  
+  // Sort rows by number
+  parsedRows.value.sort((a, b) => a.number - b.number)
+  
+  // Reset editing state
+  editingRowIndex.value = -1
+  editingRow.value = null
+}
 </script>
   
 <style scoped>
-/* Modal Overlay */
-.pattern-modal-overlay {
+/* Media Queries */
+@media (max-width: 900px) {
+  .modal-columns {
+    flex-direction: column;
+  }
+  
+  .preview-column {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border-color, #444);
+    padding-top: 1.5rem;
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pattern-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+  }
+}
+
+/* Modal Overlay */
+.pattern-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.75);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
   padding: 1rem;
 }
 
 /* Modal Container */
 .pattern-modal {
   width: 100%;
-  max-width: 700px;
-    max-height: 90vh;
+  max-width: 1000px;
+  max-height: 90vh;
   overflow-y: auto;
   background: var(--card-bg, #2a2a2a);
   border-radius: 12px;
@@ -1118,77 +1462,139 @@ watch(parsedRows, () => {
 }
 
 /* Modal Header */
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color, #444);
-  }
-  
-  .modal-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
   color: var(--text-primary, #fff);
   font-weight: 600;
-  }
-  
-  .close-button {
-    background: none;
-    border: none;
+}
+
+.close-button {
+  background: none;
+  border: none;
   color: var(--text-secondary, #aaa);
   font-size: 1.75rem;
-    cursor: pointer;
+  cursor: pointer;
   padding: 0;
   line-height: 1;
-  }
-  
-  .close-button:hover {
+}
+
+.close-button:hover {
   color: var(--text-primary, #fff);
 }
 
 /* Modal Body */
 .modal-body {
-    padding: 1.5rem;
-  }
-  
-/* Form Elements */
-  .form-group {
-    margin-bottom: 1.5rem;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
+  padding: 1.5rem;
+}
+
+/* Modal Columns */
+.modal-columns {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-column {
+  flex: 1;
+}
+
+.input-column {
+  flex-basis: 40%;
+}
+
+.preview-column {
+  flex-basis: 60%;
+  border-left: 1px solid var(--border-color, #444);
+  padding-left: 1.5rem;
+}
+
+.column-title {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
   color: var(--text-primary, #fff);
-    font-weight: 500;
-  }
-  
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color, #444);
+}
+
+.storage-format-text {
+  color: var(--text-primary, #ffffff);
+}
+
+.notation-view-container {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pattern-shape-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+.pattern-shape-badge.circular {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--accent-color, #4CAF50);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.pattern-shape-badge.rectangular {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary, #fff);
+  font-weight: 500;
+}
+
 .form-input {
-    width: 100%;
-    padding: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
   border: 1px solid var(--border-color, #444);
   border-radius: 6px;
   background: var(--input-bg, #333);
   color: var(--text-primary, #fff);
-    font-size: 1rem;
-  }
-  
+  font-size: 1rem;
+}
+
 .form-input:focus {
-    outline: none;
+  outline: none;
   border-color: var(--accent-color, #4f87ff);
-  }
-  
+}
+
 .form-textarea {
-    width: 100%;
+  width: 100%;
   min-height: 120px;
   padding: 0.75rem;
   border: 1px solid var(--border-color, #444);
   border-radius: 6px;
   background: var(--input-bg, #333);
   color: var(--text-primary, #fff);
-    font-size: 1rem;
-    resize: vertical;
+  font-size: 1rem;
+  resize: vertical;
 }
 
 .form-textarea:focus {
@@ -1205,7 +1611,7 @@ watch(parsedRows, () => {
 }
 
 .section-title {
-    display: flex;
+  display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 0;
@@ -1223,7 +1629,7 @@ watch(parsedRows, () => {
   color: var(--accent-color, #4f87ff);
   font-size: 1.25rem;
   font-weight: bold;
-    cursor: pointer;
+  cursor: pointer;
   padding: 0;
   width: 24px;
   height: 24px;
@@ -1255,7 +1661,7 @@ watch(parsedRows, () => {
   display: flex;
   align-items: center;
   padding: 0.75rem;
-  background: var(--item-bg, #333);
+  background: var(--card-bg, #2a2a2a);
   border-radius: 6px;
   gap: 0.75rem;
 }
@@ -1267,60 +1673,53 @@ watch(parsedRows, () => {
 }
 
 .detection-item .value {
-  color: var(--text-primary, #fff);
   flex: 1;
-}
-
-.apply-button {
-  padding: 0.5rem 0.75rem;
-  background: var(--button-primary-bg, #4f87ff);
-  color: var(--button-primary-text, #fff);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background 0.2s;
+  color: var(--text-primary, #fff);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
 }
 
-.apply-button:hover {
-  background: var(--button-primary-hover, #3a75f0);
+.color-chip {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-right: 4px;
+  border: 1px solid var(--border-color, #444);
+  box-shadow: 0 0 0 1px white;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
-.apply-button {
-  background: var(--accent-color, #4CAF50);
-  color: #fff;
+.color-name {
+  display: inline-block;
+  vertical-align: middle;
 }
 
-.apply-button:hover {
-  background: var(--accent-hover, #45a049);
+.color-separator {
+  display: inline-block;
+  margin: 0 2px;
 }
 
 .action-button {
-  padding: 0.375rem 0.75rem;
-  background: var(--button-secondary-bg, #444);
-  color: var(--button-secondary-text, #fff);
+  padding: 0.25rem 0.75rem;
+  background: var(--accent-color, #4f87ff);
+  color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
-  transition: background 0.2s;
-  margin-left: 0.5rem;
 }
 
 .action-button:hover {
-  background: var(--button-secondary-hover, #555);
-}
-
-.action-button {
-  background: var(--button-bg, #2a2a2a);
-  color: var(--button-text, #ffffff);
-  border: 1px solid var(--button-border, #333333);
-}
-
-.action-button:hover {
-  background: var(--button-hover-bg, #333333);
+  background: var(--accent-hover, #3b6fdf);
 }
 
 /* Configuration Panel */
@@ -1337,9 +1736,9 @@ watch(parsedRows, () => {
 }
 
 .config-section:last-child {
-    margin-bottom: 0;
-  }
-  
+  margin-bottom: 0;
+}
+
 .config-section h4 {
   margin: 0 0 0.75rem;
   color: var(--text-primary, #fff);
@@ -1353,39 +1752,67 @@ watch(parsedRows, () => {
 }
 
 .input-group {
-    display: flex;
+  display: flex;
   gap: 0.5rem;
+}
+
+.apply-button {
+  padding: 0.75rem 1rem;
+  background: var(--accent-color, #4f87ff);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.apply-button:hover {
+  background: var(--accent-hover, #3b6fdf);
+}
+
+.examples {
+  margin-top: 0.75rem;
+  color: var(--text-muted, #777);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.quick-options {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .option-button {
   padding: 0.5rem 0.75rem;
-  background: var(--button-secondary-bg, #444);
-  color: var(--button-secondary-text, #fff);
-  border: none;
+  background: var(--button-bg, #444);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border-color, #555);
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
-  transition: background 0.2s;
-  margin-right: 0.5rem;
+  transition: all 0.2s ease;
 }
 
 .option-button:hover {
-  background: var(--button-secondary-hover, #555);
+  background: var(--button-hover-bg, #555);
+  border-color: var(--accent-color, #4f87ff);
 }
 
-.option-button {
-  background: var(--button-bg, #2a2a2a);
-  color: var(--button-text, #ffffff);
-  border: 1px solid var(--button-border, #333333);
+:root.light .option-button {
+  background: #e8e8e8;
+  color: #333;
+  border: 1px solid #d0d0d0;
 }
 
-.option-button:hover {
-  background: var(--button-hover-bg, #333333);
+:root.light .option-button:hover {
+  background: #d8d8d8;
+  border-color: #2979ff;
 }
 
 /* Parsed Rows */
 .parsed-rows {
-    margin-top: 1.5rem;
+  margin-top: 1.5rem;
 }
 
 .parsed-rows h4 {
@@ -1395,12 +1822,12 @@ watch(parsedRows, () => {
 }
 
 .rows-list {
-    display: flex;
+  display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  }
-  
-  .parsed-row {
+}
+
+.parsed-row {
   border: 1px solid var(--border-color, #444);
   border-radius: 6px;
   overflow: hidden;
@@ -1435,9 +1862,9 @@ watch(parsedRows, () => {
   margin: 0 0 0.75rem;
   color: var(--text-primary, #fff);
   font-size: 0.875rem;
-  }
-  
-  .stitch-list {
+}
+
+.stitch-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -1451,9 +1878,9 @@ watch(parsedRows, () => {
   font-size: 0.875rem;
 }
 
-.stitch-text {
-  color: var(--text-primary, #ffffff);
-  background: var(--input-bg, #2a2a2a);
+:root.light .stitch-text {
+  color: #333;
+  background: transparent;
 }
 
 /* Error Message */
@@ -1500,100 +1927,6 @@ watch(parsedRows, () => {
 }
 
 .cancel-button {
-  background: var(--button-secondary-bg, #444);
-  color: var(--text-primary, #fff);
-  border: 1px solid var(--button-secondary-border, #555);
-}
-
-.cancel-button:hover {
-  background: var(--button-secondary-hover, #555);
-}
-
-/* Note: CSS Variables are set directly on the root element by the theme service */
-
-/* Using CSS variables directly for theming */
-.pattern-modal {
-  background: var(--card-bg, #2a2a2a);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-  border-bottom: 1px solid var(--border-color, #333333);
-}
-
-.modal-header h2 {
-  color: var(--text-primary, #ffffff);
-}
-
-.close-button {
-  color: var(--text-secondary, #888888);
-}
-
-.close-button:hover {
-  color: var(--text-primary, #ffffff);
-}
-
-.form-group label {
-  color: var(--text-primary, #ffffff);
-}
-
-.form-input,
-.form-textarea {
-  border: 1px solid var(--border-color, #333333);
-  background: var(--input-bg, #2a2a2a);
-  color: var(--text-primary, #ffffff);
-}
-
-.section-title {
-  background: var(--card-bg, #2a2a2a);
-  color: var(--text-primary, #ffffff);
-}
-
-.detection-item {
-  background: var(--card-bg, #2a2a2a);
-  border: 1px solid var(--border-color, #333333);
-}
-
-.detection-item .label {
-  color: var(--text-secondary, #888888);
-}
-
-.detection-item .value {
-  color: var(--text-primary, #ffffff);
-}
-
-.config-panel {
-  background: var(--card-bg, #2a2a2a);
-  border: 1px solid var(--border-color, #333333);
-}
-
-.help-text {
-  color: var(--text-secondary, #888888);
-}
-
-.row-header {
-  background: var(--card-bg, #2a2a2a);
-}
-
-.row-details {
-  background: var(--input-bg, #2a2a2a);
-  border-top: 1px solid var(--border-color, #333333);
-}
-
-.row-text {
-  color: var(--text-primary, #ffffff);
-}
-
-.stitch-text {
-  background: var(--input-bg, #2a2a2a);
-  color: var(--text-primary, #ffffff);
-}
-
-.action-buttons {
-  border-top: 1px solid var(--border-color, #333333);
-}
-
-.cancel-button {
   background: var(--button-bg, #2a2a2a);
   color: var(--button-text, #ffffff);
   border: 1px solid var(--button-border, #333333);
@@ -1603,234 +1936,237 @@ watch(parsedRows, () => {
   background: var(--button-hover-bg, #333333);
 }
 
-/* Pattern Preview Styles */
-.pattern-preview-section {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+/* Color Mapping Styles */
+.color-mapping-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--border-color, #444);
 }
 
-.pattern-preview-section h4 {
-  margin: 0 0 1rem;
-  color: var(--text-primary, #fff);
-  font-size: 1.125rem;
-}
-
-.pattern-preview {
-    display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--preview-bg, #1a1a1a);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #444);
-}
-
-.preview-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-.preview-row-header {
-    display: flex;
-    align-items: center;
-  gap: 0.75rem;
-}
-
-.preview-row-number {
-  font-weight: 600;
-  color: var(--accent-color, #4f87ff);
-}
-
-.color-indicator {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.preview-row-content {
-  padding-left: 0rem;
-}
-
-.preview-stitches {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 0.5rem;
-    border-radius: 8px;
-}
-
-.no-stitches-message {
-  padding: 0.5rem;
-  color: var(--text-secondary, #aaa);
-  font-style: italic;
-  font-size: 0.875rem;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  border: 1px dashed var(--border-color, #444);
-}
-
-.no-stitches-message {
-  color: var(--text-secondary, #888888);
-  background: rgba(0, 0, 0, 0.1);
-  border: 1px dashed var(--border-color, #333333);
-}
-
-.preview-stitch {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  flex-direction: column;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--stitch-bg, #333);
-  color: var(--text-primary, #fff);
-  border: 1px solid var(--border-color, #444);
-  font-size: 0.75rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.stitch-count {
-  font-weight: 700;
-  font-size: 0.875rem;
-}
-
-.stitch-type {
-  font-size: 0.625rem;
-    opacity: 0.8;
-  }
-  
-/* Stitch styles are now defined globally in assets/styles/stitch-colors.css */
-
-/* Dark theme text overrides for stitch colors to ensure visibility */
-:root:not(.light) .stitch-sc,
-:root:not(.light) .stitch-dc,
-:root:not(.light) .stitch-hdc,
-:root:not(.light) .stitch-tr,
-:root:not(.light) .stitch-dtr,
-:root:not(.light) .stitch-ch,
-:root:not(.light) .stitch-sl,
-:root:not(.light) .stitch-inc,
-:root:not(.light) .stitch-dec,
-:root:not(.light) .stitch-bs,
-:root:not(.light) .stitch-ns {
-  text-shadow: 0px 1px 1px rgba(0,0,0,0.2);
-}
-
-/* Repeat Pattern Styles */
-.repeat-pattern {
+.color-mapping-item {
   display: flex;
   align-items: center;
-  padding: 0.5rem 1rem;
-  background: var(--stitch-bg, #2d2d2d);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #444);
+  margin-bottom: 0.75rem;
 }
 
-.repeat-notation {
+.color-mapping-label {
+  width: 80px;
   font-weight: 500;
   color: var(--text-primary, #fff);
 }
 
-:root.light .repeat-pattern {
-  background: #e8e8e8;
-  border: 1px solid #d0d0d0;
+.color-mapping-input {
+  display: flex;
+  align-items: center;
+  flex: 1;
 }
 
-:root.light .repeat-notation {
+.color-select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #444);
+  border-radius: 4px;
+  background: var(--input-bg, #333);
+  color: var(--text-primary, #fff);
+}
+
+.color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  border: 1px solid var(--border-color, #444);
+  /* Add white outline for dark colors like black */
+  box-shadow: 0 0 0 1px white;
+}
+
+.color-mapping-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+/* CSS Variables for theming */
+:root {
+  --button-secondary-bg: #444;
+  --button-secondary-text: #fff;
+  --button-secondary-border: #555;
+  --button-secondary-hover: #555;
+}
+
+/* Light Theme Overrides */
+:root.light .pattern-modal {
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+:root.light {
+  --button-secondary-bg-light: #e0e0e0;
+  --button-secondary-text-light: #333;
+  --button-secondary-border-light: #d0d0d0;
+  --button-secondary-hover-light: #d0d0d0;
+}
+
+:root.light .color-mapping-label {
   color: #333;
 }
 
-/* Repeat Group Styles */
-.repeat-group {
+:root.light .color-select {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  color: #333;
+}
+
+:root.light .modal-header {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+:root.light .modal-header h2 {
+  color: #333;
+}
+
+:root.light .close-button {
+  color: #666;
+}
+
+:root.light .close-button:hover {
+  color: #333;
+}
+
+:root.light .form-group label {
+  color: #333;
+}
+
+:root.light .form-input,
+:root.light .form-textarea {
+  border: 1px solid #e0e0e0;
+  background: #f9f9f9;
+  color: #333;
+}
+
+:root.light .section-title {
+  background: #f5f5f5;
+  color: #333;
+}
+
+:root.light .detection-item {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .detection-item .label {
+  color: #666;
+}
+
+:root.light .detection-item .value {
+  color: #333;
+}
+
+:root.light .config-panel {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .help-text {
+  color: #666;
+}
+
+:root.light .row-header {
+  background: #f5f5f5;
+}
+
+:root.light .row-details {
+  background: #f9f9f9;
+  border-top: 1px solid #e0e0e0;
+}
+
+:root.light .row-text {
+  color: #333;
+}
+
+:root.light .stitch-text {
+  background: #eee;
+  color: #333;
+}
+
+:root.light .action-buttons {
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Light theme override for cancel button */
+:root.light .cancel-button {
+  background: #f2f2f2;
+  color: #333;
+  border: 1px solid #d0d0d0;
+}
+
+:root.light .cancel-button:hover {
+  background: #e0e0e0;
+}
+
+:root.light .stitch {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .pattern-shape-badge.circular {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+:root.light .pattern-shape-badge.rectangular {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+/* No rows message styles */
+.no-rows-message {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  margin: 0 0.5rem;
-  position: relative;
-  padding: 0 0.5rem;
-  background-color: rgba(79, 135, 255, 0.08);
+  padding: 2rem;
+  text-align: center;
+  background: var(--card-bg-light, #2d2d2d);
+  border: 1px solid var(--warning-border, #8B6E00);
   border-radius: 8px;
-  height: 40px;
-  overflow: visible;
+  margin: 1rem 0;
 }
 
-.repeat-bracket {
-  font-size: 2.5rem;
-  font-weight: 400;
-  color: var(--accent-color, #4f87ff);
-  margin: 0;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding-bottom: 7px;
+.no-rows-message .icon-warning {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--warning-text, #FFC107);
 }
 
-.left-bracket {
-  margin-right: 0.25rem;
+.no-rows-message h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--warning-text, #FFC107);
 }
 
-.right-bracket {
-  margin-left: 0.25rem;
-  margin-right: 0.125rem;
+.no-rows-message p {
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary, #aaa);
 }
 
-.repeat-count {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--accent-color, #4f87ff);
-  padding: 0.125rem 0.25rem;
-  background: rgba(79, 135, 255, 0.15);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 0.125rem;
-  height: 24px;
-  position: relative;
+.no-rows-message .action-button {
+  margin-top: 0.5rem;
 }
 
-.repeat-group {
-  background-color: rgba(var(--accent-color-rgb, 76, 175, 80), 0.08);
+/* Light theme override */
+:root.light .storage-format-preview {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
 }
 
-.repeat-bracket,
-.repeat-count {
-  color: var(--accent-color, #4CAF50);
+:root.light .storage-format-text {
+  color: #333;
 }
 
-.storage-format-preview {
-  background: var(--card-bg, #2a2a2a);
-  border: 1px solid var(--border-color, #333333);
-}
-
-.storage-format-text {
-  color: var(--text-primary, #ffffff);
-}
-
-
-
-.pattern-preview {
-  background: var(--card-bg, #2a2a2a);
-  border: 1px solid var(--border-color, #333333);
-}
-
-.preview-row-number {
-  color: var(--accent-color, #4CAF50);
-}
-
-.color-indicator {
-  border: 1px solid var(--border-color, #333333);
-}
-
+/* Stitch preview styles */
 .stitch-preview {
   display: flex;
   flex-wrap: wrap;
@@ -1848,14 +2184,4 @@ watch(parsedRows, () => {
   font-size: 12px;
   font-weight: bold;
 }
-
-.preview-stitch {
-  border: 1px solid var(--border-color, #333333);
-}
-
-:root.light .preview-stitch {
-  border: 1px solid var(--border-color, #333333);
-}
-
-
-</style>
+</style> 

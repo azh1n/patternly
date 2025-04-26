@@ -3,10 +3,7 @@
     <div class="preview-header">
       <h4>
         Pattern Preview ({{ rows.length }} rows)
-        <span v-if="patternShape && patternShape.type !== 'unknown'" class="pattern-shape-badge" :class="patternShape.type">
-          {{ patternShape.type === 'circular' ? 'Circular' : 'Rectangular' }}
-          <span class="confidence">({{ Math.round(patternShape.confidence * 100) }}%)</span>
-        </span>
+
       </h4>
       <button @click="$emit('add-new-row')" class="add-row-button">+ Add Row</button>
     </div>
@@ -90,6 +87,7 @@
       v-else-if="viewMode === 'chart'" 
       :rows="rows" 
       :rawContent="rawContent"
+      :patternShape="patternShape"
     />
   </div>
 </template>

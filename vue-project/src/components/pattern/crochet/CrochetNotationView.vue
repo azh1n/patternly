@@ -5,10 +5,10 @@
       <div class="pattern-info">
         <div class="pattern-shape-indicator">
           <span class="shape-label">Pattern Shape:</span>
-          <span class="shape-value" :class="patternShape.type">
-            {{ patternShape.type === 'circular' ? 'Circular' : patternShape.type === 'rectangular' ? 'Rectangular' : 'Unknown' }}
-            <span class="confidence-indicator" v-if="patternShape.type !== 'unknown'">
-              ({{ Math.round(patternShape.confidence * 100) }}% confidence)
+          <span class="shape-value" :class="props.patternShape && props.patternShape.type">
+            {{ props.patternShape && props.patternShape.type === 'circular' ? 'Circular' : props.patternShape && props.patternShape.type === 'rectangular' ? 'Rectangular' : 'Unknown' }}
+            <span class="confidence-indicator" v-if="props.patternShape && props.patternShape.type !== 'unknown'">
+              ({{ props.patternShape ? Math.round(props.patternShape.confidence * 100) : 0 }}% confidence)
             </span>
           </span>
         </div>
@@ -29,7 +29,7 @@
           Circular
         </button>
         <button 
-          v-if="patternShape.type === 'circular' || viewMode === '3d'"
+          v-if="props.patternShape && props.patternShape.type === 'circular' || viewMode === '3d'"
           @click="viewMode = '3d'" 
           :class="{ active: viewMode === '3d' }"
           title="Show 3D visualization"
@@ -312,24 +312,16 @@ const props = defineProps({
   rawContent: {
     type: String,
     default: ''
+  },
+  patternShape: {
+    type: Object,
+    required: true,
+    default: () => ({ type: 'unknown', confidence: 0 })
   }
 });
 
 // View mode (linear, circular, or 3d)
 const viewMode = ref('linear');
-
-// Pattern shape detection
-const patternShape = ref({ type: 'unknown', confidence: 0 });
-
-// Detect pattern shape when rows or content changes
-watch(() => [props.rows, props.rawContent], () => {
-  patternShape.value = detectPatternShape(props.rows, props.rawContent);
-  
-  // Auto-switch to circular or 3d view if pattern is detected as circular with high confidence
-  if (patternShape.value.type === 'circular' && patternShape.value.confidence > 0.8 && viewMode.value === 'linear') {
-    viewMode.value = 'circular';
-  }
-}, { immediate: true, deep: true });
 
 // SVG dimensions for circular view
 const svgSize = 500;
