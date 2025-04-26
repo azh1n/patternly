@@ -119,99 +119,24 @@
 
       <!-- Pattern card with stitch navigation -->
       <div class="pattern-card">
-        <div class="stitch-navigation" :class="{ 'symbols-only': visualizationMode === 'symbols' }">
-          <!-- Only show navigation arrows for text mode -->
-          <button 
+        <div class="stitch-navigation" :class="{ 'component-mode': visualizationMode === 'text' || visualizationMode === 'symbols' }">
+          <!-- Text visualization mode -->
+          <TextStitches
             v-if="visualizationMode === 'text'"
-            @click="previousStitches" 
-            class="nav-button"
-            :disabled="currentStitchIndex === 0"
-          >
-            <font-awesome-icon icon="chevron-left" />
-          </button>
+            :currentRow="currentRow"
+            :initialStitchesPerView="stitchesPerView"
+            :maxStitchesPerView="totalStitches"
+            class="visualization-component text-visualization"
+          />
           
-          <!-- Current stitches display -->
-          <div class="stitch-content">
-            <!-- Text mode visualization (original) -->
-            <div v-if="visualizationMode === 'text'" class="current-stitches">
-              <span 
-                v-for="(stitch, index) in currentStitches" 
-                :key="index"
-                :class="[
-                  { 'completed-stitch': stitch.isCompleted },
-                  { 'repeat-pattern': stitch.isRepeatPattern },
-                  getStitchClass(stitch.code)
-                ]"
-              >
-                {{ stitch.code }}
-              </span>
-              
-              <div class="stitch-progress">
-                <span class="progress-indicator">
-                  {{ stitchProgress }}
-                </span>
-              </div>
-            </div>
-            
-            <!-- Symbol visualization mode -->
-            <SymbolStitches
-              v-else-if="visualizationMode === 'symbols'"
-              :currentRow="currentRow"
-              :initialStitchesPerView="stitchesPerView"
-              :maxStitchesPerView="totalStitches"
-              class="visualization-component symbols-visualization"
-            />
-          </div>
-          
-          <!-- Only show navigation arrows for text mode -->
-          <button 
-            v-if="visualizationMode === 'text'"
-            @click="nextStitches" 
-            class="nav-button"
-            :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
-          >
-            <font-awesome-icon icon="chevron-right" />
-          </button>
-        </div>
-
-        <!-- Full row preview section -->
-        <div v-if="visualizationMode === 'text'" class="full-row-preview">
-          <h3>Full Row Preview</h3>
-          <div class="preview-content" :class="{ 'row-completed': isRowComplete }">
-            <template v-if="windowWidth < 768">
-              <span 
-                v-for="(item, index) in mobilePreviewStitches" 
-                :key="index" 
-                :class="[
-                  'preview-stitch',
-                  { 'completed-stitch': item.status === 'completed' },
-                  { 'current-stitch': item.status === 'current' },
-                  { 'next-stitch': item.status === 'next' },
-                  { 'border-stitch': item.code.endsWith('bs') },
-                  { 'repeat-pattern': item.isRepeatPattern },
-                  getStitchClass(item.code)
-                ]"
-              >
-                {{ item.code }}
-              </span>
-            </template>
-            <template v-else>
-              <span 
-                v-for="(item, index) in getCompletedCodes" 
-                :key="index" 
-                :class="[
-                  'preview-stitch',
-                  { 'completed-stitch': item.isCompleted },
-                  { 'current-stitch': index >= currentStitchIndex && index < currentStitchIndex + stitchesPerView },
-                  { 'border-stitch': item.code.endsWith('bs') },
-                  { 'repeat-pattern': item.isRepeatPattern },
-                  getStitchClass(item.code)
-                ]"
-              >
-                {{ item.code }}
-              </span>
-            </template>
-          </div>
+          <!-- Symbol visualization mode -->
+          <SymbolStitches
+            v-else-if="visualizationMode === 'symbols'"
+            :currentRow="currentRow"
+            :initialStitchesPerView="stitchesPerView"
+            :maxStitchesPerView="totalStitches"
+            class="visualization-component symbols-visualization"
+          />
         </div>
       </div>
 
@@ -324,6 +249,7 @@ import { db } from '../firebase'
 import PatternChartView from './pattern/PatternChartView.vue'
 // Import components for visualization modes
 import SymbolStitches from './pattern/stitches/SymbolStitches.vue'
+import TextStitches from './pattern/stitches/TextStitches.vue'
 
 // Component props
 const props = defineProps({
@@ -347,7 +273,6 @@ const router = useRouter()
 
 // Reactive state
 const stitchesPerView = ref(5)  // Number of stitches to display at once
-const currentStitchIndex = ref(0)  // Current stitch index in the row
 const currentRowIndex = ref(0)  // Current row index in the pattern
 const isSwiping = ref(false)  // Touch swipe state
 const startX = ref(0)  // Touch start position
@@ -356,7 +281,6 @@ const windowWidth = ref(window.innerWidth)  // Current window width
 const showRawPattern = ref(false)  // State for showing raw pattern
 const showChartView = ref(false)   // State for showing chart view
 const visualizationMode = ref('text')  // State for visualization mode
-const displayRepeatedStitchesSeparately = ref(false)  // Flag for handling repeat patterns
 
 // Notes feature state
 const currentRowNotes = ref('')  // Current row notes content
@@ -734,84 +658,6 @@ const transformStyle = computed(() => {
 })
 
 // Navigation methods
-const nextStitches = () => {
-  if (!currentRow.value) return
-  const nextIndex = currentStitchIndex.value + stitchesPerView.value
-  if (nextIndex < currentRow.value.codes.length) {
-    currentStitchIndex.value = nextIndex
-    updateScrollPosition()
-  }
-}
-
-const previousStitches = () => {
-  if (!currentRow.value || currentStitchIndex.value === 0) return
-  const prevIndex = Math.max(0, currentStitchIndex.value - stitchesPerView.value)
-  currentStitchIndex.value = prevIndex
-  updateScrollPosition()
-}
-
-// Update stitch progress display
-const stitchProgress = computed(() => {
-  if (!currentRow.value) return ''
-  
-  // Calculate total stitches up to current position
-  const currentStitchCount = currentRow.value.codes
-    .slice(0, currentStitchIndex.value)
-    .reduce((total, code) => {
-      const match = code.match(/^(\d+)/)
-      
-      // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
-      if (code.includes('(') && code.includes(')') && code.includes('x')) {
-        // Extract content inside parentheses and repeat count
-        const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
-        if (repeatMatch) {
-          const repeatedContent = repeatMatch[1];
-          const repeatCount = parseInt(repeatMatch[2], 10);
-          
-          // Split the repeated content by commas and sum each stitch count
-          const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
-            const countMatch = stitch.trim().match(/^(\d+)/);
-            return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
-          }, 0);
-          
-          return total + (stitchesPerRepeat * repeatCount);
-        }
-      }
-      
-      return total + (match ? parseInt(match[1], 10) : 1)
-    }, 0)
-  
-  // Calculate stitches in current view
-  const viewStitches = currentRow.value.codes
-    .slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value)
-    .reduce((total, code) => {
-      const match = code.match(/^(\d+)/)
-      
-      // If it's a repeat pattern like "(1sc, 1inc) x6", handle differently
-      if (code.includes('(') && code.includes(')') && code.includes('x')) {
-        // Extract content inside parentheses and repeat count
-        const repeatMatch = code.match(/\(([^)]+)\)\s*x(\d+)/);
-        if (repeatMatch) {
-          const repeatedContent = repeatMatch[1];
-          const repeatCount = parseInt(repeatMatch[2], 10);
-          
-          // Split the repeated content by commas and sum each stitch count
-          const stitchesPerRepeat = repeatedContent.split(',').reduce((subtotal, stitch) => {
-            const countMatch = stitch.trim().match(/^(\d+)/);
-            return subtotal + (countMatch ? parseInt(countMatch[1], 10) : 1);
-          }, 0);
-          
-          return total + (stitchesPerRepeat * repeatCount);
-        }
-      }
-      
-      return total + (match ? parseInt(match[1], 10) : 1)
-    }, 0)
-  
-  return `${currentStitchCount + 1}-${currentStitchCount + viewStitches} of ${totalStitches.value} stitches`
-})
-
-// Row navigation with completion tracking
 const nextRow = async () => {
   if (currentRowIndex.value < parsedRows.value.length - 1) {
     // Mark current row as complete
@@ -831,18 +677,22 @@ const nextRow = async () => {
     
     // Move to next row
     currentRowIndex.value++
-    currentStitchIndex.value = 0
-    // Update scroll position after changing row
-    setTimeout(updateScrollPosition, 50)
+    
+    // Reset stitch index
+    if (visualizationMode.value === 'text') {
+      // The TextStitches component handles this internally
+    }
   }
 }
 
 const previousRow = () => {
   if (currentRowIndex.value > 0) {
     currentRowIndex.value--
-    currentStitchIndex.value = 0
-    // Update scroll position after changing row
-    setTimeout(updateScrollPosition, 50)
+    
+    // Reset stitch index
+    if (visualizationMode.value === 'text') {
+      // The TextStitches component handles this internally
+    }
   }
 }
 
@@ -929,31 +779,6 @@ const markAsUnsaved = () => {
   notesSaved.value = false
 }
 
-// Update scroll position helper
-const updateScrollPosition = () => {
-  try {
-    // Wait for DOM to update
-    setTimeout(() => {
-      const container = document.querySelector('.preview-content')
-      if (container) {
-        const activeStitches = container.querySelectorAll('.current-stitch')
-        if (activeStitches.length > 0) {
-          const firstActiveStitch = activeStitches[0]
-          const containerWidth = container.offsetWidth
-          const scrollPosition = firstActiveStitch.offsetLeft - (containerWidth / 2) + (firstActiveStitch.offsetWidth * stitchesPerView.value / 2)
-          
-          container.scrollTo({
-            left: Math.max(0, scrollPosition),
-            behavior: 'smooth'
-          })
-        }
-      }
-    }, 50) // Small delay to ensure DOM has updated
-  } catch (error) {
-    console.error('Error updating scroll position:', error)
-  }
-}
-
 // Touch event handlers
 const handleTouchStart = (e) => {
   isSwiping.value = true
@@ -1037,77 +862,6 @@ watch(totalRows, (newCount) => {
   }
 })
 
-// Current stitches display
-const currentStitches = computed(() => {
-  if (!currentRow.value) return [];
-  const start = currentStitchIndex.value;
-  const end = start + stitchesPerView.value;
-  
-  return currentRow.value.codes.slice(start, end).map((code, index) => {
-    // Check if this is a repeat pattern
-    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
-    
-    return {
-      code,
-      isCompleted: index < stitchesPerView.value && (isRowComplete.value || start > 0),
-      isRepeatPattern
-    };
-  });
-})
-
-// Mobile preview stitch display
-const mobilePreviewStitches = computed(() => {
-  if (!currentRow.value) return [];
-  
-  return currentRow.value.codes.map((code, index) => {
-    let status = 'pending';
-    if (index < currentStitchIndex.value || isRowComplete.value) {
-      status = 'completed';
-    } else if (index >= currentStitchIndex.value && index < currentStitchIndex.value + stitchesPerView.value) {
-      status = 'current';
-    } else if (index >= currentStitchIndex.value + stitchesPerView.value && 
-               index < currentStitchIndex.value + stitchesPerView.value + 2) {
-      status = 'next';
-    }
-    
-    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
-    
-    return { 
-      code, 
-      status,
-      isRepeatPattern
-    };
-  });
-})
-
-// Completed codes for display in full row preview
-const getCompletedCodes = computed(() => {
-  if (!currentRow.value) return [];
-  
-  return currentRow.value.codes.map((code, index) => {
-    const isRepeatPattern = code.includes('(') && code.includes(')') && code.includes('x');
-    
-    return {
-      code,
-      isCompleted: index < currentStitchIndex.value || isRowComplete.value,
-      isRepeatPattern
-    };
-  });
-})
-
-// Stitch view controls
-const decreaseStitches = () => {
-  if (stitchesPerView.value > 1) {
-    stitchesPerView.value--
-  }
-}
-
-const increaseStitches = () => {
-  if (stitchesPerView.value < totalStitches.value) {
-    stitchesPerView.value++
-  }
-}
-
 // Set up window resize listener and touch events for mobile swipe
 onMounted(() => {
   window.addEventListener('resize', () => {
@@ -1123,9 +877,6 @@ onMounted(() => {
   
   // Save the row count when component mounts
   saveRowCount()
-  
-  // Initialize scroll position after component mounts
-  setTimeout(updateScrollPosition, 300)
   
   // Load notes for the initial row
   loadRowNotes()
@@ -1143,9 +894,6 @@ onMounted(() => {
 
 // Watch for changes in currentRowIndex
 watch(currentRowIndex, (newIndex, oldIndex) => {
-  // Make sure to update scroll position when row changes
-  setTimeout(updateScrollPosition, 50)
-  
   // Load notes for the new row
   loadRowNotes()
   
@@ -1154,12 +902,6 @@ watch(currentRowIndex, (newIndex, oldIndex) => {
     const hasNotes = currentRowNotes.value.trim() !== ''
     showNotes.value = hasNotes
   })
-})
-
-// Watch for changes in currentStitchIndex
-watch(currentStitchIndex, (newIndex, oldIndex) => {
-  // Update scroll position when stitch index changes
-  setTimeout(updateScrollPosition, 50)
 })
 
 // Get stitch class based on code for styling
@@ -1186,21 +928,9 @@ const getStitchClass = (code) => {
   return '';
 }
 
-function getStitchType(stitch) {
-  if (!stitch) return '';
-  
-  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-  if (match) {
-    return match[2];
-  }
-  return stitch;
-}
-
 // Expose some methods/properties to parent
 defineExpose({
-  currentStitchIndex,
-  stitchesPerView,
-  displayRepeatedStitchesSeparately
+  stitchesPerView
 });
 </script>
 
@@ -1565,8 +1295,8 @@ defineExpose({
   padding: 0.5rem;
 }
 
-/* When in symbols mode, center the content */
-.stitch-navigation.symbols-only {
+/* When in component mode (symbols or text), center the content */
+.stitch-navigation.component-mode {
   justify-content: center;
 }
 
@@ -2211,6 +1941,16 @@ defineExpose({
 }
 
 .symbols-visualization :deep(.stitch-wrapper) {
+  margin: 0.25rem;
+}
+
+.text-visualization {
+  min-height: 200px;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.text-visualization :deep(.stitch-wrapper) {
   margin: 0.25rem;
 }
 

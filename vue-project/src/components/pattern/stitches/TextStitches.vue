@@ -61,6 +61,19 @@
       <span v-if="displayRepeatedStitchesSeparately">Collapse Stitches</span>
       <span v-else>Expand Stitches</span>
     </button>
+
+    <!-- Stitch key -->
+    <div class="stitch-key">
+      <h5>Stitch Key</h5>
+      <div class="key-items">
+        <div v-for="(symbol, abbr) in commonStitches" :key="`key-${abbr}`" class="key-item">
+          <div class="stitch-symbol" :class="getStitchClass(abbr)">
+            {{ abbr }}
+          </div>
+          <span class="key-label">{{ symbol.label }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -83,7 +96,7 @@ const props = defineProps({
   }
 });
 
-// Local state for expand/collapse stitches
+// Local state for component
 const displayRepeatedStitchesSeparately = ref(true);
 const currentStitchIndex = ref(0);
 const stitchesPerView = ref(props.initialStitchesPerView);
@@ -206,6 +219,19 @@ function getStitchType(stitch) {
   return stitch;
 }
 
+// Common stitches for the key
+const commonStitches = {
+  'ch': { label: 'Chain (ch)' },
+  'sl': { label: 'Slip Stitch (sl st)' },
+  'sc': { label: 'Single Crochet (sc)' },
+  'hdc': { label: 'Half Double Crochet (hdc)' },
+  'dc': { label: 'Double Crochet (dc)' },
+  'tr': { label: 'Treble Crochet (tr)' },
+  'dtr': { label: 'Double Treble Crochet (dtr)' },
+  'bs': { label: 'Border Stitch (bs)' },
+  'ns': { label: 'Normal Stitch (ns)' }
+};
+
 // Expose some methods/properties to parent
 defineExpose({
   currentStitchIndex,
@@ -218,11 +244,12 @@ defineExpose({
 .text-stitches {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+  width: 100%;
 }
 
 .expand-toggle {
-  margin: 0.25rem 0 0.75rem 0;
+  margin: 0.5rem auto 1rem auto;
   padding: 0.35rem 1.2rem;
   background: var(--accent-color, #4f87ff);
   color: white;
@@ -233,7 +260,7 @@ defineExpose({
   transition: background 0.2s;
   outline: none;
   display: inline-block;
-  align-self: flex-start;
+  align-self: center;
 }
 
 .expand-toggle[aria-pressed="true"] {
@@ -243,55 +270,71 @@ defineExpose({
 /* Stitch wrapper */
 .stitch-wrapper {
   display: inline-block;
-  margin: 1px;
+  margin: 2px;
 }
 
 .stitch-wrapper.preview-stitch {
   position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
 }
 
 .stitch-wrapper.preview-stitch.current-stitch {
-  z-index: 2;
+  transform: translateY(-3px);
 }
 
-/* Stitch symbol */
+.stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
+  border: 2px solid var(--accent-color, #4f87ff);
+  box-shadow: 0 0 8px rgba(79, 135, 255, 0.4);
+}
+
+.stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
+  opacity: 0.7;
+  background-color: var(--completed-bg, #555) !important;
+  border-color: var(--completed-border, #444) !important;
+}
+
+/* Stitch symbol styling */
 .stitch-symbol {
-  font-size: 1rem;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 6px;
-  position: relative;
-  background-color: var(--background-color, #1e1e1e);
-  color: var(--text-primary, #fff);
-  border: 1px solid var(--border-color, #444);
-  transition: background-color 0.2s, transform 0.2s;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.stitch-symbol.with-count {
+  border-radius: 4px;
+  font-size: 0.875rem;
   font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Stitch count badge */
 .stitch-count-badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
   background-color: var(--accent-color, #4f87ff);
   color: white;
+  border-radius: 9px;
   font-size: 0.75rem;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 1px solid white;
+  padding: 0 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.stitch-symbol.with-count {
+  overflow: visible;
+}
+
+.no-stitches {
+  font-style: italic;
+  color: var(--text-secondary, #aaa);
+  padding: 0.5rem;
 }
 
 /* Stitch type colors */
@@ -361,43 +404,43 @@ defineExpose({
   border-color: #455a64;
 }
 
-/* Completed stitch */
-.preview-stitch.completed-stitch .stitch-symbol {
-  opacity: 0.7;
+/* Stitch key */
+.stitch-key {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #444);
 }
 
-.preview-stitch.completed-stitch::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.2rem;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  z-index: 10;
-}
-
-/* Current stitch highlighting */
-.preview-stitch.current-stitch .stitch-symbol {
-  box-shadow: 0 0 0 2px var(--accent-color, #4f87ff);
-  transform: translateY(-2px);
-}
-
-.no-stitches {
-  color: var(--text-secondary, #aaa);
-  font-style: italic;
-  padding: 1rem;
+.stitch-key h5 {
+  margin: 0 0 1rem;
+  color: var(--text-primary, #fff);
+  font-size: 1rem;
   text-align: center;
 }
 
-/* Light theme overrides */
-:root.light .stitch-symbol {
-  background-color: #f5f5f5;
-  color: #333;
-  border-color: #ddd;
+.key-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
 }
 
+.key-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.key-label {
+  font-size: 0.875rem;
+  color: var(--text-primary, #fff);
+}
+
+/* Light theme overrides */
 :root.light .stitch-symbol.stitch-sc { background-color: #ffcdd2; color: #000; border-color: #ef9a9a; }
 :root.light .stitch-symbol.stitch-dc { background-color: #bbdefb; color: #000; border-color: #90caf9; }
 :root.light .stitch-symbol.stitch-hdc { background-color: #d1c4e9; color: #000; border-color: #b39ddb; }
@@ -410,11 +453,54 @@ defineExpose({
 :root.light .stitch-symbol.stitch-bs { background-color: #b2dfdb; color: #000; border-color: #80cbc4; }
 :root.light .stitch-symbol.stitch-ns { background-color: #cfd8dc; color: #000; border-color: #b0bec5; }
 
+:root.light .stitch-key {
+  border-top-color: #e0e0e0;
+}
+
+:root.light .key-item {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+:root.light .key-label {
+  color: #333;
+}
+
+:root.light .expand-toggle {
+  background: #2979ff;
+  color: white;
+}
+
+:root.light .expand-toggle[aria-pressed="true"] {
+  background: #1565c0;
+}
+
+/* Mobile adjustments */
 @media (max-width: 767px) {
   .stitch-symbol {
     width: 36px;
     height: 36px;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+  }
+  
+  .stitch-count-badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.7rem;
+    top: -5px;
+    right: -5px;
+  }
+
+  .stitch-key {
+    margin-top: 1rem;
+  }
+  
+  .key-items {
+    gap: 0.75rem;
+  }
+  
+  .key-item .stitch-symbol {
+    width: 32px;
+    height: 32px;
   }
 }
 </style> 
