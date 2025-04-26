@@ -10,6 +10,17 @@
     
     <!-- View mode toggle -->
     <PatternViewToggle v-model:viewMode="viewMode" class="view-toggle" />
+
+    <!-- Expand/Collapse stitches toggle (only for chart mode) -->
+    <button
+      v-if="viewMode === 'chart'"
+      class="expand-toggle"
+      :aria-pressed="displayRepeatedStitchesSeparately"
+      @click="displayRepeatedStitchesSeparately = !displayRepeatedStitchesSeparately"
+    >
+      <span v-if="displayRepeatedStitchesSeparately">Collapse Stitches</span>
+      <span v-else>Expand Stitches</span>
+    </button>
     
     <!-- Text-based pattern preview -->
     <div v-if="viewMode === 'text'" class="pattern-preview">
@@ -35,10 +46,8 @@
                 <span class="stitch-type">{{ getStitchType(stitch) }}</span>
               </div>
             </template>
-            
             <div class="repeat-group">
               <span class="repeat-bracket left-bracket">(</span>
-              
               <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
                 <div 
                   class="preview-stitch" 
@@ -49,11 +58,9 @@
                   <span class="stitch-type">{{ getStitchType(stitch) }}</span>
                 </div>
               </template>
-              
               <span class="repeat-bracket right-bracket">)</span>
               <span class="repeat-count">x{{ row.stitches.repeatCount }}</span>
             </div>
-            
             <!-- Show stitches after the repeat -->
             <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
               <div 
@@ -88,6 +95,8 @@
       :rows="rows" 
       :rawContent="rawContent"
       :patternShape="patternShape"
+      :collapsed="collapsed"
+      :displayRepeatedStitchesSeparately="displayRepeatedStitchesSeparately"
     />
   </div>
 </template>
@@ -96,6 +105,12 @@
 import { ref } from 'vue';
 import PatternViewToggle from './PatternViewToggle.vue';
 import CrochetNotationView from './crochet/CrochetNotationView.vue';
+
+// Collapsed state for expand/collapse toggle
+const collapsed = ref(false);
+
+// State for expanded/collapsed stitches
+const displayRepeatedStitchesSeparately = ref(true);
 
 const props = defineProps({
   rows: {
@@ -116,6 +131,29 @@ defineEmits(['add-new-row', 'edit-row']);
 
 // View mode state (text or chart)
 const viewMode = ref('text');
+
+// Helper for collapsed summary
+function getRowSummary(row) {
+  if (!row.stitches || !Array.isArray(row.stitches) || row.stitches.length === 0) {
+    return row.text || 'No stitches';
+  }
+  // Simple summary: count by stitch type
+  const summary = {};
+  const add = (stitch) => {
+    const type = getStitchType(stitch);
+    summary[type] = (summary[type] || 0) + getStitchCount(stitch);
+  };
+  if (row.stitches.repeated) {
+    row.stitches.beforeRepeat?.forEach(add);
+    row.stitches.repeatedStitches?.forEach((stitch) => {
+      summary[getStitchType(stitch)] = (summary[getStitchType(stitch)] || 0) + getStitchCount(stitch) * (row.stitches.repeatCount || 1);
+    });
+    row.stitches.afterRepeat?.forEach(add);
+  } else {
+    row.stitches.forEach(add);
+  }
+  return Object.entries(summary).map(([type, count]) => `${count} ${type}`).join(', ');
+}
 
 // Helper functions for stitch display
 const getStitchCount = (stitch) => {
@@ -245,6 +283,44 @@ const getColorHex = (colorName) => {
 
 .preview-row-content {
   padding-left: 0rem;
+}
+
+.expand-toggle {
+  margin: 0.5rem 0 1rem 0;
+  padding: 0.35rem 1.2rem;
+  background: var(--accent-color, #4f87ff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  outline: none;
+  display: inline-block;
+}
+.expand-toggle[aria-pressed="true"] {
+  background: var(--accent-hover, #3a6fd9);
+}
+:root.light .expand-toggle {
+  background: #2979ff;
+  color: white;
+}
+:root.light .expand-toggle[aria-pressed="true"] {
+  background: #1565c0;
+}
+
+.row-summary {
+  padding: 0.5rem 1rem;
+  background: rgba(76,175,80,0.10);
+  color: var(--text-primary, #b2ff59);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+:root.light .row-summary {
+  background: rgba(76,175,80,0.07);
+  color: #2e7d32;
 }
 
 .preview-stitches {

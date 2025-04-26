@@ -42,6 +42,7 @@
 
     <!-- Linear notation view -->
     <div v-if="viewMode === 'linear'" class="linear-notation">
+
       <div v-for="(row, rowIndex) in rows" :key="`row-${rowIndex}`" class="notation-row">
         <div class="row-header">
           <span class="row-number">Row {{ row.number }}</span>
@@ -50,7 +51,7 @@
         
         <div class="row-stitches">
           <!-- Handle repeated stitches -->
-          <template v-if="row.stitches && row.stitches.repeated">
+          <div v-if="row.stitches && row.stitches.repeated">
             <!-- Before repeat -->
             <StitchSymbol 
               v-for="(stitch, i) in row.stitches.beforeRepeat" 
@@ -78,27 +79,27 @@
               :key="`after-${i}`"
               :stitch="stitch"
             />
-          </template>
+          </div>
           
           <!-- Regular stitches -->
-          <template v-else-if="row.stitches && Array.isArray(row.stitches)">
-            <template v-for="(stitch, i) in row.stitches" :key="`stitch-${i}`">
+          <div v-else-if="row.stitches && Array.isArray(row.stitches)">
+            <div v-for="(stitch, i) in row.stitches" :key="`stitch-${i}`">
               <!-- For repeated stitches, display them separately -->
-              <template v-if="getStitchCount(stitch) > 1 && displayRepeatedStitchesSeparately">
+              <div v-if="props.displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
                 <StitchSymbol 
                   v-for="j in getStitchCount(stitch)" 
                   :key="`stitch-${i}-${j}`"
                   :stitch="getStitchType(stitch)"
                   :showCount="false"
                 />
-              </template>
-              <!-- Display as single stitch with count -->
+              </div>
               <StitchSymbol 
                 v-else
                 :stitch="stitch"
+                :showCount="true"
               />
-            </template>
-          </template>
+            </div>
+          </div>
           
           <!-- No stitches detected -->
           <div v-else class="no-stitches-message">
@@ -110,175 +111,183 @@
 
     <!-- Circular notation view -->
     <div v-else-if="viewMode === 'circular'" class="circular-notation">
-      <!-- Control buttons -->
-      <div class="view-controls">
-        <div class="zoom-controls">
-          <button @click="zoomIn" class="zoom-btn" title="Zoom in">
-            <span class="zoom-icon">+</span>
-          </button>
-          <button @click="resetZoom" class="zoom-btn" title="Reset zoom">
-            <span class="zoom-icon">⟲</span>
-          </button>
-          <button @click="zoomOut" class="zoom-btn" title="Zoom out">
-            <span class="zoom-icon">-</span>
+      <!-- Collapsed summary view -->
+      <div v-if="props.collapsed" class="circular-summary-list">
+        <div v-for="(row, rowIndex) in rows" :key="`summary-row-${rowIndex}`" class="circular-summary-row">
+          <span class="row-number">Row {{ row.number }}</span>
+          <span class="circular-summary-text">{{ getRowSummary(row) }}</span>
+        </div>
+      </div>
+      <template v-else>
+        <div class="view-controls">
+          <div class="zoom-controls">
+            <button @click="zoomIn" class="zoom-btn" title="Zoom in">
+              <span class="zoom-icon">+</span>
+            </button>
+            <button @click="resetZoom" class="zoom-btn" title="Reset zoom">
+              <span class="zoom-icon">⟲</span>
+            </button>
+            <button @click="zoomOut" class="zoom-btn" title="Zoom out">
+              <span class="zoom-icon">-</span>
+            </button>
+          </div>
+          <button 
+            @click="toggleMultipleRowsView" 
+            class="multi-row-btn" 
+            :class="{ active: showMultipleRows }"
+            title="Toggle multiple rows view"
+          >
+            <span v-if="showMultipleRows">Single Row</span>
+            <span v-else>Multiple Rows</span>
           </button>
         </div>
-        <button 
-          @click="toggleMultipleRowsView" 
-          class="multi-row-btn" 
-          :class="{ active: showMultipleRows }"
-          title="Toggle multiple rows view"
+        
+        <div 
+          class="circular-container" 
+          ref="circularContainer"
+          @mousedown="startPan"
+          @mousemove="pan"
+          @mouseup="endPan"
+          @mouseleave="endPan"
+          @wheel="handleZoom"
         >
-          <span v-if="showMultipleRows">Single Row</span>
-          <span v-else>Multiple Rows</span>
-        </button>
-      </div>
-      
-      <div 
-        class="circular-container" 
-        ref="circularContainer"
-        @mousedown="startPan"
-        @mousemove="pan"
-        @mouseup="endPan"
-        @mouseleave="endPan"
-        @wheel="handleZoom"
-      >
-        <svg 
-          :width="svgSize" 
-          :height="svgSize" 
-          :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`" 
-          class="circular-chart"
-        >
-          <!-- Background grid for reference -->
-          <g class="grid-lines">
-            <!-- Horizontal grid lines -->
-            <line 
-              v-for="i in 10" 
-              :key="`h-grid-${i}`"
-              :x1="0" 
-              :y1="i * (svgSize / 10)" 
-              :x2="svgSize" 
-              :y2="i * (svgSize / 10)" 
-              class="grid-line"
-            />
-            <!-- Vertical grid lines -->
-            <line 
-              v-for="i in 10" 
-              :key="`v-grid-${i}`"
-              :x1="i * (svgSize / 10)" 
-              :y1="0" 
-              :x2="i * (svgSize / 10)" 
-              :y2="svgSize" 
-              class="grid-line"
-            />
-          </g>
-          
-          <!-- Draw concentric circles for each row -->
-          <circle 
-            v-for="(row, index) in rows" 
-            :key="`circle-${index}`"
-            :cx="centerX" 
-            :cy="centerY" 
-            :r="getRowRadius(index)" 
-            fill="none" 
-            stroke="currentColor" 
-            :class="{ 'active-row': index === activeRowIndex }"
-          />
-          
-          <!-- Draw all rows with their stitches -->
-          <g v-for="(row, rowIndex) in rows" :key="`row-${rowIndex}`" 
-             :class="{ 
-               'active-row-group': rowIndex === activeRowIndex,
-               'visible-row-group': isRowVisible(rowIndex)
-             }">
-            <!-- Draw connecting lines between stitches in the same row -->
-            <g class="connecting-lines" v-if="isRowVisible(rowIndex) && getRowStitches(row).length > 1">
-              <path 
-                :d="getStitchConnectionPath(getRowStitches(row), rowIndex)" 
-                class="stitch-connection"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1"
-                stroke-dasharray="4,2"
-                :class="{ 'active-connection': rowIndex === activeRowIndex }"
-              />
-            </g>
-            
-            <!-- Draw connecting lines to previous row if not first row -->
-            <g class="row-connections" v-if="rowIndex > 0 && isRowVisible(rowIndex) && isRowVisible(rowIndex-1)">
+          <svg 
+            :width="svgSize" 
+            :height="svgSize" 
+            :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`" 
+            class="circular-chart"
+          >
+            <!-- Background grid for reference -->
+            <g class="grid-lines">
+              <!-- Horizontal grid lines -->
               <line 
-                v-for="(stitch, stitchIndex) in getRowStitches(row)" 
-                :key="`connection-${rowIndex}-${stitchIndex}`"
-                :x1="getStitchCenterX(stitchIndex, getRowStitches(row).length, rowIndex)" 
-                :y1="getStitchCenterY(stitchIndex, getRowStitches(row).length, rowIndex)"
-                :x2="getClosestPreviousStitchX(stitchIndex, rowIndex)" 
-                :y2="getClosestPreviousStitchY(stitchIndex, rowIndex)"
-                class="row-connection"
-                stroke="currentColor"
-                stroke-width="1"
-                :class="{ 'active-connection': rowIndex === activeRowIndex }"
+                v-for="i in 10" 
+                :key="`h-grid-${i}`"
+                :x1="0" 
+                :y1="i * (svgSize / 10)" 
+                :x2="svgSize" 
+                :y2="i * (svgSize / 10)" 
+                class="grid-line"
+              />
+              <!-- Vertical grid lines -->
+              <line 
+                v-for="i in 10" 
+                :key="`v-grid-${i}`"
+                :x1="i * (svgSize / 10)" 
+                :y1="0" 
+                :x2="i * (svgSize / 10)" 
+                :y2="svgSize" 
+                class="grid-line"
               />
             </g>
             
-            <!-- Draw row number at appropriate positions -->
-            <text 
-              v-if="isRowVisible(rowIndex)"
-              :x="centerX + getRowRadius(rowIndex) + 10" 
-              :y="centerY" 
-              font-size="12" 
-              fill="currentColor"
-              class="row-number-label"
-              :class="{ 'active-label': rowIndex === activeRowIndex }"
-            >
-              Row {{ row.number }}
-            </text>
+            <!-- Draw concentric circles for each row -->
+            <circle 
+              v-for="(row, index) in rows" 
+              :key="`circle-${index}`"
+              :cx="centerX" 
+              :cy="centerY" 
+              :r="getRowRadius(index)" 
+              fill="none" 
+              stroke="currentColor" 
+              :class="{ 'active-row': index === activeRowIndex }"
+            />
             
-            <!-- Draw stitches for visible rows -->
-            <g v-if="isRowVisible(rowIndex)">
-              <g v-if="getRowStitches(row).length > 0">
-                <g 
+            <!-- Draw all rows with their stitches -->
+            <g v-for="(row, rowIndex) in rows" :key="`row-${rowIndex}`" 
+               :class="{ 
+                 'active-row-group': rowIndex === activeRowIndex,
+                 'visible-row-group': isRowVisible(rowIndex)
+               }">
+              <!-- Draw connecting lines between stitches in the same row -->
+              <g class="connecting-lines" v-if="isRowVisible(rowIndex) && getRowStitches(row).length > 1">
+                <path 
+                  :d="getStitchConnectionPath(getRowStitches(row), rowIndex)" 
+                  class="stitch-connection"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1"
+                  stroke-dasharray="4,2"
+                  :class="{ 'active-connection': rowIndex === activeRowIndex }"
+                />
+              </g>
+              
+              <!-- Draw connecting lines to previous row if not first row -->
+              <g class="row-connections" v-if="rowIndex > 0 && isRowVisible(rowIndex) && isRowVisible(rowIndex-1)">
+                <line 
                   v-for="(stitch, stitchIndex) in getRowStitches(row)" 
-                  :key="`stitch-${rowIndex}-${stitchIndex}`"
-                  :transform="`translate(${getStitchCenterX(stitchIndex, getRowStitches(row).length, rowIndex)}, ${getStitchCenterY(stitchIndex, getRowStitches(row).length, rowIndex)})`"
-                  class="stitch-symbol-container"
-                >
-                  <g :transform="`rotate(${getStitchRotation(stitchIndex, getRowStitches(row).length)})`">
-                  <foreignObject 
-                    x="-15"
-                    y="-15"
-                    width="30"
-                    height="30"
+                  :key="`connection-${rowIndex}-${stitchIndex}`"
+                  :x1="getStitchCenterX(stitchIndex, getRowStitches(row).length, rowIndex)" 
+                  :y1="getStitchCenterY(stitchIndex, getRowStitches(row).length, rowIndex)"
+                  :x2="getClosestPreviousStitchX(stitchIndex, rowIndex)" 
+                  :y2="getClosestPreviousStitchY(stitchIndex, rowIndex)"
+                  class="row-connection"
+                  stroke="currentColor"
+                  stroke-width="1"
+                  :class="{ 'active-connection': rowIndex === activeRowIndex }"
+                />
+              </g>
+              
+              <!-- Draw row number at appropriate positions -->
+              <text 
+                v-if="isRowVisible(rowIndex)"
+                :x="centerX + getRowRadius(rowIndex) + 10" 
+                :y="centerY" 
+                font-size="12" 
+                fill="currentColor"
+                class="row-number-label"
+                :class="{ 'active-label': rowIndex === activeRowIndex }"
+              >
+                Row {{ row.number }}
+              </text>
+              
+              <!-- Draw stitches for visible rows -->
+              <g v-if="isRowVisible(rowIndex)">
+                <g v-if="getRowStitches(row).length > 0">
+                  <g 
+                    v-for="(stitch, stitchIndex) in getRowStitches(row)" 
+                    :key="`stitch-${rowIndex}-${stitchIndex}`"
+                    :transform="`translate(${getStitchCenterX(stitchIndex, getRowStitches(row).length, rowIndex)}, ${getStitchCenterY(stitchIndex, getRowStitches(row).length, rowIndex)})`"
+                    class="stitch-symbol-container"
                   >
-                    <StitchSymbol 
-                      :stitch="stitch"
-                      :showCount="false"
-                      class="circular-stitch"
-                      :class="{ 'active-stitch': rowIndex === activeRowIndex }"
-                    />
-                  </foreignObject>
+                    <g :transform="`rotate(${getStitchRotation(stitchIndex, getRowStitches(row).length)})`">
+                    <foreignObject 
+                      x="-15"
+                      y="-15"
+                      width="30"
+                      height="30"
+                    >
+                      <StitchSymbol 
+                        :stitch="stitch"
+                        :showCount="false"
+                        class="circular-stitch"
+                        :class="{ 'active-stitch': rowIndex === activeRowIndex }"
+                      />
+                    </foreignObject>
+                    </g>
                   </g>
                 </g>
               </g>
             </g>
-          </g>
-        </svg>
-        
-        <!-- Row selector for circular view -->
-        <div class="row-selector">
-          <button 
-            v-for="(row, index) in rows" 
-            :key="`selector-${index}`"
-            @click="showMultipleRows ? toggleRowVisibility(index) : selectRow(index)"
-            :class="{ 
-              'active': index === activeRowIndex,
-              'visible': isRowVisible(index) && showMultipleRows
-            }"
-            :title="showMultipleRows ? 'Toggle row visibility' : 'Set as active row'"
-          >
-            {{ row.number }}
-          </button>
+          </svg>
+          
+          <!-- Row selector for circular view -->
+          <div class="row-selector">
+            <button 
+              v-for="(row, index) in rows" 
+              :key="`selector-${index}`"
+              @click="showMultipleRows ? toggleRowVisibility(index) : selectRow(index)"
+              :class="{ 
+                'active': index === activeRowIndex,
+                'visible': isRowVisible(index) && showMultipleRows
+              }"
+              :title="showMultipleRows ? 'Toggle row visibility' : 'Set as active row'"
+            >
+              {{ row.number }}
+            </button>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <!-- 3D View -->
@@ -306,6 +315,10 @@ import Crochet3DView from './Crochet3DView.vue';
 import { detectPatternShape } from '@/utils/patternShapeDetector';
 
 const props = defineProps({
+  displayRepeatedStitchesSeparately: {
+    type: Boolean,
+    required: true
+  },
   rows: {
     type: Array,
     required: true
@@ -319,6 +332,10 @@ const props = defineProps({
     required: true,
     default: () => ({ type: 'unknown', confidence: 0 })
   },
+  collapsed: {
+    type: Boolean,
+    default: false
+  },
   experimental: {
     type: Boolean,
     default: false
@@ -327,6 +344,29 @@ const props = defineProps({
 
 // View mode (linear, circular, or 3d)
 const viewMode = ref('linear');
+
+// Helper for collapsed summary
+function getRowSummary(row) {
+  if (!row.stitches || !Array.isArray(row.stitches) || row.stitches.length === 0) {
+    return row.text || 'No stitches';
+  }
+  // Simple summary: count by stitch type
+  const summary = {};
+  const add = (stitch) => {
+    const type = getStitchType(stitch);
+    summary[type] = (summary[type] || 0) + getStitchCount(stitch);
+  };
+  if (row.stitches.repeated) {
+    row.stitches.beforeRepeat?.forEach(add);
+    row.stitches.repeatedStitches?.forEach((stitch) => {
+      summary[getStitchType(stitch)] = (summary[getStitchType(stitch)] || 0) + getStitchCount(stitch) * (row.stitches.repeatCount || 1);
+    });
+    row.stitches.afterRepeat?.forEach(add);
+  } else {
+    row.stitches.forEach(add);
+  }
+  return Object.entries(summary).map(([type, count]) => `${count} ${type}`).join(', ');
+}
 
 // SVG dimensions for circular view
 const svgSize = 500;
@@ -442,7 +482,7 @@ const endPan = () => {
 };
 
 // Option to display repeated stitches separately
-const displayRepeatedStitchesSeparately = ref(true);
+
 
 // Extract count from stitch string (e.g., "3dc" -> 3)
 const getStitchCount = (stitch) => {
@@ -581,7 +621,7 @@ const getRowStitches = (row) => {
   if (!row || !row.stitches) return [];
   
   if (Array.isArray(row.stitches)) {
-    if (displayRepeatedStitchesSeparately.value) {
+    if (props.displayRepeatedStitchesSeparately) {
       // Expand repeated stitches into individual stitches
       const expandedStitches = [];
       row.stitches.forEach(stitch => {
@@ -607,7 +647,7 @@ const getExpandedStitchesCount = (stitches, upToIndex = null) => {
   const limit = upToIndex !== null ? upToIndex : stitches.length;
   
   for (let i = 0; i < limit; i++) {
-    if (displayRepeatedStitchesSeparately.value) {
+    if (props.displayRepeatedStitchesSeparately) {
       count += getStitchCount(stitches[i]);
     } else {
       count += 1;
@@ -619,7 +659,7 @@ const getExpandedStitchesCount = (stitches, upToIndex = null) => {
 
 // Calculate the index for a stitch in the expanded view
 const getExpandedStitchIndex = (stitches, index) => {
-  if (!displayRepeatedStitchesSeparately.value) return index;
+  if (!props.displayRepeatedStitchesSeparately) return index;
   
   let expandedIndex = 0;
   for (let i = 0; i < index; i++) {
@@ -635,7 +675,7 @@ const getExpandedStitches = (repeatedStitches) => {
   
   // Add before repeat stitches
   if (repeatedStitches.beforeRepeat) {
-    if (displayRepeatedStitchesSeparately.value) {
+    if (props.displayRepeatedStitchesSeparately) {
       // Expand each stitch based on its count
       repeatedStitches.beforeRepeat.forEach(stitch => {
         const count = getStitchCount(stitch);
@@ -652,7 +692,7 @@ const getExpandedStitches = (repeatedStitches) => {
   // Add repeated stitches
   if (repeatedStitches.repeatedStitches && repeatedStitches.repeatCount) {
     for (let i = 0; i < repeatedStitches.repeatCount; i++) {
-      if (displayRepeatedStitchesSeparately.value) {
+      if (props.displayRepeatedStitchesSeparately) {
         // Expand each stitch based on its count
         repeatedStitches.repeatedStitches.forEach(stitch => {
           const count = getStitchCount(stitch);
@@ -669,7 +709,7 @@ const getExpandedStitches = (repeatedStitches) => {
   
   // Add after repeat stitches
   if (repeatedStitches.afterRepeat) {
-    if (displayRepeatedStitchesSeparately.value) {
+    if (props.displayRepeatedStitchesSeparately) {
       // Expand each stitch based on its count
       repeatedStitches.afterRepeat.forEach(stitch => {
         const count = getStitchCount(stitch);
@@ -719,6 +759,29 @@ const commonStitches = {
 </script>
 
 <style scoped>
+.expand-stitches-btn {
+  margin-left: auto;
+  padding: 0.25rem 1rem;
+  background: var(--accent-color, #4CAF50);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.expand-stitches-btn:hover {
+  background: var(--accent-color-hover, #388e3c);
+}
+:root.light .expand-stitches-btn {
+  background: #4CAF50;
+  color: #fff;
+}
+:root.light .expand-stitches-btn:hover {
+  background: #388e3c;
+}
+
 .crochet-notation-view {
   margin-top: 2rem;
   padding: 1.5rem;
