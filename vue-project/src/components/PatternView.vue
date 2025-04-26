@@ -130,7 +130,8 @@
           
           <!-- Current stitches display -->
           <div class="stitch-content">
-            <div class="current-stitches">
+            <!-- Text mode visualization (default) -->
+            <div v-if="visualizationMode === 'text'" class="current-stitches">
               <span 
                 v-for="(stitch, index) in currentStitches" 
                 :key="index"
@@ -143,6 +144,25 @@
                 {{ stitch.code }}
               </span>
             </div>
+            
+            <!-- Color blocks visualization mode -->
+            <ColorBlockStitches
+              v-else-if="visualizationMode === 'color-blocks'"
+              :currentRow="currentRow"
+              :initialStitchesPerView="stitchesPerView"
+              :maxStitchesPerView="totalStitches"
+              class="visualization-component"
+            />
+            
+            <!-- Symbol visualization mode -->
+            <SymbolStitches
+              v-else-if="visualizationMode === 'symbols'"
+              :currentRow="currentRow"
+              :initialStitchesPerView="stitchesPerView"
+              :maxStitchesPerView="totalStitches"
+              class="visualization-component"
+            />
+            
             <div class="stitch-progress">
               <span class="progress-indicator">
                 {{ stitchProgress }}
@@ -253,6 +273,34 @@
             <font-awesome-icon icon="chart-pie" />
             {{ showChartView ? 'Hide Chart View' : 'Show Chart View' }}
           </button>
+          
+          <!-- Add visualization mode toggle buttons -->
+          <div class="toggle-container">
+            <button 
+              class="feature-button" 
+              :class="{ 'active-toggle': visualizationMode === 'text' }"
+              @click="visualizationMode = 'text'"
+            >
+              <font-awesome-icon icon="font" />
+              Text
+            </button>
+            <button 
+              class="feature-button" 
+              :class="{ 'active-toggle': visualizationMode === 'color-blocks' }"
+              @click="visualizationMode = 'color-blocks'"
+            >
+              <font-awesome-icon icon="palette" />
+              Color Blocks
+            </button>
+            <button 
+              class="feature-button" 
+              :class="{ 'active-toggle': visualizationMode === 'symbols' }"
+              @click="visualizationMode = 'symbols'"
+            >
+              <font-awesome-icon icon="shapes" />
+              Symbols
+            </button>
+          </div>
         </div>
         
         <!-- Pattern Chart View (experimental) -->
@@ -287,6 +335,9 @@ import { useRouter } from 'vue-router'
 import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import PatternChartView from './pattern/PatternChartView.vue'
+// Import components for visualization modes
+import ColorBlockStitches from './pattern/stitches/ColorBlockStitches.vue'
+import SymbolStitches from './pattern/stitches/SymbolStitches.vue'
 
 // Component props
 const props = defineProps({
@@ -318,6 +369,7 @@ const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
 const showRawPattern = ref(false)  // State for showing raw pattern
 const showChartView = ref(false)   // State for showing chart view
+const visualizationMode = ref('text')  // State for visualization mode
 
 // Notes feature state
 const currentRowNotes = ref('')  // Current row notes content
@@ -1755,6 +1807,21 @@ const getStitchClass = (code) => {
   flex-wrap: wrap;
 }
 
+.toggle-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.active-toggle {
+  background-color: var(--accent-color) !important;
+  color: white !important;
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 2px 6px rgba(66, 184, 131, 0.3);
+}
+
 .feature-button {
   padding: 0.6rem 1.2rem;
   background-color: var(--button-bg);
@@ -1766,6 +1833,8 @@ const getStitchClass = (code) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .feature-button:hover {
@@ -2106,12 +2175,70 @@ const getStitchClass = (code) => {
   background-color: #d32f2f;
 }
 
-.feature-button {
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
+.toggle-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
-.checkbox-row {
-  /* ... existing code ... */
+.active-toggle {
+  background-color: var(--accent-color) !important;
+  color: white !important;
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 2px 6px rgba(66, 184, 131, 0.3);
+}
+
+/* Style for visualization components */
+.visualization-component {
+  width: 100%;
+  min-height: 120px;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+}
+
+.visualization-component :deep(.stitch-visualization) {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.visualization-component :deep(.key-items) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.visualization-component :deep(.key-item) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Media queries for mobile */
+@media (max-width: 767px) {
+  .visualization-component {
+    min-height: 100px;
+    padding: 0.5rem;
+  }
+  
+  .visualization-component :deep(.stitch-control) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style> 
