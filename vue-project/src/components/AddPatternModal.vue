@@ -1333,18 +1333,56 @@ const applyQuickFormat = (format) => {
   flex: 1;
 }
 
-.action-button {
-  padding: 0.25rem 0.75rem;
-  background: var(--accent-color, #4f87ff);
-  color: #fff;
+.apply-button {
+  padding: 0.5rem 0.75rem;
+  background: var(--button-primary-bg, #4f87ff);
+  color: var(--button-primary-text, #fff);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
+.apply-button:hover {
+  background: var(--button-primary-hover, #3a75f0);
+}
+
+.apply-button {
+  background: var(--accent-color, #4CAF50);
+  color: #fff;
+}
+
+.apply-button:hover {
+  background: var(--accent-hover, #45a049);
+}
+
+.action-button {
+  padding: 0.375rem 0.75rem;
+  background: var(--button-secondary-bg, #444);
+  color: var(--button-secondary-text, #fff);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+  margin-left: 0.5rem;
 }
 
 .action-button:hover {
-  background: var(--accent-hover, #3b6fdf);
+  background: var(--button-secondary-hover, #555);
+}
+
+.action-button {
+  background: var(--button-bg, #2a2a2a);
+  color: var(--button-text, #ffffff);
+  border: 1px solid var(--button-border, #333333);
+}
+
+.action-button:hover {
+  background: var(--button-hover-bg, #333333);
 }
 
 /* Configuration Panel */
@@ -1381,58 +1419,30 @@ const applyQuickFormat = (format) => {
   gap: 0.5rem;
 }
 
-.apply-button {
-  padding: 0.75rem 1rem;
-  background: var(--accent-color, #4f87ff);
-  color: #fff;
-    border: none;
-  border-radius: 6px;
-    cursor: pointer;
-  white-space: nowrap;
-}
-
-.apply-button:hover {
-  background: var(--accent-hover, #3b6fdf);
-}
-
-.examples {
-  margin-top: 0.75rem;
-  color: var(--text-muted, #777);
-  font-size: 0.875rem;
-  font-style: italic;
-}
-
-.quick-options {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
 .option-button {
   padding: 0.5rem 0.75rem;
-  background: var(--button-bg, #444);
-  color: var(--text-primary, #fff);
-  border: 1px solid var(--border-color, #555);
+  background: var(--button-secondary-bg, #444);
+  color: var(--button-secondary-text, #fff);
+  border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
-  transition: all 0.2s ease;
+  transition: background 0.2s;
+  margin-right: 0.5rem;
 }
 
 .option-button:hover {
-  background: var(--button-hover-bg, #555);
-  border-color: var(--accent-color, #4f87ff);
+  background: var(--button-secondary-hover, #555);
 }
 
-:root.light .option-button {
-  background: #e8e8e8;
-  color: #333;
-  border: 1px solid #d0d0d0;
+.option-button {
+  background: var(--button-bg, #2a2a2a);
+  color: var(--button-text, #ffffff);
+  border: 1px solid var(--button-border, #333333);
 }
 
-:root.light .option-button:hover {
-  background: #d8d8d8;
-  border-color: #2979ff;
+.option-button:hover {
+  background: var(--button-hover-bg, #333333);
 }
 
 /* Parsed Rows */
@@ -1503,9 +1513,9 @@ const applyQuickFormat = (format) => {
   font-size: 0.875rem;
 }
 
-:root.light .stitch-text {
-  color: #333;
-  background: transparent;
+.stitch-text {
+  color: var(--text-primary, #ffffff);
+  background: var(--input-bg, #2a2a2a);
 }
 
 /* Error Message */
@@ -1561,95 +1571,98 @@ const applyQuickFormat = (format) => {
   background: var(--button-secondary-hover, #555);
 }
 
-/* Light Theme Overrides */
-:root.light .pattern-modal {
-  background: #ffffff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+/* Note: CSS Variables are set directly on the root element by the theme service */
+
+/* Using CSS variables directly for theming */
+.pattern-modal {
+  background: var(--card-bg, #2a2a2a);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-:root.light .modal-header {
-  border-bottom: 1px solid #e0e0e0;
+.modal-header {
+  border-bottom: 1px solid var(--border-color, #333333);
 }
 
-:root.light .modal-header h2 {
-  color: #333;
+.modal-header h2 {
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .close-button {
-  color: #666;
+.close-button {
+  color: var(--text-secondary, #888888);
 }
 
-:root.light .close-button:hover {
-  color: #333;
+.close-button:hover {
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .form-group label {
-  color: #333;
+.form-group label {
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .form-input,
-:root.light .form-textarea {
-  border: 1px solid #e0e0e0;
-  background: #f9f9f9;
-  color: #333;
+.form-input,
+.form-textarea {
+  border: 1px solid var(--border-color, #333333);
+  background: var(--input-bg, #2a2a2a);
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .section-title {
-  background: #f5f5f5;
-  color: #333;
+.section-title {
+  background: var(--card-bg, #2a2a2a);
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .detection-item {
-  background: #f5f5f5;
+.detection-item {
+  background: var(--card-bg, #2a2a2a);
+  border: 1px solid var(--border-color, #333333);
 }
 
-:root.light .detection-item .label {
-  color: #666;
+.detection-item .label {
+  color: var(--text-secondary, #888888);
 }
 
-:root.light .detection-item .value {
-  color: #333;
+.detection-item .value {
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .config-panel {
-  background: #f9f9f9;
-  border: 1px solid #e0e0e0;
+.config-panel {
+  background: var(--card-bg, #2a2a2a);
+  border: 1px solid var(--border-color, #333333);
 }
 
-:root.light .help-text {
-  color: #666;
+.help-text {
+  color: var(--text-secondary, #888888);
 }
 
-:root.light .row-header {
-  background: #f5f5f5;
+.row-header {
+  background: var(--card-bg, #2a2a2a);
 }
 
-:root.light .row-details {
-  background: #f9f9f9;
-  border-top: 1px solid #e0e0e0;
+.row-details {
+  background: var(--input-bg, #2a2a2a);
+  border-top: 1px solid var(--border-color, #333333);
 }
 
-:root.light .row-text {
-  color: #333;
+.row-text {
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .stitch-text {
-  background: #eee;
-  color: #333;
+.stitch-text {
+  background: var(--input-bg, #2a2a2a);
+  color: var(--text-primary, #ffffff);
 }
 
-:root.light .action-buttons {
-  border-top: 1px solid #e0e0e0;
+.action-buttons {
+  border-top: 1px solid var(--border-color, #333333);
 }
 
-:root.light .cancel-button {
-  background: #e0e0e0;
-  color: #333;
-  border: 1px solid #d0d0d0;
+.cancel-button {
+  background: var(--button-bg, #2a2a2a);
+  color: var(--button-text, #ffffff);
+  border: 1px solid var(--button-border, #333333);
 }
 
-:root.light .cancel-button:hover {
-  background: #d0d0d0;
+.cancel-button:hover {
+  background: var(--button-hover-bg, #333333);
 }
 
 /* Pattern Preview Styles */
@@ -1722,10 +1735,10 @@ const applyQuickFormat = (format) => {
   border: 1px dashed var(--border-color, #444);
 }
 
-:root.light .no-stitches-message {
-  color: #666;
-  background: rgba(0, 0, 0, 0.05);
-  border-color: #ddd;
+.no-stitches-message {
+  color: var(--text-secondary, #888888);
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px dashed var(--border-color, #333333);
 }
 
 .preview-stitch {
@@ -1847,38 +1860,35 @@ const applyQuickFormat = (format) => {
   position: relative;
 }
 
-/* Light theme overrides */
-:root.light .repeat-group {
-  background-color: rgba(41, 121, 255, 0.08);
+.repeat-group {
+  background-color: rgba(var(--accent-color-rgb, 76, 175, 80), 0.08);
 }
 
-:root.light .repeat-bracket,
-:root.light .repeat-count {
-  color: #2979ff;
+.repeat-bracket,
+.repeat-count {
+  color: var(--accent-color, #4CAF50);
 }
 
-/* Light theme override */
-:root.light .storage-format-preview {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+.storage-format-preview {
+  background: var(--card-bg, #2a2a2a);
+  border: 1px solid var(--border-color, #333333);
 }
 
-:root.light .storage-format-text {
-  color: #333;
+.storage-format-text {
+  color: var(--text-primary, #ffffff);
 }
 
-/* Light theme overrides for preview */
-:root.light .pattern-preview {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+.pattern-preview {
+  background: var(--card-bg, #2a2a2a);
+  border: 1px solid var(--border-color, #333333);
 }
 
-:root.light .preview-row-number {
-  color: #2979ff;
+.preview-row-number {
+  color: var(--accent-color, #4CAF50);
 }
 
-:root.light .color-indicator {
-  border: 1px solid rgba(0, 0, 0, 0.1);
+.color-indicator {
+  border: 1px solid var(--border-color, #333333);
 }
 
 .stitch-preview {
@@ -1899,7 +1909,7 @@ const applyQuickFormat = (format) => {
   font-weight: bold;
 }
 
-:root.light .preview-stitch {
-  border: 1px solid rgba(0, 0, 0, 0.1);
+.preview-stitch {
+  border: 1px solid var(--border-color, #333333);
 }
 </style> 
