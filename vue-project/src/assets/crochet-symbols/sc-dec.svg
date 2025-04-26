@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left diagonal line -->
+  <line x1="10" y1="35" x2="20" y2="5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Right diagonal line -->
+  <line x1="30" y1="35" x2="20" y2="5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Left horizontal cross mark -->
+  <line x1="6" y1="25" x2="18" y2="25" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Right horizontal cross mark -->
+  <line x1="22" y1="25" x2="34" y2="25" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

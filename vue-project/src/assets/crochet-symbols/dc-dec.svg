@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30" height="50" viewBox="0 0 30 50" xmlns="http://www.w3.org/2000/svg">
+  <!-- Horizontal lines at bottom (separated in the middle) -->
+  <path d="M2 45 L12 45" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M18 45 L28 45" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Main inverted V shape -->
+  <path d="M7 45 L15 5 L23 45" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Left diagonal mark -->
+  <path d="M8 23 L14 31" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Right diagonal mark -->
+  <path d="M16 31 L22 23" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

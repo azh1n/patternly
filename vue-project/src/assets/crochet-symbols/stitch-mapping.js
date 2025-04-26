@@ -12,10 +12,25 @@ export const stitchSymbolMapping = {
   'tr': 'treble-crochet.svg',
   'dtr': 'double-treble-crochet.svg',
   
+  // Increases
+  'inc': 'sc-inc.svg',  // Default increase (single crochet)
+  'in': 'sc-inc.svg',   // Alternative abbreviation
+  'scinc': 'sc-inc.svg', // Explicit single crochet increase
+  'scin': 'sc-inc.svg',  // Alternative abbreviation
+  'hdcinc': 'hdc-inc.svg', // Half double crochet increase
+  'hdcin': 'hdc-inc.svg',  // Alternative abbreviation
+  'dcinc': 'dc-inc.svg',   // Double crochet increase
+  'dcin': 'dc-inc.svg',    // Alternative abbreviation
+  
   // Decreases
-  'sc2tog': 'sc2tog.svg',
+  'dec': 'sc-dec.svg',     // Default decrease (single crochet)
+  'sc2tog': 'sc-dec.svg',  // Single crochet decrease
+  'scdec': 'sc-dec.svg',   // Alternative abbreviation
+  'hdc2tog': 'hdc-dec.svg', // Half double crochet decrease
+  'hdcdec': 'hdc-dec.svg',  // Alternative abbreviation
+  'dc2tog': 'dc-dec.svg',   // Double crochet decrease
+  'dcdec': 'dc-dec.svg',    // Alternative abbreviation
   'sc3tog': 'sc3tog.svg',
-  'dc2tog': 'dc2tog.svg',
   'dc3tog': 'dc3tog.svg',
   
   // Clusters and special stitches
