@@ -1,7 +1,7 @@
 <template>
   <router-view></router-view>
   <AdBanner />
-  <AppFooter />
+  <AppFooter v-if="!appLoading" />
 </template>
 
 <style>
@@ -61,7 +61,7 @@ body:not(.login-page) #app {
 </style>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 import { auth } from './firebase'
@@ -73,11 +73,18 @@ import AppFooter from './components/AppFooter.vue'
 const router = useRouter()
 const { initTheme } = useTheme()
 const { initSettings } = useUserSettings()
+const appLoading = ref(true)
 
 // Initialize app settings
 onMounted(async () => {
-  await initTheme()
-  await initSettings()
+  appLoading.value = true
+  try {
+    await initTheme()
+    await initSettings()
+  } finally {
+    // Ensure the loading state is turned off when initialization completes
+    appLoading.value = false
+  }
 })
 
 // Handle auth state changes
