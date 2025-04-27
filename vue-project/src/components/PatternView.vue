@@ -1325,6 +1325,29 @@ defineExpose({
   justify-content: center;
 }
 
+/* Add larger stitch styles for desktop only */
+@media (min-width: 768px) {
+  /* Target the current stitches section specifically */
+  .visualization-component :deep(.current-stitches) .stitch-wrapper .stitch-symbol {
+    transform: scale(2);
+    margin: 1rem;
+    min-width: 50px;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+  
+  /* Keep the preview stitches at their normal size */
+  .visualization-component :deep(.preview-content) .stitch-wrapper .stitch-symbol {
+    transform: scale(1);
+    margin: 0.25rem;
+    min-width: unset;
+    min-height: unset;
+  }
+}
+
 /* Navigation button styles */
 .nav-button {
   padding: 0.8rem;
