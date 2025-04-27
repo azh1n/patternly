@@ -57,7 +57,19 @@ import {
   faFileImport,
   faChartBar,
   faArchive,
-  faFolderOpen
+  faFolderOpen,
+  // Adding missing icons
+  faCamera,
+  faShieldAlt,
+  faEye,
+  faEyeSlash,
+  faKey,
+  faSlidersH,
+  faBell,
+  faCog,
+  faDownload,
+  faExclamationCircle,
+  faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -111,13 +123,26 @@ library.add(
   faFileImport,
   faChartBar,
   faArchive,
-  faFolderOpen
+  faFolderOpen,
+  // Adding missing icons
+  faCamera,
+  faShieldAlt,
+  faEye,
+  faEyeSlash,
+  faKey,
+  faSlidersH,
+  faBell,
+  faCog,
+  faDownload,
+  faExclamationCircle,
+  faExclamationTriangle
 )
 
 const app = createApp(App)
 const pinia = createPinia()
 
 app.component('font-awesome-icon', FontAwesomeIcon)
-app.use(router)
 app.use(pinia)
+app.use(router)
+
 app.mount('#app')
