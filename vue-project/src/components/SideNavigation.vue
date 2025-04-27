@@ -39,7 +39,7 @@
           <span class="nav-label" v-if="isExpanded">Marketplace</span>
         </router-link>
         
-        <router-link to="/tools" class="nav-item" active-class="active">
+        <router-link v-if="experimentalFeatures" to="/tools" class="nav-item" active-class="active">
           <font-awesome-icon icon="tools" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Tools</span>
         </router-link>
