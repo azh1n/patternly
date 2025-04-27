@@ -2,8 +2,13 @@
 <template>
   <!-- Main pattern view container -->
   <div class="pattern-view">
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>Loading pattern...</p>
+    </div>
+    
     <!-- Pattern header with title, controls, and progress -->
-    <div class="pattern-header">
+    <div class="pattern-header" v-if="pattern">
       <div class="header-content">
         <h1>{{ pattern.name }}</h1>
         <div class="pattern-controls">
@@ -26,7 +31,7 @@
     </div>
 
     <!-- Main pattern content area -->
-    <div class="pattern-content">
+    <div class="pattern-content" v-if="pattern">
       <!-- Row header with current row info and controls -->
       <div class="row-header">
         <!-- Single unified view that works for both desktop and mobile -->
@@ -204,35 +209,24 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick, onErrorCaptured } from 'vue'
-import { useRouter } from 'vue-router'
-import { updateDoc, doc, deleteDoc } from 'firebase/firestore'
+import { useRouter, useRoute } from 'vue-router'
+import { updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase'
-import PatternChartView from './pattern/PatternChartView.vue'
+import PatternChartView from '../components/pattern/PatternChartView.vue'
 // Import components for visualization modes
-import SymbolStitches from './pattern/stitches/SymbolStitches.vue'
-import TextStitches from './pattern/stitches/TextStitches.vue'
+import SymbolStitches from '../components/pattern/stitches/SymbolStitches.vue'
+import TextStitches from '../components/pattern/stitches/TextStitches.vue'
 // Import user settings to check experimental features status
 import { useUserSettings } from '@/services/userSettings'
 
-// Component props
-const props = defineProps({
-  pattern: {
-    type: Object,
-    required: true  // Pattern object containing name, content, and completion data
-  },
-  patterns: {
-    type: Array,
-    required: true  // Array of all patterns
-  },
-  currentTextIndex: {
-    type: Number,
-    required: true  // Current text index for navigation
-  }
-})
-
-// Event emitters and router
-const emit = defineEmits(['update:currentTextIndex', 'pattern-deleted'])
+const route = useRoute()
 const router = useRouter()
+
+// Reactive state for loading pattern
+const pattern = ref(null)
+const patterns = ref([])
+const currentTextIndex = ref(0)
+const isLoading = ref(true)
 
 // Reactive state
 const stitchesPerView = ref(5)  // Number of stitches to display at once
@@ -259,6 +253,58 @@ const chartViewError = ref(false);
 // Get experimental features state
 const { experimentalFeatures } = useUserSettings()
 
+// Load the pattern data when component mounts
+onMounted(async () => {
+  try {
+    await loadPattern()
+  } catch (error) {
+    console.error('Error loading pattern:', error)
+  }
+})
+
+// Watch for changes in the route param
+watch(() => route.params.id, async (newId) => {
+  if (newId) {
+    await loadPattern()
+  }
+})
+
+// Load pattern data from Firestore
+const loadPattern = async () => {
+  if (!route.params.id) {
+    router.push('/')
+    return
+  }
+  
+  isLoading.value = true
+  
+  try {
+    const patternId = route.params.id
+    const patternDoc = await getDoc(doc(db, 'patterns', patternId))
+    
+    if (patternDoc.exists()) {
+      pattern.value = {
+        id: patternDoc.id,
+        ...patternDoc.data()
+      }
+      
+      // Set up initial state after pattern loads
+      currentRowIndex.value = 0
+      loadRowNotes()
+    } else {
+      console.error('Pattern not found')
+      router.push('/')
+    }
+  } catch (error) {
+    console.error('Error fetching pattern:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Event emitter
+const emit = defineEmits(['pattern-deleted'])
+
 // Handle errors from the chart view component
 const handleChartViewError = (error) => {
   console.error('Chart view error:', error);
@@ -282,10 +328,10 @@ onErrorCaptured((error, instance, info) => {
 
 // Parse pattern rows into structured data
 const parsedRows = computed(() => {
-  if (!props.pattern?.content) return []
+  if (!pattern.value?.content) return []
   
   try {
-    const content = props.pattern.content;
+    const content = pattern.value.content;
     
     // Check if this is a new format from DevAddPatternModal (comma-separated "Row: X, Color: Y, Stitches: Z" format)
     if (content.includes('Row:') && content.includes('Color:') && content.includes('Stitches:')) {
@@ -618,15 +664,15 @@ const totalStitches = computed(() => {
 
 // Get completion status for current row
 const isRowComplete = computed(() => {
-  if (!currentRow.value || !props.pattern?.completedRows) return false
-  return props.pattern.completedRows[`row${currentRow.value.rowNum}`] || false
+  if (!currentRow.value || !pattern.value?.completedRows) return false
+  return pattern.value.completedRows[`row${currentRow.value.rowNum}`] || false
 })
 
 // Check if current row has notes
 const hasRowNotes = computed(() => {
-  if (!currentRow.value || !props.pattern?.rowNotes) return false
+  if (!currentRow.value || !pattern.value?.rowNotes) return false
   const rowKey = `row${currentRow.value.rowNum}`
-  return !!props.pattern.rowNotes[rowKey] && props.pattern.rowNotes[rowKey].trim() !== ''
+  return !!pattern.value.rowNotes[rowKey] && pattern.value.rowNotes[rowKey].trim() !== ''
 })
 
 // Touch swipe transform style
@@ -642,8 +688,8 @@ const nextRow = async () => {
     // Mark current row as complete
     if (currentRow.value && !isRowComplete.value) {
       try {
-        const textId = props.pattern.id
-        const completionData = props.pattern.completedRows || {}
+        const textId = pattern.value.id
+        const completionData = pattern.value.completedRows || {}
         completionData[`row${currentRow.value.rowNum}`] = true
         
         await updateDoc(doc(db, 'patterns', textId), {
@@ -680,8 +726,8 @@ const toggleRowComplete = async () => {
   if (!currentRow.value) return
   
   try {
-    const textId = props.pattern.id
-    const completionData = props.pattern.completedRows || {}
+    const textId = pattern.value.id
+    const completionData = pattern.value.completedRows || {}
     completionData[`row${currentRow.value.rowNum}`] = !completionData[`row${currentRow.value.rowNum}`]
     
     await updateDoc(doc(db, 'patterns', textId), {
@@ -697,8 +743,8 @@ const loadRowNotes = () => {
   if (!currentRow.value) return
   
   // Load existing notes for this row if any
-  if (props.pattern?.rowNotes && props.pattern.rowNotes[`row${currentRow.value.rowNum}`]) {
-    currentRowNotes.value = props.pattern.rowNotes[`row${currentRow.value.rowNum}`]
+  if (pattern.value?.rowNotes && pattern.value.rowNotes[`row${currentRow.value.rowNum}`]) {
+    currentRowNotes.value = pattern.value.rowNotes[`row${currentRow.value.rowNum}`]
   } else {
     currentRowNotes.value = ''
   }
@@ -732,8 +778,8 @@ const saveNotes = async () => {
   }
   
   try {
-    const textId = props.pattern.id
-    const notesData = props.pattern.rowNotes || {}
+    const textId = pattern.value.id
+    const notesData = pattern.value.rowNotes || {}
     
     // Only save if there's content, otherwise remove the note
     if (currentRowNotes.value.trim()) {
@@ -796,7 +842,7 @@ const confirmDelete = () => {
 
 const deletePattern = async () => {
   try {
-    await deleteDoc(doc(db, 'patterns', props.pattern.id))
+    await deleteDoc(doc(db, 'patterns', pattern.value.id))
     emit('pattern-deleted')
     router.push('/')
   } catch (error) {
@@ -807,8 +853,8 @@ const deletePattern = async () => {
 
 // Completion tracking
 const completedRows = computed(() => {
-  if (!props.pattern?.completedRows) return 0
-  return Object.values(props.pattern.completedRows).filter(Boolean).length
+  if (!pattern.value?.completedRows) return 0
+  return Object.values(pattern.value.completedRows).filter(Boolean).length
 })
 
 const totalRows = computed(() => parsedRows.value.length)
@@ -820,12 +866,12 @@ const completionPercentage = computed(() => {
 
 // Save the total row count to the pattern object in Firestore
 const saveRowCount = async () => {
-  if (!props.pattern?.id || totalRows.value === 0) return
+  if (!pattern.value?.id || totalRows.value === 0) return
   
   try {
     // Only update if the row count has changed or doesn't exist
-    if (props.pattern.totalRows !== totalRows.value) {
-      await updateDoc(doc(db, 'patterns', props.pattern.id), {
+    if (pattern.value.totalRows !== totalRows.value) {
+      await updateDoc(doc(db, 'patterns', pattern.value.id), {
         totalRows: totalRows.value
       })
     }
@@ -1799,5 +1845,36 @@ defineExpose({
     font-size: 0.9rem;
     padding: 0.6rem 0.8rem;
   }
+}
+
+/* Loading overlay styles */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 16px;
+  color: white;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--accent-color);
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style> 

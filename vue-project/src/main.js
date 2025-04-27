@@ -41,7 +41,23 @@ import {
   faFont,
   faPalette,
   faShapes,
-  faBars
+  faBars,
+  faHome,
+  faFolder,
+  faPencilRuler,
+  faStore,
+  faTools,
+  faInfoCircle,
+  faThLarge,
+  faList,
+  faTh,
+  faCalendarAlt,
+  faTrashAlt,
+  faFileExport,
+  faFileImport,
+  faChartBar,
+  faArchive,
+  faFolderOpen
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -79,7 +95,23 @@ library.add(
   faFont,
   faPalette,
   faShapes,
-  faBars
+  faBars,
+  faHome,
+  faFolder,
+  faPencilRuler,
+  faStore,
+  faTools,
+  faInfoCircle,
+  faThLarge,
+  faList,
+  faTh,
+  faCalendarAlt,
+  faTrashAlt,
+  faFileExport,
+  faFileImport,
+  faChartBar,
+  faArchive,
+  faFolderOpen
 )
 
 const app = createApp(App)

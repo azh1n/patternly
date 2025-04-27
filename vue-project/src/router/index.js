@@ -3,7 +3,12 @@ import { watch } from 'vue'
 import { useAuth } from '@/services/auth'
 import { useUserSettings } from '@/services/userSettings'
 import { auth } from '@/firebase'
-import HomeView from '../views/HomeView.vue'
+import DashboardView from '../views/DashboardView.vue'
+import PatternListView from '../views/PatternListView.vue'
+import PatternView from '../views/PatternView.vue'
+import PatternBuilderView from '../views/PatternBuilderView.vue'
+import MarketplaceView from '../views/MarketplaceView.vue'
+import ToolsView from '../views/ToolsView.vue'
 import LoginPage from '../components/LoginPage.vue'
 import ProfilePage from '../components/ProfilePage.vue'
 import GoogleAuthCallback from '../components/GoogleAuthCallback.vue'
@@ -19,16 +24,40 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      name: 'dashboard',
+      component: DashboardView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/patterns',
+      name: 'patterns',
+      component: PatternListView,
       meta: { requiresAuth: true }
     },
     {
       path: '/pattern/:id',
       name: 'pattern',
-      component: HomeView,
+      component: PatternView,
       props: true,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/builder',
+      name: 'builder',
+      component: PatternBuilderView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/marketplace',
+      name: 'marketplace',
+      component: MarketplaceView,
+      meta: { requiresAuth: true, requiresExperimental: false }
+    },
+    {
+      path: '/tools',
+      name: 'tools',
+      component: ToolsView,
+      meta: { requiresAuth: true, requiresExperimental: true }
     },
     {
       path: '/login',
