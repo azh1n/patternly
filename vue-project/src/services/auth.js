@@ -6,7 +6,8 @@ import {
   updateProfile as firebaseUpdateProfile,
   updatePassword as firebaseUpdatePassword,
   sendPasswordResetEmail,
-  onAuthStateChanged
+  onAuthStateChanged,
+  deleteUser
 } from 'firebase/auth'
 import { auth } from '@/firebase'
 import { useTheme } from './theme'
@@ -192,6 +193,23 @@ export function useAuth() {
     }
   }
 
+  const deleteUserAccount = async () => {
+    try {
+      if (!auth.currentUser) throw new Error('No user logged in')
+      
+      // Delete the user account from Firebase Auth
+      await deleteUser(auth.currentUser)
+      
+      // Additional cleanup can be added here
+      // For example, deleting user data from Firestore
+    } catch (error) {
+      if (error.code === 'auth/requires-recent-login') {
+        throw new Error('For security reasons, please log out and log back in before deleting your account')
+      }
+      throw new Error(getErrorMessage(error))
+    }
+  }
+
   return {
     user,
     loading,
@@ -200,6 +218,7 @@ export function useAuth() {
     logout,
     updateProfile,
     updatePassword,
-    resetPassword
+    resetPassword,
+    deleteUserAccount
   }
 } 
