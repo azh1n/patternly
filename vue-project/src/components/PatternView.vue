@@ -29,37 +29,33 @@
     <div class="pattern-content">
       <!-- Row header with current row info and controls -->
       <div class="row-header">
+        <!-- Single unified view that works for both desktop and mobile -->
         <div class="row-info">
-          <div class="row-title">
-            <!-- Desktop view -->
-            <div class="desktop-only">
-              <h2>Row {{ currentRow?.rowNum }}</h2>
-              <span class="row-color">Color {{ currentRow?.color }}</span>
-            </div>
-            <!-- Mobile view -->
-            <div class="mobile-only stacked-info">
-              <h2>{{ currentRow?.rowNum }}</h2>
-              <div class="row-color">{{ currentRow?.color }}</div>
-            </div>
+          <div class="row-info-left">
+            <h2 class="row-number">Row {{ currentRow?.rowNum }}</h2>
+            <div class="row-color-indicator">Color {{ currentRow?.color }}</div>
           </div>
-          <button 
-            @click="toggleRowComplete"
-            :class="['complete-button', { 'completed': isRowComplete }]"
-          >
-            <font-awesome-icon :icon="isRowComplete ? 'check-circle' : 'circle'" />
-            <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
-            <span class="mobile-only button-text">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
-          </button>
-          <button 
-            v-show="!hasRowNotes && !showNotes"
-            @click="showNotes = true"
-            class="notes-button"
-          >
-            <font-awesome-icon icon="sticky-note" />
-            <span class="desktop-only">Add Notes</span>
-            <span class="mobile-only button-text">Notes</span>
-          </button>
-
+          
+          <div class="row-controls">
+            <button 
+              @click="toggleRowComplete"
+              :class="['complete-button', { 'completed': isRowComplete }]"
+            >
+              <font-awesome-icon :icon="isRowComplete ? 'check-circle' : 'circle'" />
+              <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
+              <span class="mobile-only">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
+            </button>
+            
+            <button 
+              v-show="!hasRowNotes && !showNotes"
+              @click="showNotes = true"
+              class="notes-button"
+            >
+              <font-awesome-icon icon="sticky-note" />
+              <span class="desktop-only">Add Notes</span>
+              <span class="mobile-only">Notes</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -131,12 +127,7 @@
               :key="index" 
               :value="index"
             >
-              <template v-if="windowWidth >= 768">
-                {{ row.rowNum }} ({{ row.color }})
-              </template>
-              <template v-else>
-                Row {{ row.rowNum }} ({{ row.color }})
-              </template>
+              {{ row.rowNum }} ({{ row.color }})
             </option>
           </select>
           <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
@@ -922,6 +913,30 @@ defineExpose({
 </script>
 
 <style scoped>
+/* 
+ * Responsive utility classes
+ * 
+ * desktop-only: Only visible on screens larger than 768px
+ * mobile-only: Only visible on screens smaller than 768px
+ */
+.desktop-only {
+  display: inline-block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .desktop-only {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: inline-block !important;
+  }
+}
+
 /* Main container styles */
 .pattern-view {
   width: 100%;
@@ -1025,21 +1040,26 @@ defineExpose({
   align-items: center;
 }
 
-.row-title {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.row-info-left {
+  margin-bottom: 0.75rem;
 }
 
-.row-title h2 {
+.row-number {
   margin: 0;
   font-size: 1.5rem;
   color: var(--text-primary);
 }
 
-.row-color {
+.row-color-indicator {
   color: var(--accent-color);
   font-weight: 500;
+}
+
+.row-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 /* Complete button styles */
@@ -1633,154 +1653,6 @@ defineExpose({
   color: var(--accent-color);
 }
 
-@media (max-width: 767px) {
-  .pattern-view {
-    padding: 0.5rem;
-  }
-
-  .pattern-content {
-    border-radius: 8px;
-  }
-
-  .experimental-badge {
-    top: -8px;
-    font-size: 0.6rem;
-    padding: 1px 4px;
-  }
-
-  .pattern-header {
-    margin-bottom: 1rem;
-  }
-
-  .header-content {
-    margin-bottom: 0.5rem;
-  }
-
-  .header-content h1 {
-    font-size: 1.5rem;
-  }
-
-  .delete-button {
-    padding: 0.5rem 0.8rem;
-    font-size: 0.9rem;
-  }
-
-  .row-header {
-    padding: 0.75rem;
-  }
-
-  .row-title h2 {
-    font-size: 1.2rem;
-  }
-
-  .complete-button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
-  }
-
-  .stitch-control {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-  }
-
-  .number-control {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .pattern-card {
-    padding: 1rem;
-  }
-
-  .stitch-navigation {
-    margin-bottom: 1rem;
-  }
-
-  .current-stitches {
-    font-size: 1.5rem;
-    gap: 0.5rem;
-  }
-
-  .preview-content {
-    grid-template-columns: repeat(auto-fill, minmax(45px, 45px));
-    gap: 6px;
-    padding: 0.25rem;
-  }
-
-  .preview-stitch {
-    font-size: 0.85rem;
-    width: 45px;
-    height: 32px;
-  }
-  
-  /* Scale down text for mobile repeat patterns */
-  .preview-stitch.repeat-pattern {
-    font-size: 0.75rem;
-  }
-  
-  /* Scale down text for digit numbers on mobile */
-  .preview-stitch[class*="dc"],
-  .preview-stitch[class*="bs"],
-  .preview-stitch[class*="inc"],
-  .preview-stitch[class*="dec"] {
-    font-size: 0.8rem;
-  }
-  
-  .preview-stitch:is([class*="10"][class*="dc"], [class*="11"][class*="dc"], [class*="20"][class*="dc"], [class*="22"][class*="dc"]) {
-    font-size: 0.75rem;
-  }
-  
-  .preview-stitch:is([class*="30"][class*="dc"]) {
-    font-size: 0.7rem;
-  }
-
-  .row-navigation {
-    padding: 0.75rem;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .row-selector {
-    order: -1;
-    width: 100%;
-    margin-bottom: 0.5rem;
-    max-width: none;
-  }
-
-  .row-select {
-    min-width: 0;
-    flex: 1;
-    padding: 0.5rem;
-    font-size: 0.9rem;
-    background-position: right 0.5rem center;
-    padding-right: 1.8rem;
-    background-size: 1rem;
-  }
-  
-  /* Keep dark mode arrow on mobile */
-  :root:not(.light) .row-select {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  }
-
-  .nav-button.large {
-    flex: 1;
-    max-width: 45%;
-    font-size: 0.9rem;
-    padding: 0.6rem 0.5rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .mobile-only {
-    display: none;
-  }
-}
-
-/* Stitch styles are now defined globally in assets/styles/stitch-colors.css */
-
 /* Light theme overrides for repeat patterns */
 :root.light .repeat-pattern {
   background: rgba(41, 121, 255, 0.15) !important;
@@ -1969,5 +1841,169 @@ defineExpose({
   min-width: 65px;
   min-height: 65px;
   position: relative;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .pattern-view {
+    padding: 0.5rem;
+  }
+
+  .pattern-content {
+    border-radius: 8px;
+  }
+
+  .experimental-badge {
+    top: -8px;
+    font-size: 0.6rem;
+    padding: 1px 4px;
+  }
+
+  .pattern-header {
+    margin-bottom: 1rem;
+  }
+
+  .header-content {
+    margin-bottom: 0.5rem;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .delete-button {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .row-header {
+    padding: 1rem;
+  }
+
+  .row-number {
+    font-size: 1.2rem;
+  }
+
+  .row-color-indicator {
+    font-size: 0.9rem;
+  }
+
+  .row-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .row-info-left {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+  
+  .row-controls {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  
+  .complete-button,
+  .notes-button {
+    flex: 1;
+    justify-content: center;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .stitch-control {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .number-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pattern-card {
+    padding: 1rem;
+  }
+
+  .stitch-navigation {
+    margin-bottom: 1rem;
+  }
+
+  .current-stitches {
+    font-size: 1.5rem;
+    gap: 0.5rem;
+  }
+
+  .preview-content {
+    grid-template-columns: repeat(auto-fill, minmax(45px, 45px));
+    gap: 6px;
+    padding: 0.25rem;
+  }
+
+  .preview-stitch {
+    font-size: 0.85rem;
+    width: 45px;
+    height: 32px;
+  }
+  
+  /* Scale down text for mobile repeat patterns */
+  .preview-stitch.repeat-pattern {
+    font-size: 0.75rem;
+  }
+  
+  /* Scale down text for digit numbers on mobile */
+  .preview-stitch[class*="dc"],
+  .preview-stitch[class*="bs"],
+  .preview-stitch[class*="inc"],
+  .preview-stitch[class*="dec"] {
+    font-size: 0.8rem;
+  }
+  
+  .preview-stitch:is([class*="10"][class*="dc"], [class*="11"][class*="dc"], [class*="20"][class*="dc"], [class*="22"][class*="dc"]) {
+    font-size: 0.75rem;
+  }
+  
+  .preview-stitch:is([class*="30"][class*="dc"]) {
+    font-size: 0.7rem;
+  }
+
+  .row-navigation {
+    padding: 0.75rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .row-selector {
+    order: -1;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    max-width: none;
+  }
+
+  .row-select {
+    min-width: 0;
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    background-position: right 0.5rem center;
+    padding-right: 1.8rem;
+    background-size: 1rem;
+  }
+  
+  /* Keep dark mode arrow on mobile */
+  :root:not(.light) .row-select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  }
+
+  .nav-button.large {
+    flex: 1;
+    max-width: 45%;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.5rem;
+  }
 }
 </style> 

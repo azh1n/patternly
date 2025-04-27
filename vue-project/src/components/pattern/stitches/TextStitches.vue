@@ -621,7 +621,7 @@ defineExpose({
   }
   
   .stitch-key-tooltip {
-    width: 340px;
+    width: 310px;
     left: auto;
     right: 0;
   }
