@@ -1944,7 +1944,6 @@ defineExpose({
 @media (max-width: 767px) {
   .symbols-visualization {
     min-height: 150px;
-    padding: 0.75rem;
   }
 }
 

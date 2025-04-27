@@ -677,6 +677,77 @@ defineExpose({
 
 /* Mobile adjustments */
 @media (max-width: 767px) {
+  .stitch-symbol {
+    width: 34px;
+    height: 34px;
+    font-size: 0.75rem;
+  }
+  
+  .stitch-wrapper {
+    margin: 1px;
+  }
+  
+  .stitch-wrapper.preview-stitch.current-stitch {
+    transform: translateY(-2px);
+  }
+  
+  .stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
+    border: 1.5px solid var(--accent-color, #4f87ff);
+  }
+  
+  .stitch-count-badge {
+    min-width: 15px;
+    height: 15px;
+    font-size: 0.65rem;
+    top: -4px;
+    right: -4px;
+    padding: 0 2px;
+  }
+  
+  .expand-toggle {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.8rem;
+    margin: 0.2rem auto 0.6rem auto;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) {
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0;
+    min-height: 40px;
+  }
+  
+  .symbol-stitches :deep(.preview-content) {
+    gap: 0.2rem;
+    padding: 0.25rem 0;
+  }
+  
+  .symbol-stitches :deep(.stitch-navigation) {
+    padding: 0.5rem 0.25rem;
+    gap: 0.5rem;
+  }
+  
+  .symbol-stitches :deep(.stitch-content) {
+    min-width: 0;
+    padding: 0;
+  }
+  
+  .symbol-stitches :deep(.nav-button) {
+    padding: 0.4rem 0.6rem;
+    min-width: 0;
+  }
+  
+  .symbol-stitches :deep(.full-row-preview) {
+    margin-top: 0.25rem;
+    padding-top: 0.75rem;
+  }
+  
+  .symbol-stitches :deep(.full-row-preview h3) {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+  
   .stitch-key-tooltip {
     width: 340px;
     left: auto;
