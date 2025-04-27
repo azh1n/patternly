@@ -26,7 +26,7 @@
               <template v-else>
                 {{ getStitchType(stitch) }}
               </template>
-              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
+              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge smaller-badge">
                 {{ getStitchCount(stitch) }}
               </div>
             </div>
@@ -519,6 +519,16 @@ defineExpose({
   border: 1px solid white;
   padding: 0 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.stitch-count-badge.smaller-badge {
+  min-width: 14px;
+  height: 14px;
+  top: -4px;
+  right: -4px;
+  font-size: 0.5rem;
+  padding: 0 2px;
+  border-width: 1px;
 }
 
 .stitch-symbol.with-count {
