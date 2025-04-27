@@ -1,75 +1,86 @@
 <template>
-  <div class="privacy-policy-page">
-    <AppHeader :show-nav="true" :is-dev-mode="false" />
+  <div class="app-layout">
+    <SideNavigation v-model:expanded="sidebarExpanded" />
     
-    <div class="privacy-policy">
-      <h1>Privacy Policy</h1>
+    <div class="main-container" :class="{ 'sidebar-expanded': sidebarExpanded }">
+      <!-- Mobile header with menu button -->
+      <div class="mobile-header">
+        <button class="menu-btn" @click="toggleSidebar">
+          <font-awesome-icon icon="bars" />
+        </button>
+        <h1 class="mobile-title">Patternly</h1>
+        <div class="spacer"></div>
+      </div>
       
-      <p><em>Last updated: {{ currentDate }}</em></p>
+      <div class="privacy-policy">
+        <h1>Privacy Policy</h1>
+        
+        <p><em>Last updated: {{ currentDate }}</em></p>
 
-      <p>Patternly ("we", "our", or "us") values your privacy. This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.</p>
+        <p>Patternly ("we", "our", or "us") values your privacy. This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.</p>
 
-      <section>
-        <h2>1. Information We Collect</h2>
-        <p>We may collect the following types of information:</p>
-        <ul>
-          <li>Your name and email address (for account creation and login)</li>
-          <li>Login credentials (via email/password or Google)</li>
-          <li>Saved crochet patterns you input or create</li>
-          <li>Payment information (handled securely by a third-party provider — we do not store payment details directly)</li>
-        </ul>
-        <p>We may also collect basic technical data such as browser type, IP address, and device information to improve the app's performance.</p>
-      </section>
+        <section>
+          <h2>1. Information We Collect</h2>
+          <p>We may collect the following types of information:</p>
+          <ul>
+            <li>Your name and email address (for account creation and login)</li>
+            <li>Login credentials (via email/password or Google)</li>
+            <li>Saved crochet patterns you input or create</li>
+            <li>Payment information (handled securely by a third-party provider — we do not store payment details directly)</li>
+          </ul>
+          <p>We may also collect basic technical data such as browser type, IP address, and device information to improve the app's performance.</p>
+        </section>
 
-      <section>
-        <h2>2. How We Use Your Information</h2>
-        <p>We use the information we collect to:</p>
-        <ul>
-          <li>Provide and improve the Patternly web application</li>
-          <li>Save and display your patterns and preferences</li>
-          <li>Communicate with you about updates or account-related issues</li>
-          <li>Support secure login and future payment features</li>
-        </ul>
-      </section>
+        <section>
+          <h2>2. How We Use Your Information</h2>
+          <p>We use the information we collect to:</p>
+          <ul>
+            <li>Provide and improve the Patternly web application</li>
+            <li>Save and display your patterns and preferences</li>
+            <li>Communicate with you about updates or account-related issues</li>
+            <li>Support secure login and future payment features</li>
+          </ul>
+        </section>
 
-      <section>
-        <h2>3. Data Sharing</h2>
-        <p>We do not sell your personal data. In the future, we may use trusted third-party services to process payments or support app functionality. These providers will only receive the data necessary to perform their services.</p>
-      </section>
+        <section>
+          <h2>3. Data Sharing</h2>
+          <p>We do not sell your personal data. In the future, we may use trusted third-party services to process payments or support app functionality. These providers will only receive the data necessary to perform their services.</p>
+        </section>
 
-      <section>
-        <h2>4. Data Storage and Security</h2>
-        <p>We use secure, industry-standard services to store and manage your data. Your information is protected using encryption and other safeguards, but no online system can be guaranteed 100% secure.</p>
-      </section>
+        <section>
+          <h2>4. Data Storage and Security</h2>
+          <p>We use secure, industry-standard services to store and manage your data. Your information is protected using encryption and other safeguards, but no online system can be guaranteed 100% secure.</p>
+        </section>
 
-      <section>
-        <h2>5. Your Rights</h2>
-        <p>If you're located in California or the European Union, you have the right to:</p>
-        <ul>
-          <li>Access the data we hold about you</li>
-          <li>Request correction or deletion of your data</li>
-          <li>Withdraw consent or object to how we process your information</li>
-        </ul>
-        <p>To request any of these actions, contact us using the information below.</p>
-      </section>
+        <section>
+          <h2>5. Your Rights</h2>
+          <p>If you're located in California or the European Union, you have the right to:</p>
+          <ul>
+            <li>Access the data we hold about you</li>
+            <li>Request correction or deletion of your data</li>
+            <li>Withdraw consent or object to how we process your information</li>
+          </ul>
+          <p>To request any of these actions, contact us using the information below.</p>
+        </section>
 
-      <section>
-        <h2>6. Contact Us</h2>
-        <p>If you have any questions about this policy or your personal data, you can reach us at:</p>
-        <p>📧 business.michael.m.williams@gmail.com</p>
-      </section>
+        <section>
+          <h2>6. Contact Us</h2>
+          <p>If you have any questions about this policy or your personal data, you can reach us at:</p>
+          <p>📧 business.michael.m.williams@gmail.com</p>
+        </section>
 
-      <section>
-        <h2>7. Changes to This Policy</h2>
-        <p>We may update this Privacy Policy occasionally. We will post the updated version here with a new "Last updated" date.</p>
-      </section>
+        <section>
+          <h2>7. Changes to This Policy</h2>
+          <p>We may update this Privacy Policy occasionally. We will post the updated version here with a new "Last updated" date.</p>
+        </section>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import AppHeader from '@/components/AppHeader.vue';
+import SideNavigation from '@/components/SideNavigation.vue';
 
 // Format date as Month Day, Year
 const currentDate = ref(new Date().toLocaleDateString('en-US', {
@@ -77,13 +88,60 @@ const currentDate = ref(new Date().toLocaleDateString('en-US', {
   month: 'long',
   day: 'numeric'
 }));
+
+const sidebarExpanded = ref(window.innerWidth >= 768);
+
+// Toggle sidebar expanded state
+const toggleSidebar = () => {
+  sidebarExpanded.value = !sidebarExpanded.value;
+};
 </script>
 
 <style scoped>
-.privacy-policy-page {
-  min-height: 100vh;
+.app-layout {
   display: flex;
-  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--main-bg);
+  color: var(--text-primary);
+  position: relative;
+}
+
+.main-container {
+  flex: 1;
+  padding-left: 60px; /* Width of collapsed sidebar */
+  transition: padding-left 0.3s ease;
+  width: 100%;
+}
+
+.main-container.sidebar-expanded {
+  padding-left: 220px; /* Width of expanded sidebar */
+}
+
+.mobile-header {
+  display: none;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.mobile-title {
+  margin: 0 1rem;
+  font-size: 1.25rem;
+  color: var(--accent-color);
+}
+
+.spacer {
+  flex: 1;
 }
 
 .privacy-policy {
@@ -123,6 +181,21 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .main-container {
+    padding-left: 0;
+  }
+  
+  .main-container.sidebar-expanded {
+    padding-left: 0;
+  }
+  
+  .mobile-header {
+    display: flex;
+  }
 }
 
 @media (min-width: 768px) {

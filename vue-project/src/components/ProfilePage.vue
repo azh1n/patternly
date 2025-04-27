@@ -1,119 +1,130 @@
 <!-- User profile page component for managing account settings -->
 <template>
-  <!-- Main profile container -->
-  <div class="profile-container">
-    <AppHeader :show-nav="true" :is-dev-mode="isDevMode" />
-
-    <!-- Profile content wrapper -->
-    <div class="profile-content">
-      <!-- Profile settings card -->
-      <div class="profile-card">
-        <h2>
-          <font-awesome-icon icon="user" class="profile-icon" />
-          Profile Settings
-        </h2>
-        
-        <!-- Loading state indicator -->
-        <div v-if="loading" class="loading">
-          Loading...
-        </div>
-        
-        <!-- Profile settings form -->
-        <form v-else @submit.prevent="handleSubmit" class="profile-form">
-          <!-- Theme toggle section -->
-          <div class="form-group theme-toggle">
-            <label>
-              <font-awesome-icon :icon="isDarkMode ? 'moon' : 'sun'" class="field-icon" />
-              Theme
-            </label>
-            <button 
-              type="button"
-              class="theme-button"
-              @click="toggleTheme"
-            >
-              <font-awesome-icon :icon="isDarkMode ? 'sun' : 'moon'" class="theme-icon" />
-              Switch to {{ isDarkMode ? 'Light' : 'Dark' }} Mode
-            </button>
+  <!-- Main profile container with side navigation -->
+  <div class="app-layout">
+    <SideNavigation v-model:expanded="sidebarExpanded" />
+    
+    <div class="main-container" :class="{ 'sidebar-expanded': sidebarExpanded }">
+      <!-- Mobile header with menu button -->
+      <div class="mobile-header">
+        <button class="menu-btn" @click="toggleSidebar">
+          <font-awesome-icon icon="bars" />
+        </button>
+        <h1 class="mobile-title">Patternly</h1>
+        <div class="spacer"></div>
+      </div>
+    
+      <!-- Profile content wrapper -->
+      <div class="profile-content">
+        <!-- Profile settings card -->
+        <div class="profile-card">
+          <h2>
+            <font-awesome-icon icon="user" class="profile-icon" />
+            Profile Settings
+          </h2>
+          
+          <!-- Loading state indicator -->
+          <div v-if="loading" class="loading">
+            Loading...
           </div>
           
-
-
-          <!-- Display name input group -->
-          <div class="form-group">
-            <label for="displayName">
-              <font-awesome-icon icon="user-circle" class="field-icon" />
-              Display Name
-            </label>
-            <input
-              id="displayName"
-              v-model="form.displayName"
-              type="text"
-              :placeholder="user?.displayName || 'Enter display name'"
-            >
-          </div>
-          
-          <!-- Email display (read-only) -->
-          <div class="form-group">
-            <label for="email">
-              <font-awesome-icon icon="envelope" class="field-icon" />
-              Email
-            </label>
-            <input
-              id="email"
-              :value="user?.email"
-              type="email"
-              disabled
-            >
-          </div>
-          
-          <!-- New password input group -->
-          <div class="form-group">
-            <label for="newPassword">
-              <font-awesome-icon icon="lock" class="field-icon" />
-              New Password (optional)
-            </label>
-            <input
-              id="newPassword"
-              v-model="form.newPassword"
-              type="password"
-              placeholder="Enter new password"
-            >
-          </div>
-          
-          <!-- Error message display -->
-          <div v-if="error" class="error-message">
-            {{ error }}
-          </div>
-          
-          <!-- Success message display -->
-          <div v-if="success" class="success-message">
-            {{ success }}
-          </div>
-          
-          <!-- Action buttons group -->
-          <div class="button-group">
-            <!-- Save changes button -->
-            <button 
-              type="submit" 
-              class="primary-button"
-              :disabled="isSubmitting"
-            >
-              <font-awesome-icon icon="save" />
-              {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
-            </button>
+          <!-- Profile settings form -->
+          <form v-else @submit.prevent="handleSubmit" class="profile-form">
+            <!-- Theme toggle section -->
+            <div class="form-group theme-toggle">
+              <label>
+                <font-awesome-icon :icon="isDarkMode ? 'moon' : 'sun'" class="field-icon" />
+                Theme
+              </label>
+              <button 
+                type="button"
+                class="theme-button"
+                @click="toggleTheme"
+              >
+                <font-awesome-icon :icon="isDarkMode ? 'sun' : 'moon'" class="theme-icon" />
+                Switch to {{ isDarkMode ? 'Light' : 'Dark' }} Mode
+              </button>
+            </div>
             
-            <!-- Logout button -->
-            <button 
-              type="button" 
-              class="secondary-button"
-              @click="handleLogout"
-              :disabled="isSubmitting"
-            >
-              <font-awesome-icon icon="sign-out-alt" />
-              Logout
-            </button>
-          </div>
-        </form>
+
+
+            <!-- Display name input group -->
+            <div class="form-group">
+              <label for="displayName">
+                <font-awesome-icon icon="user-circle" class="field-icon" />
+                Display Name
+              </label>
+              <input
+                id="displayName"
+                v-model="form.displayName"
+                type="text"
+                :placeholder="user?.displayName || 'Enter display name'"
+              >
+            </div>
+            
+            <!-- Email display (read-only) -->
+            <div class="form-group">
+              <label for="email">
+                <font-awesome-icon icon="envelope" class="field-icon" />
+                Email
+              </label>
+              <input
+                id="email"
+                :value="user?.email"
+                type="email"
+                disabled
+              >
+            </div>
+            
+            <!-- New password input group -->
+            <div class="form-group">
+              <label for="newPassword">
+                <font-awesome-icon icon="lock" class="field-icon" />
+                New Password (optional)
+              </label>
+              <input
+                id="newPassword"
+                v-model="form.newPassword"
+                type="password"
+                placeholder="Enter new password"
+              >
+            </div>
+            
+            <!-- Error message display -->
+            <div v-if="error" class="error-message">
+              {{ error }}
+            </div>
+            
+            <!-- Success message display -->
+            <div v-if="success" class="success-message">
+              {{ success }}
+            </div>
+            
+            <!-- Action buttons group -->
+            <div class="button-group">
+              <!-- Save changes button -->
+              <button 
+                type="submit" 
+                class="primary-button"
+                :disabled="isSubmitting"
+              >
+                <font-awesome-icon icon="save" />
+                {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+              </button>
+              
+              <!-- Logout button -->
+              <button 
+                type="button" 
+                class="secondary-button"
+                @click="handleLogout"
+                :disabled="isSubmitting"
+              >
+                <font-awesome-icon icon="sign-out-alt" />
+                Logout
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -125,7 +136,7 @@ import { useAuth } from '@/services/auth'
 import { useTheme } from '@/services/theme'
 import { useUserSettings } from '@/services/userSettings'
 import { useRouter, useRoute } from 'vue-router'
-import AppHeader from '@/components/AppHeader.vue'
+import SideNavigation from '@/components/SideNavigation.vue'
 
 // Initialize router and services
 const router = useRouter()
@@ -133,6 +144,14 @@ const route = useRoute()
 const { user, loading, updateProfile, updatePassword, logout } = useAuth()
 const { isDarkMode, toggleTheme } = useTheme()
 const { initSettings } = useUserSettings()
+
+// Sidebar state
+const sidebarExpanded = ref(window.innerWidth >= 768)
+
+// Toggle sidebar expanded state
+const toggleSidebar = () => {
+  sidebarExpanded.value = !sidebarExpanded.value
+}
 
 // Check if we're in dev mode based on the current route
 const isDevMode = computed(() => route.path.includes('/dev'))
@@ -200,16 +219,52 @@ async function handleLogout() {
 </script>
 
 <style scoped>
-/* Main container styles */
-.profile-container {
-  min-height: 100vh;
+/* App layout styles */
+.app-layout {
   display: flex;
-  flex-direction: column;
+  min-height: 100vh;
   background-color: var(--main-bg);
   color: var(--text-primary);
-  width: 100%;
   position: relative;
+}
+
+.main-container {
+  flex: 1;
+  padding-left: 60px; /* Width of collapsed sidebar */
+  transition: padding-left 0.3s ease;
+  width: 100%;
   padding-bottom: 60px; /* Space for ad banner */
+}
+
+.main-container.sidebar-expanded {
+  padding-left: 220px; /* Width of expanded sidebar */
+}
+
+.mobile-header {
+  display: none;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.mobile-title {
+  margin: 0 1rem;
+  font-size: 1.25rem;
+  color: var(--accent-color);
+}
+
+.spacer {
+  flex: 1;
 }
 
 /* Content wrapper styles */
@@ -248,246 +303,168 @@ async function handleLogout() {
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  width: 100%;
-  margin: 0 auto;
 }
 
 /* Form group styles */
 .form-group {
-  position: relative;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-/* Input icon positioning */
-.form-group .input-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-secondary);
+/* Form labels */
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 /* Input field styles */
 .form-group input {
-  padding: 0.75rem;
-  background-color: var(--input-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  font-size: 1rem;
-  color: var(--text-primary);
-  transition: all 0.2s;
   width: 100%;
-}
-
-/* Form label styles */
-.form-group label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--card-bg);
   color: var(--text-primary);
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
-/* Field icon styles */
-.field-icon {
-  color: var(--accent-color);
-  width: 16px;
-  height: 16px;
-}
-
-/* Input focus state */
 .form-group input:focus {
   outline: none;
   border-color: var(--accent-color);
-  background-color: var(--hover-bg);
 }
 
-/* Disabled input styles */
 .form-group input:disabled {
-  background-color: var(--disabled-bg);
-  cursor: not-allowed;
-  color: var(--text-secondary);
-}
-
-/* Input placeholder styles */
-.form-group input::placeholder {
-  color: var(--text-secondary);
-}
-
-/* Button group layout */
-.button-group {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
-  width: 100%;
-}
-
-/* Common button styles */
-.button-group button {
-  width: 100%;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-/* Disabled button state */
-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-/* Primary button styles */
-.primary-button {
-  background: var(--accent-color);
-  color: white;
-  border: none;
-}
-
-/* Primary button hover state */
-.primary-button:hover:not(:disabled) {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-/* Secondary button styles */
-.secondary-button {
-  background: transparent;
-  color: var(--accent-color);
-  border: 1px solid var(--accent-color);
-}
-
-/* Secondary button hover state */
-.secondary-button:hover:not(:disabled) {
-  background: var(--hover-bg);
-}
-
-/* Message styles */
-.error-message,
-.success-message {
-  padding: 0.75rem;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 0.9rem;
-}
-
-/* Error message styles */
-.error-message {
-  background-color: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
-  border: 1px solid rgba(231, 76, 60, 0.2);
-}
-
-/* Success message styles */
-.success-message {
-  background-color: rgba(46, 204, 113, 0.1);
-  color: #2ecc71;
-  border: 1px solid rgba(46, 204, 113, 0.2);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-/* Profile icon styles */
-.profile-icon {
+/* Field icons */
+.field-icon {
   margin-right: 0.5rem;
-  color: var(--accent-color);
-}
-
-/* Theme toggle section styles */
-.theme-toggle {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  opacity: 0.7;
 }
 
 /* Theme toggle button styles */
+.theme-toggle {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
+}
+
 .theme-button {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background-color: transparent;
+  gap: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
+  background-color: var(--card-bg);
   color: var(--text-primary);
-  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  width: 100%;
 }
 
-/* Theme button hover state */
 .theme-button:hover {
   background-color: var(--hover-bg);
-  border-color: var(--accent-color);
 }
 
-/* Theme icon styles */
 .theme-icon {
   font-size: 1.2rem;
-  color: var(--accent-color);
 }
 
-/* Feature toggle button styles */
-.theme-button.active {
+/* Form action buttons */
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.primary-button, 
+.secondary-button {
+  padding: 0.75rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.primary-button {
   background-color: var(--accent-color);
+  border: none;
   color: white;
-  border-color: var(--accent-color);
 }
 
-/* Tablet styles */
-@media (min-width: 768px) {
-  .profile-content {
-    padding: 1.5rem;
-  }
-
-  .profile-card {
-    padding: 2rem;
-    border-radius: 12px;
-  }
-
-  .profile-card h2 {
-    font-size: 1.5rem;
-  }
-
-  .button-group {
-    flex-direction: row;
-  }
-
-  .button-group button {
-    flex: 1;
-  }
+.primary-button:hover:not(:disabled) {
+  background-color: var(--accent-hover);
 }
 
-/* Mobile styles */
+.secondary-button {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.secondary-button:hover:not(:disabled) {
+  background-color: var(--hover-bg);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Status message styles */
+.error-message,
+.success-message {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.error-message {
+  background-color: rgba(255, 68, 68, 0.1);
+  border: 1px solid #ff4444;
+  color: #ff4444;
+}
+
+.success-message {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid #4caf50;
+  color: #4caf50;
+}
+
+/* Mobile responsive styles */
 @media (max-width: 767px) {
+  .main-container {
+    padding-left: 0;
+  }
+  
+  .main-container.sidebar-expanded {
+    padding-left: 0;
+  }
+  
+  .mobile-header {
+    display: flex;
+  }
+
   .profile-content {
-    padding: 8px;
-    -webkit-overflow-scrolling: touch;
+    padding: 1rem;
   }
-}
-
-/* Desktop styles */
-@media (min-width: 1024px) {
+  
   .profile-card {
-    padding: 3rem;
+    padding: 1rem;
   }
-}
-
-/* Remove any development overlays */
-:deep(.vue-dev-overlay),
-:deep(.__vue-dev-overlay) {
-  display: none !important;
+  
+  .button-group {
+    flex-direction: column;
+  }
 }
 </style> 

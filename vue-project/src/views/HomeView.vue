@@ -1,27 +1,38 @@
 <template>
-  <div class="home">
-    <AppHeader :show-nav="true" :is-dev-mode="false" />
-
-    <main class="main-content">
-      <div v-if="!selectedPattern" class="home-view">
-        
-        <PatternGrid
-          :patterns="savedTexts"
-          :is-loading="isLoading"
-          @select-pattern="selectPattern"
-          @add-pattern="showAddPattern = true"
-        />
+  <div class="app-layout">
+    <SideNavigation v-model:expanded="sidebarExpanded" />
+    
+    <div class="main-container" :class="{ 'sidebar-expanded': sidebarExpanded }">
+      <!-- Mobile header with menu button -->
+      <div class="mobile-header">
+        <button class="menu-btn" @click="toggleSidebar">
+          <font-awesome-icon icon="bars" />
+        </button>
+        <h1 class="mobile-title">Patternly</h1>
+        <div class="spacer"></div>
       </div>
 
-      <PatternView
-        v-else
-        :pattern="selectedPattern"
-        :patterns="savedTexts"
-        :current-text-index="currentTextIndex"
-        @update:current-text-index="currentTextIndex = $event"
-        @pattern-deleted="handlePatternDeleted"
-      />
-    </main>
+      <main class="main-content">
+        <div v-if="!selectedPattern" class="home-view">
+          
+          <PatternGrid
+            :patterns="savedTexts"
+            :is-loading="isLoading"
+            @select-pattern="selectPattern"
+            @add-pattern="showAddPattern = true"
+          />
+        </div>
+
+        <PatternView
+          v-else
+          :pattern="selectedPattern"
+          :patterns="savedTexts"
+          :current-text-index="currentTextIndex"
+          @update:current-text-index="currentTextIndex = $event"
+          @pattern-deleted="handlePatternDeleted"
+        />
+      </main>
+    </div>
 
     <AddPatternModal
       v-model:modelValue="showAddPattern"
@@ -37,11 +48,10 @@ import { collection, addDoc, getDocs, query, orderBy, where, getDoc, serverTimes
 import { db } from '@/firebase'
 import { useAuth } from '@/services/auth'
 import { useUserSettings } from '@/services/userSettings'
-import PatternView from '@/components/PatternView.vue'
+import PatternView from '@/views/PatternView.vue'
 import PatternGrid from '@/components/PatternGrid.vue'
 import AddPatternModal from '@/components/AddPatternModal.vue'
-
-import AppHeader from '@/components/AppHeader.vue'
+import SideNavigation from '@/components/SideNavigation.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +63,7 @@ const isLoading = ref(false)
 const currentTextIndex = ref(0)
 const selectedPattern = ref(null)
 const showAddPattern = ref(false)
+const sidebarExpanded = ref(window.innerWidth >= 768)
 
 onMounted(async () => {
   try {
@@ -209,6 +220,11 @@ const handlePatternDeleted = async () => {
   currentTextIndex.value = 0
 }
 
+// Toggle sidebar expanded state
+const toggleSidebar = () => {
+  sidebarExpanded.value = !sidebarExpanded.value
+}
+
 // Watch for user changes
 watch(() => user.value?.uid, async (newUserId) => {
   if (newUserId) {
@@ -220,20 +236,54 @@ watch(() => user.value?.uid, async (newUserId) => {
 </script>
 
 <style scoped>
-.home {
-  min-height: 100vh;
+.app-layout {
   display: flex;
-  flex-direction: column;
+  min-height: 100vh;
   background-color: var(--main-bg);
   color: var(--text-primary);
-  width: 100%;
   position: relative;
+}
+
+.main-container {
+  flex: 1;
+  padding-left: 60px; /* Width of collapsed sidebar */
+  transition: padding-left 0.3s ease;
+  width: 100%;
   padding-bottom: 60px; /* Space for ad banner */
 }
 
-.main-content {
+.main-container.sidebar-expanded {
+  padding-left: 220px; /* Width of expanded sidebar */
+}
+
+.mobile-header {
+  display: none;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.mobile-title {
+  margin: 0 1rem;
+  font-size: 1.25rem;
+  color: var(--accent-color);
+}
+
+.spacer {
   flex: 1;
-  width: 100%;
+}
+
+.main-content {
   padding: 1.5rem;
   position: relative;
 }
@@ -249,48 +299,18 @@ watch(() => user.value?.uid, async (newUserId) => {
   justify-content: space-between;
 }
 
-.experimental-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: var(--accent-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.experimental-link:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-/* Tablet styles */
-@media (max-width: 1023px) {
-  .main-content {
-    padding: 1.5rem;
-  }
-}
-
 /* Mobile styles */
 @media (max-width: 767px) {
-  .main-content {
-    padding: 8px;
-    -webkit-overflow-scrolling: touch;
+  .main-container {
+    padding-left: 0;
   }
   
-  .experimental-banner {
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding: 0.75rem;
+  .main-container.sidebar-expanded {
+    padding-left: 0;
   }
   
-  .experimental-link {
-    width: 100%;
-    justify-content: center;
+  .mobile-header {
+    display: flex;
   }
 }
 </style> 

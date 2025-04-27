@@ -1,210 +1,223 @@
 <!-- Pattern view component for displaying and interacting with knitting patterns -->
 <template>
-  <!-- Main pattern view container -->
-  <div class="pattern-view">
-    <div v-if="isLoading" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <p>Loading pattern...</p>
-    </div>
+  <!-- Main pattern view container with side navigation -->
+  <div class="app-layout">
+    <SideNavigation v-model:expanded="sidebarExpanded" />
     
-    <!-- Pattern header with title, controls, and progress -->
-    <div class="pattern-header" v-if="pattern">
-      <div class="header-content">
-        <h1>{{ pattern.name }}</h1>
-        <div class="pattern-controls">
-          <button @click="confirmDelete" class="delete-button">
-            <font-awesome-icon icon="trash" />
-            Delete Pattern
-          </button>
-        </div>
-      </div>
-      <!-- Progress bar showing completion status -->
-      <div class="progress-bar">
-        <div class="progress-track">
-          <div 
-            class="progress-fill"
-            :style="{ width: `${completionPercentage}%` }"
-          ></div>
-        </div>
-        <span class="progress-text">{{ completedRows }} of {{ totalRows }} rows completed</span>
-      </div>
-    </div>
-
-    <!-- Main pattern content area -->
-    <div class="pattern-content" v-if="pattern">
-      <!-- Row header with current row info and controls -->
-      <div class="row-header">
-        <!-- Single unified view that works for both desktop and mobile -->
-        <div class="row-info">
-          <div class="row-info-left">
-            <h2 class="row-number">Row {{ currentRow?.rowNum }}</h2>
-            <div class="row-color-indicator">Color {{ currentRow?.color }}</div>
-          </div>
-          
-          <div class="row-controls">
-            <button 
-              @click="toggleRowComplete"
-              :class="['complete-button', { 'completed': isRowComplete }]"
-            >
-              <font-awesome-icon :icon="isRowComplete ? 'check-circle' : 'circle'" />
-              <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
-              <span class="mobile-only">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
-            </button>
-            
-            <button 
-              v-show="!hasRowNotes && !showNotes"
-              @click="showNotes = true"
-              class="notes-button"
-            >
-              <font-awesome-icon icon="sticky-note" />
-              <span class="desktop-only">Add Notes</span>
-              <span class="mobile-only">Notes</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Row notes section -->
-      <div v-show="showNotes || hasRowNotes" class="row-notes-section">
-        <div class="notes-header">
-          <font-awesome-icon icon="sticky-note" />
-          <span>Row Notes</span>
-          <span class="character-count" :class="{ 'limit-reached': currentRowNotes.length >= 500 }">
-            {{ currentRowNotes.length }}/500
-          </span>
-          <button @click="saveNotes" class="save-notes-button" :class="{ 'unsaved': !notesSaved }" title="Save notes">
-            <font-awesome-icon icon="save" />
-          </button>
-          <button @click="hideNotes" class="close-notes-button">
-            <font-awesome-icon icon="times" />
-          </button>
-        </div>
-        <textarea 
-          v-model="currentRowNotes" 
-          placeholder="Add your notes for this row here..."
-          class="notes-textarea"
-          maxlength="500"
-          @input="markAsUnsaved"
-          style="color: #ffffff !important;"
-        ></textarea>
-      </div>
-
-      <!-- Pattern card with stitch navigation -->
-      <div class="pattern-card">
-        <div class="stitch-navigation" :class="{ 'component-mode': visualizationMode === 'text' || visualizationMode === 'symbols' }">
-          <!-- Text visualization mode -->
-          <TextStitches
-            v-if="visualizationMode === 'text'"
-            :currentRow="currentRow"
-            :initialStitchesPerView="stitchesPerView"
-            :maxStitchesPerView="totalStitches"
-            class="visualization-component text-visualization"
-          />
-          
-          <!-- Symbol visualization mode -->
-          <SymbolStitches
-            v-else-if="visualizationMode === 'symbols'"
-            :currentRow="currentRow"
-            :initialStitchesPerView="stitchesPerView"
-            :maxStitchesPerView="totalStitches"
-            class="visualization-component symbols-visualization"
-          />
-        </div>
-      </div>
-
-      <!-- Row navigation controls -->
-      <div class="row-navigation">
-        <button 
-          @click="previousRow" 
-          class="nav-button large"
-          :disabled="currentRowIndex === 0"
-        >
-          <font-awesome-icon icon="arrow-left" />
+    <div class="main-container" :class="{ 'sidebar-expanded': sidebarExpanded }">
+      <!-- Mobile header with menu button -->
+      <div class="mobile-header">
+        <button class="menu-btn" @click="toggleSidebar">
+          <font-awesome-icon icon="bars" />
         </button>
-        <div class="row-selector">
-          <select 
-            v-model="currentRowIndex" 
-            class="row-select"
-          >
-            <option 
-              v-for="(row, index) in parsedRows" 
-              :key="index" 
-              :value="index"
-            >
-              Row {{ row.rowNum }} ({{ row.color }})
-            </option>
-          </select>
-          <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
-        </div>
-        <button 
-          @click="nextRow" 
-          class="nav-button large"
-          :disabled="currentRowIndex === parsedRows.length - 1"
-        >
-          <font-awesome-icon icon="arrow-right" />
-        </button>
+        <h1 class="mobile-title">Patternly</h1>
+        <div class="spacer"></div>
       </div>
       
-      <!-- Experimental features section - visible only when experimental features are enabled -->
-      <div v-if="experimentalFeatures" class="experimental-features">
-        <h3>Experimental Features</h3>
-        <div class="feature-section">
-          <button class="feature-button" @click="showRawPattern = !showRawPattern">
-            <font-awesome-icon icon="code" />
-            {{ showRawPattern ? 'Hide Raw Pattern' : 'View Raw Pattern' }}
-          </button>
-          
-          <!-- Add pattern chart view toggle button -->
-          <button class="feature-button" @click="showChartView = !showChartView">
-            <font-awesome-icon icon="chart-pie" />
-            {{ showChartView ? 'Hide Chart View' : 'Show Chart View' }}
-          </button>
-          
-          <!-- Add visualization mode toggle buttons -->
-          <div class="toggle-container">
-            <button 
-              class="feature-button" 
-              :class="{ 'active-toggle': visualizationMode === 'text' }"
-              @click="visualizationMode = 'text'"
-            >
-              <font-awesome-icon icon="font" />
-              Text
-            </button>
-            <button 
-              class="feature-button" 
-              :class="{ 'active-toggle': visualizationMode === 'symbols' }"
-              @click="visualizationMode = 'symbols'"
-            >
-              <font-awesome-icon icon="shapes" />
-              Symbols
-            </button>
-          </div>
+      <div class="pattern-view">
+        <div v-if="isLoading" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <p>Loading pattern...</p>
         </div>
         
-        <!-- Pattern Chart View (experimental) -->
-        <div v-if="showChartView" class="chart-view-container">
-          <div v-if="chartViewError" class="chart-view-error">
-            <p>There was an error loading the chart view. Please try again.</p>
-            <button class="retry-button" @click="retryChartView">Retry</button>
+        <!-- Pattern header with title, controls, and progress -->
+        <div class="pattern-header" v-if="pattern">
+          <div class="header-content">
+            <h1>{{ pattern.name }}</h1>
+            <div class="pattern-controls">
+              <button @click="confirmDelete" class="delete-button">
+                <font-awesome-icon icon="trash" />
+                Delete Pattern
+              </button>
+            </div>
           </div>
-          <PatternChartView 
-            v-else
-            :pattern="{ ...props.pattern, parsedRows }" 
-            :experimental="true" 
-            @error="handleChartViewError"
-          />
+          <!-- Progress bar showing completion status -->
+          <div class="progress-bar">
+            <div class="progress-track">
+              <div 
+                class="progress-fill"
+                :style="{ width: `${completionPercentage}%` }"
+              ></div>
+            </div>
+            <span class="progress-text">{{ completedRows }} of {{ totalRows }} rows completed</span>
+          </div>
         </div>
-        
-        <!-- Raw Pattern Display for Debugging -->
-        <div v-if="showRawPattern" class="raw-pattern">
-          <h4>Raw Pattern Data:</h4>
-          <pre>{{ props.pattern.content }}</pre>
+
+        <!-- Main pattern content area -->
+        <div class="pattern-content" v-if="pattern">
+          <!-- Row header with current row info and controls -->
+          <div class="row-header">
+            <!-- Single unified view that works for both desktop and mobile -->
+            <div class="row-info">
+              <div class="row-info-left">
+                <h2 class="row-number">Row {{ currentRow?.rowNum }}</h2>
+                <div class="row-color-indicator">Color {{ currentRow?.color }}</div>
+              </div>
+              
+              <div class="row-controls">
+                <button 
+                  @click="toggleRowComplete"
+                  :class="['complete-button', { 'completed': isRowComplete }]"
+                >
+                  <font-awesome-icon :icon="isRowComplete ? 'check-circle' : 'circle'" />
+                  <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
+                  <span class="mobile-only">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
+                </button>
+                
+                <button 
+                  v-show="!hasRowNotes && !showNotes"
+                  @click="showNotes = true"
+                  class="notes-button"
+                >
+                  <font-awesome-icon icon="sticky-note" />
+                  <span class="desktop-only">Add Notes</span>
+                  <span class="mobile-only">Notes</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row notes section -->
+          <div v-show="showNotes || hasRowNotes" class="row-notes-section">
+            <div class="notes-header">
+              <font-awesome-icon icon="sticky-note" />
+              <span>Row Notes</span>
+              <span class="character-count" :class="{ 'limit-reached': currentRowNotes.length >= 500 }">
+                {{ currentRowNotes.length }}/500
+              </span>
+              <button @click="saveNotes" class="save-notes-button" :class="{ 'unsaved': !notesSaved }" title="Save notes">
+                <font-awesome-icon icon="save" />
+              </button>
+              <button @click="hideNotes" class="close-notes-button">
+                <font-awesome-icon icon="times" />
+              </button>
+            </div>
+            <textarea 
+              v-model="currentRowNotes" 
+              placeholder="Add your notes for this row here..."
+              class="notes-textarea"
+              maxlength="500"
+              @input="markAsUnsaved"
+              style="color: #ffffff !important;"
+            ></textarea>
+          </div>
+
+          <!-- Pattern card with stitch navigation -->
+          <div class="pattern-card">
+            <div class="stitch-navigation" :class="{ 'component-mode': visualizationMode === 'text' || visualizationMode === 'symbols' }">
+              <!-- Text visualization mode -->
+              <TextStitches
+                v-if="visualizationMode === 'text'"
+                :currentRow="currentRow"
+                :initialStitchesPerView="stitchesPerView"
+                :maxStitchesPerView="totalStitches"
+                class="visualization-component text-visualization"
+              />
+              
+              <!-- Symbol visualization mode -->
+              <SymbolStitches
+                v-else-if="visualizationMode === 'symbols'"
+                :currentRow="currentRow"
+                :initialStitchesPerView="stitchesPerView"
+                :maxStitchesPerView="totalStitches"
+                class="visualization-component symbols-visualization"
+              />
+            </div>
+          </div>
+
+          <!-- Row navigation controls -->
+          <div class="row-navigation">
+            <button 
+              @click="previousRow" 
+              class="nav-button large"
+              :disabled="currentRowIndex === 0"
+            >
+              <font-awesome-icon icon="arrow-left" />
+            </button>
+            <div class="row-selector">
+              <select 
+                v-model="currentRowIndex" 
+                class="row-select"
+              >
+                <option 
+                  v-for="(row, index) in parsedRows" 
+                  :key="index" 
+                  :value="index"
+                >
+                  Row {{ row.rowNum }} ({{ row.color }})
+                </option>
+              </select>
+              <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
+            </div>
+            <button 
+              @click="nextRow" 
+              class="nav-button large"
+              :disabled="currentRowIndex === parsedRows.length - 1"
+            >
+              <font-awesome-icon icon="arrow-right" />
+            </button>
+          </div>
+          
+          <!-- Experimental features section - visible only when experimental features are enabled -->
+          <div v-if="experimentalFeatures" class="experimental-features">
+            <h3>Experimental Features</h3>
+            <div class="feature-section">
+              <button class="feature-button" @click="showRawPattern = !showRawPattern">
+                <font-awesome-icon icon="code" />
+                {{ showRawPattern ? 'Hide Raw Pattern' : 'View Raw Pattern' }}
+              </button>
+              
+              <!-- Add pattern chart view toggle button -->
+              <button class="feature-button" @click="showChartView = !showChartView">
+                <font-awesome-icon icon="chart-pie" />
+                {{ showChartView ? 'Hide Chart View' : 'Show Chart View' }}
+              </button>
+              
+              <!-- Add visualization mode toggle buttons -->
+              <div class="toggle-container">
+                <button 
+                  class="feature-button" 
+                  :class="{ 'active-toggle': visualizationMode === 'text' }"
+                  @click="visualizationMode = 'text'"
+                >
+                  <font-awesome-icon icon="font" />
+                  Text
+                </button>
+                <button 
+                  class="feature-button" 
+                  :class="{ 'active-toggle': visualizationMode === 'symbols' }"
+                  @click="visualizationMode = 'symbols'"
+                >
+                  <font-awesome-icon icon="shapes" />
+                  Symbols
+                </button>
+              </div>
+            </div>
+            
+            <!-- Pattern Chart View (experimental) -->
+            <div v-if="showChartView" class="chart-view-container">
+              <div v-if="chartViewError" class="chart-view-error">
+                <p>There was an error loading the chart view. Please try again.</p>
+                <button class="retry-button" @click="retryChartView">Retry</button>
+              </div>
+              <PatternChartView 
+                v-else
+                :pattern="{ ...props.pattern, parsedRows }" 
+                :experimental="true" 
+                @error="handleChartViewError"
+              />
+            </div>
+            
+            <!-- Raw Pattern Display for Debugging -->
+            <div v-if="showRawPattern" class="raw-pattern">
+              <h4>Raw Pattern Data:</h4>
+              <pre>{{ props.pattern.content }}</pre>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-
-
 </template>
 
 <script setup>
@@ -218,6 +231,7 @@ import SymbolStitches from '../components/pattern/stitches/SymbolStitches.vue'
 import TextStitches from '../components/pattern/stitches/TextStitches.vue'
 // Import user settings to check experimental features status
 import { useUserSettings } from '@/services/userSettings'
+import SideNavigation from '@/components/SideNavigation.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -252,6 +266,13 @@ const chartViewError = ref(false);
 
 // Get experimental features state
 const { experimentalFeatures } = useUserSettings()
+
+// Add sidebar toggle functionality
+const sidebarExpanded = ref(window.innerWidth >= 768)
+
+const toggleSidebar = () => {
+  sidebarExpanded.value = !sidebarExpanded.value
+}
 
 // Load the pattern data when component mounts
 onMounted(async () => {
@@ -977,6 +998,67 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Add app layout styles */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  background-color: var(--main-bg);
+}
+
+.main-container {
+  flex: 1;
+  padding-left: 60px; /* Width of collapsed sidebar */
+  transition: padding-left 0.3s ease;
+  width: 100%;
+}
+
+.main-container.sidebar-expanded {
+  padding-left: 220px; /* Width of expanded sidebar */
+}
+
+.mobile-header {
+  display: none;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.mobile-title {
+  margin: 0 1rem;
+  font-size: 1.25rem;
+  color: var(--accent-color);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .main-container {
+    padding-left: 0;
+  }
+  
+  .main-container.sidebar-expanded {
+    padding-left: 0;
+  }
+  
+  .mobile-header {
+    display: flex;
+  }
+}
+
 /* 
  * Responsive utility classes
  * 
