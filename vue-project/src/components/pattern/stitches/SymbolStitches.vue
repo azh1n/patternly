@@ -230,6 +230,7 @@ const currentStitchesView = computed(() => {
   if (!props.currentRow || !props.currentRow.codes || !props.currentRow.codes.length) return [];
   
   const processedStitches = processRowStitches(props.currentRow.codes, displayRepeatedStitchesSeparately.value);
+  // Always show exactly stitchesPerView blocks, regardless of their stitch count
   return processedStitches.slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value);
 });
 

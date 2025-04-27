@@ -45,7 +45,7 @@
       <button 
         @click="nextStitches" 
         class="nav-button"
-        :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
+        :disabled="currentStitchIndex + stitchesPerView >= props.totalStitches"
       >
         <span class="arrow-icon next-arrow">→</span>
       </button>
@@ -155,8 +155,31 @@ watch([currentStitchIndex, stitchesPerView], () => {
 const stitchProgress = computed(() => {
   if (!props.totalStitches) return '0 of 0';
   
-  const start = currentStitchIndex.value + 1;
-  const end = Math.min(currentStitchIndex.value + actualStitchCount.value || stitchesPerView.value, props.totalStitches);
+  let start = 1;
+  if (currentStitchIndex.value > 0) {
+    // Calculate the total stitch count from all previous blocks
+    // This requires DOM access to find the actual stitch counts
+    try {
+      const allStitches = document.querySelectorAll('.preview-content .stitch-wrapper');
+      if (allStitches && allStitches.length > 0) {
+        // Sum up all the stitches before the current index
+        let previousStitchCount = 0;
+        for (let i = 0; i < currentStitchIndex.value && i < allStitches.length; i++) {
+          const text = allStitches[i].textContent.trim();
+          const match = text.match(/^(\d+)/);
+          previousStitchCount += match ? parseInt(match[1], 10) : 1;
+        }
+        start = previousStitchCount + 1;
+      }
+    } catch (error) {
+      console.error('Error calculating start stitch count:', error);
+      // Fallback to index + 1 if there's an error
+      start = currentStitchIndex.value + 1;
+    }
+  }
+  
+  // For the ending stitch count, add the actual stitch count of current view
+  const end = Math.min(start - 1 + (actualStitchCount.value || stitchesPerView.value), props.totalStitches);
   
   return `${start}-${end} of ${props.totalStitches} stitches`;
 });
@@ -164,6 +187,7 @@ const stitchProgress = computed(() => {
 // Navigation methods
 const nextStitches = () => {
   if (currentStitchIndex.value + stitchesPerView.value < props.totalStitches) {
+    // Move exactly by stitchesPerView blocks to avoid overlap
     currentStitchIndex.value += stitchesPerView.value;
     emits('update:currentStitchIndex', currentStitchIndex.value);
     nextTick(() => {
@@ -174,6 +198,7 @@ const nextStitches = () => {
 
 const previousStitches = () => {
   if (currentStitchIndex.value > 0) {
+    // Move exactly by stitchesPerView blocks
     currentStitchIndex.value = Math.max(0, currentStitchIndex.value - stitchesPerView.value);
     emits('update:currentStitchIndex', currentStitchIndex.value);
     nextTick(() => {
