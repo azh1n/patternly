@@ -1567,10 +1567,12 @@ defineExpose({
 @media (max-width: 767px) {
   .pattern-view {
     padding: 0.5rem;
+    padding-bottom: 0.25rem;
   }
 
   .pattern-content {
     border-radius: 8px;
+    margin-bottom: 0;
   }
 
   .experimental-badge {
@@ -1645,7 +1647,7 @@ defineExpose({
   }
 
   .pattern-card {
-    padding: 1rem 0;
+    padding: 0.25rem 0;
   }
 
   .stitch-navigation {
@@ -1691,7 +1693,8 @@ defineExpose({
   }
 
   .row-navigation {
-    padding: 0.75rem;
+    padding: 0.5rem;
+    padding-bottom: 0.5rem;
     gap: 0.5rem;
     flex-wrap: nowrap;
     justify-content: center;

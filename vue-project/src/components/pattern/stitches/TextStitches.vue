@@ -304,7 +304,6 @@ defineExpose({
 .text-stitches {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   width: 100%;
 }
 
@@ -432,7 +431,7 @@ defineExpose({
   position: relative;
   display: inline-block;
   align-self: flex-end;
-  margin: 0.5rem 0;
+  margin: 0;
 }
 
 .stitch-key-trigger {

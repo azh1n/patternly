@@ -535,7 +535,7 @@ defineExpose({
   position: relative;
   display: inline-block;
   align-self: flex-end;
-  margin: 0.5rem 0;
+  margin: 0;
   margin-left: auto;
 }
 
