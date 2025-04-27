@@ -86,13 +86,77 @@ const currentStitchIndex = ref(0);
 const stitchesPerView = ref(props.initialStitchesPerView);
 const lastZoomTime = ref(0);
 const isZooming = ref(false);
+const actualStitchCount = ref(0);
+
+// Function to calculate the total stitch count from displayed stitches
+const calculateActualStitchCount = () => {
+  nextTick(() => {
+    try {
+      const currentStitches = document.querySelectorAll('.current-stitches .stitch-wrapper');
+      let count = 0;
+      
+      if (currentStitches && currentStitches.length > 0) {
+        currentStitches.forEach(stitch => {
+          // Get the text content from the stitch element
+          const text = stitch.textContent.trim();
+          // Extract the number prefix (like '22' from '22dc')
+          const match = text.match(/^(\d+)/);
+          if (match) {
+            count += parseInt(match[1], 10);
+          } else {
+            // If no number found, count as 1
+            count += 1;
+          }
+        });
+        actualStitchCount.value = count;
+      } else {
+        // Fallback to stitchesPerView if no stitches found
+        actualStitchCount.value = stitchesPerView.value;
+      }
+    } catch (error) {
+      console.error('Error calculating stitch count:', error);
+      actualStitchCount.value = stitchesPerView.value;
+    }
+  });
+};
+
+// Set up watchers and observers
+onMounted(() => {
+  // Initial calculation
+  calculateActualStitchCount();
+  
+  // Set up MutationObserver to watch for DOM changes
+  const observer = new MutationObserver(() => {
+    calculateActualStitchCount();
+  });
+  
+  // Observe the current-stitches container for changes
+  const currentStitchesEl = document.querySelector('.current-stitches');
+  if (currentStitchesEl) {
+    observer.observe(currentStitchesEl, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+  
+  // Clean up on unmount
+  onUnmounted(() => {
+    observer.disconnect();
+  });
+});
+
+// Watch for navigation changes to recalculate
+watch([currentStitchIndex, stitchesPerView], () => {
+  calculateActualStitchCount();
+});
 
 // Stitch progress indicator
 const stitchProgress = computed(() => {
   if (!props.totalStitches) return '0 of 0';
   
   const start = currentStitchIndex.value + 1;
-  const end = Math.min(currentStitchIndex.value + stitchesPerView.value, props.totalStitches);
+  const end = Math.min(currentStitchIndex.value + actualStitchCount.value || stitchesPerView.value, props.totalStitches);
   
   return `${start}-${end} of ${props.totalStitches} stitches`;
 });
