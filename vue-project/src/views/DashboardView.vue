@@ -305,7 +305,7 @@ const getPatternColor = (pattern) => {
 /* Dashboard content */
 .dashboard-content {
   padding: 2rem;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -356,11 +356,12 @@ const getPatternColor = (pattern) => {
 /* Feature cards */
 .feature-cards {
   margin-bottom: 3rem;
+  width: 100%;
 }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(4, 1fr); /* Explicitly set to 4 columns for desktop */
   gap: 1.5rem;
 }
 
@@ -437,11 +438,12 @@ const getPatternColor = (pattern) => {
 /* Recent patterns */
 .recent-patterns {
   margin-bottom: 3rem;
+  width: 100%;
 }
 
 .recent-patterns-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr); /* Explicitly set to 4 columns for desktop */
   gap: 1.5rem;
 }
 
@@ -612,8 +614,16 @@ const getPatternColor = (pattern) => {
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-  .cards-grid {
+  .cards-grid,
+  .recent-patterns-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .cards-grid,
+  .recent-patterns-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 </style> 
