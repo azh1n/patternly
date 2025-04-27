@@ -1268,6 +1268,7 @@ async function deleteAccount() {
   cursor: pointer;
   transition: background-color 0.2s;
   margin-bottom: 0.5rem;
+  color: var(--text-primary);
 }
 
 .action-button:hover {
@@ -1292,6 +1293,7 @@ async function deleteAccount() {
   margin: 0 0 0.25rem 0;
   font-size: 1rem;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .action-details p {
