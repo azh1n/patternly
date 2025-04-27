@@ -15,7 +15,8 @@
       </h1>
       <!-- Right section with conditional navigation -->
       <div class="side-section right-section">
-        <nav v-if="showNav">
+        <!-- Desktop navigation -->
+        <nav v-if="showNav" class="desktop-nav">
           <router-link to="/about" class="nav-link">About</router-link>
           <router-link to="/privacy-policy" class="nav-link">Privacy</router-link>
           <router-link to="/profile" class="profile-link">Profile</router-link>
@@ -29,6 +30,27 @@
             <span class="status-indicator" :class="{ 'on': experimentalFeatures }"></span>
           </button>
         </nav>
+        
+        <!-- Mobile hamburger menu -->
+        <div v-if="showNav" class="mobile-menu">
+          <button @click="toggleMobileMenu" class="hamburger-button">
+            <font-awesome-icon icon="bars" />
+          </button>
+          <!-- Mobile navigation dropdown -->
+          <div class="mobile-nav" v-if="mobileMenuOpen">
+            <router-link to="/about" class="nav-link">About</router-link>
+            <router-link to="/privacy-policy" class="nav-link">Privacy</router-link>
+            <router-link to="/profile" class="profile-link">Profile</router-link>
+            <button 
+              class="dev-link-mobile"
+              :class="{ 'active': experimentalFeatures }"
+              @click="toggleExperimentalFeatures"
+            >
+              <font-awesome-icon icon="flask" />
+              <span>Experimental Features: {{ experimentalFeatures ? 'ON' : 'OFF' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -37,6 +59,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useUserSettings } from '@/services/userSettings'
+import { ref } from 'vue'
 
 // Component props
 const props = defineProps({
@@ -55,6 +78,14 @@ const router = useRouter()
 
 // Get experimental features state and toggle function
 const { experimentalFeatures, toggleExperimentalFeatures } = useUserSettings()
+
+// Mobile menu state
+const mobileMenuOpen = ref(false)
+
+// Toggle mobile menu
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
 
 // Navigate to home page
 const navigateHome = () => {
@@ -194,11 +225,87 @@ nav {
   background-color: var(--accent-hover);
 }
 
+/* Mobile menu styles */
+.mobile-menu {
+  display: none;
+  position: relative;
+}
+
+.hamburger-button {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-nav {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--header-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  z-index: 10;
+  padding: 0.5rem 0;
+}
+
+.mobile-nav .nav-link,
+.mobile-nav .profile-link {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-nav .nav-link:last-child,
+.mobile-nav .profile-link:last-child {
+  border-bottom: none;
+}
+
+.dev-link-mobile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dev-link-mobile.active {
+  color: #2ecc71;
+}
+
+.dev-link-mobile:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
 /* Generic clickable element styles */
 .clickable {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .desktop-nav {
+    display: none;
+  }
+  
+  .mobile-menu {
+    display: block;
+  }
 }
 
 /* Desktop styles for larger screens */
@@ -214,6 +321,10 @@ nav {
   
   .app-title {
     font-size: 1.8rem;
+  }
+  
+  .mobile-menu {
+    display: none;
   }
 }
 </style> 
