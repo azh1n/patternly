@@ -568,6 +568,9 @@ defineExpose({
     width: 34px;
     height: 34px;
     font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .stitch-wrapper {
@@ -598,17 +601,23 @@ defineExpose({
   .text-stitches :deep(.stitch-navigation) {
     padding: 0.5rem 0.25rem;
     gap: 0.5rem;
+    display: flex;
+    align-items: center;
   }
   
   .text-stitches :deep(.stitch-content) {
     min-width: 0;
     padding: 0;
+    transform: translateY(10px); /* Adjusted for better vertical alignment */
   }
   
   .text-stitches :deep(.nav-button) {
     padding: 0.8rem 0;
     min-width: 35px;
     height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .text-stitches :deep(.prev-arrow)::before,
@@ -616,12 +625,6 @@ defineExpose({
   .text-stitches :deep(.prev-arrow)::after,
   .text-stitches :deep(.next-arrow)::after {
     display: none;
-  }
-  
-  .text-stitches :deep(.prev-arrow),
-  .text-stitches :deep(.next-arrow) {
-    font-size: 0;
-    line-height: 0;
   }
   
   .text-stitches :deep(.prev-arrow)::after {
@@ -636,6 +639,12 @@ defineExpose({
     font-size: 1.8rem;
     font-weight: bold;
     display: inline-block;
+  }
+  
+  .text-stitches :deep(.prev-arrow),
+  .text-stitches :deep(.next-arrow) {
+    font-size: 0;
+    line-height: 0;
   }
   
   .text-stitches :deep(.full-row-preview) {
