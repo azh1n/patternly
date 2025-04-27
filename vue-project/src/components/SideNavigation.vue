@@ -19,45 +19,45 @@
       
       <!-- Navigation links -->
       <nav class="nav-links">
-        <router-link to="/" class="nav-item" exact-active-class="active">
+        <a href="/" class="nav-item" @click.prevent="navigateTo('/')">
           <font-awesome-icon icon="home" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Dashboard</span>
-        </router-link>
+        </a>
         
-        <router-link to="/patterns" class="nav-item" active-class="active">
+        <a href="/patterns" class="nav-item" @click.prevent="navigateTo('/patterns')">
           <font-awesome-icon icon="folder" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Saved Patterns</span>
-        </router-link>
+        </a>
         
-        <router-link to="/builder" class="nav-item" active-class="active">
+        <a href="/builder" class="nav-item" @click.prevent="navigateTo('/builder')">
           <font-awesome-icon icon="pencil-ruler" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Pattern Builder</span>
-        </router-link>
+        </a>
         
-        <router-link to="/marketplace" class="nav-item" active-class="active">
+        <a href="/marketplace" class="nav-item" @click.prevent="navigateTo('/marketplace')">
           <font-awesome-icon icon="store" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Marketplace</span>
-        </router-link>
+        </a>
         
-        <router-link v-if="experimentalFeatures" to="/tools" class="nav-item" active-class="active">
+        <a v-if="experimentalFeatures" href="/tools" class="nav-item" @click.prevent="navigateTo('/tools')">
           <font-awesome-icon icon="tools" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Tools</span>
-        </router-link>
+        </a>
       </nav>
       
       <!-- Bottom section for user-related items -->
       <div class="sidebar-footer">
         <div class="nav-divider" v-if="isExpanded"></div>
         
-        <router-link to="/profile" class="nav-item" active-class="active">
+        <a href="/profile" class="nav-item" @click.prevent="navigateTo('/profile')">
           <font-awesome-icon icon="user" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Profile</span>
-        </router-link>
+        </a>
         
-        <router-link to="/about" class="nav-item" active-class="active">
+        <a href="/about" class="nav-item" @click.prevent="navigateTo('/about')">
           <font-awesome-icon icon="info-circle" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">About</span>
-        </router-link>
+        </a>
         
         <div class="experimental-toggle" v-if="isExpanded">
           <label class="toggle-label">
@@ -78,7 +78,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserSettings } from '@/services/userSettings'
 
 const props = defineProps({
@@ -91,6 +91,7 @@ const props = defineProps({
 const emit = defineEmits(['update:expanded'])
 
 const router = useRouter()
+const route = useRoute()
 const { experimentalFeatures, toggleExperimentalFeatures } = useUserSettings()
 const isExpanded = ref(props.defaultExpanded)
 
@@ -122,6 +123,24 @@ watch(router.currentRoute, () => {
   }
 })
 
+// Navigate to a specific route and scroll to top
+const navigateTo = (path) => {
+  // Only navigate if not already on the path
+  if (route.path !== path) {
+    router.push(path).then(() => {
+      window.scrollTo(0, 0)
+    })
+  } else {
+    window.scrollTo(0, 0)
+  }
+  
+  // Close sidebar on mobile
+  if (window.innerWidth < 768) {
+    isExpanded.value = false
+    emit('update:expanded', isExpanded.value)
+  }
+}
+
 // Toggle sidebar expanded state
 const toggleNavigation = () => {
   isExpanded.value = !isExpanded.value
@@ -130,11 +149,7 @@ const toggleNavigation = () => {
 
 // Navigate home
 const navigateToHome = () => {
-  router.push('/')
-  if (window.innerWidth < 768) {
-    isExpanded.value = false
-    emit('update:expanded', isExpanded.value)
-  }
+  navigateTo('/')
 }
 </script>
 
