@@ -117,7 +117,6 @@
           <font-awesome-icon icon="arrow-left" />
         </button>
         <div class="row-selector">
-          <span class="row-label desktop-only">Row</span>
           <select 
             v-model="currentRowIndex" 
             class="row-select"
@@ -127,7 +126,7 @@
               :key="index" 
               :value="index"
             >
-              {{ row.rowNum }} ({{ row.color }})
+              Row {{ row.rowNum }} ({{ row.color }})
             </option>
           </select>
           <span class="row-counter desktop-only">of {{ parsedRows.length }}</span>
@@ -1333,8 +1332,11 @@ defineExpose({
 }
 
 .nav-button.large {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
+  flex: 0 0 auto;
+  min-width: 80px;
+  max-width: none;
+  font-size: 0.9rem;
+  padding: 0.6rem 0.8rem;
 }
 
 /* Stitch content styles */
@@ -1529,7 +1531,7 @@ defineExpose({
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 200px;
+  min-width: 250px; /* Increased from 200px */
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -1556,291 +1558,9 @@ defineExpose({
   background-color: var(--hover-bg);
 }
 
-.experimental-features {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-.experimental-features h3 {
-  color: var(--accent-color);
-  margin-top: 0;
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-}
-
-.feature-section {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.toggle-container {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.active-toggle {
-  background-color: var(--accent-color) !important;
-  color: white !important;
-  border-color: var(--accent-color) !important;
-  box-shadow: 0 2px 6px rgba(66, 184, 131, 0.3);
-}
-
-.feature-button {
-  padding: 0.6rem 1.2rem;
-  background-color: var(--button-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--button-border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.feature-button:hover {
-  background-color: var(--hover-bg);
-  border-color: var(--accent-color);
-}
-
-.raw-pattern {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: var(--code-bg);
-  border-radius: 8px;
-  overflow-x: auto;
-}
-
-.raw-pattern pre {
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: monospace;
-  font-size: 0.9rem;
-  color: var(--code-text);
-}
-
-.raw-pattern h4 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  color: var(--text-secondary);
-  font-size: 1rem;
-}
-
-.completed-stitch {
-  color: var(--accent-color) !important;
-}
-
-.repeat-pattern {
-  background: rgba(76, 175, 80, 0.08);
-  border: 1px solid var(--accent-color);
-  border-radius: 4px;
-  padding: 0.2rem 0.4rem;
-  color: var(--accent-color);
-}
-
-.preview-stitch.repeat-pattern {
-  padding: 0.25rem 0.5rem;
-}
-
-.current-stitches .repeat-pattern {
-  color: var(--accent-color);
-}
-
-/* Light theme overrides for repeat patterns */
-:root.light .repeat-pattern {
-  background: rgba(41, 121, 255, 0.15) !important;
-  border: 1px solid #2979ff !important;
-  color: #333 !important;
-}
-
-:root.light .current-stitches .repeat-pattern {
-  color: #2979ff !important;
-}
-
-/* Dark theme text overrides for stitch colors to ensure visibility */
-:root:not(.light) .stitch-sc,
-:root:not(.light) .stitch-dc,
-:root:not(.light) .stitch-hdc,
-:root:not(.light) .stitch-tr,
-:root:not(.light) .stitch-dtr,
-:root:not(.light) .stitch-ch,
-:root:not(.light) .stitch-sl,
-:root:not(.light) .stitch-inc,
-:root:not(.light) .stitch-dec,
-:root:not(.light) .stitch-bs,
-:root:not(.light) .stitch-ns {
-  text-shadow: 0px 1px 1px rgba(0,0,0,0.2);
-}
-
-/* Add style for completed row stitches */
-.row-completed .preview-stitch {
-  background-color: #b6b6b6 !important;
-  color: #fff !important;
-  border-color: #8e8e8e !important;
-  position: relative;
-}
-
-.row-completed .preview-stitch::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.2rem;
-  color: #ffffff;
-  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.current-stitch {
-  border: 3px solid var(--accent-color, #42b883);
-  position: relative;
-  background-color: rgba(76, 175, 80, 0.15);
-  font-weight: bold;
-  border-radius: 8px !important;
-  box-shadow: 0 0 10px rgba(66, 184, 131, 0.5);
-  outline: 2px solid rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.chart-view-container {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 15px;
-  margin-bottom: 20px;
-  margin-top: 1rem;
-}
-
-.chart-view-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background-color: #fff8f8;
-  border: 1px solid #ffcdd2;
-  border-radius: 4px;
-  color: #d32f2f;
-}
-
-.chart-view-error p {
-  margin-bottom: 1rem;
-  font-weight: 500;
-}
-
-.chart-view-error .retry-button {
-  padding: 0.5rem 1rem;
-  background-color: #f44336;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.chart-view-error .retry-button:hover {
-  background-color: #d32f2f;
-}
-
-.toggle-container {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.active-toggle {
-  background-color: var(--accent-color) !important;
-  color: white !important;
-  border-color: var(--accent-color) !important;
-  box-shadow: 0 2px 6px rgba(66, 184, 131, 0.3);
-}
-
-/* Style for visualization components */
-.visualization-component {
-  width: 100%;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  background-color: transparent;
-  border-radius: 0;
-  padding: 0;
-  border: none;
-  overflow: visible;
-}
-
-.visualization-component :deep(.stitch-visualization) {
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-.symbols-visualization {
-  min-height: 200px;
-  margin-bottom: 1rem;
-  overflow-y: auto;
-  position: relative;
-}
-
-.symbols-visualization :deep(.stitch-symbol img) {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.symbols-visualization :deep(.stitch-wrapper) {
-  margin: 0.25rem;
-}
-
-.text-visualization {
-  min-height: 200px;
-  margin-bottom: 1rem;
-  width: 100%;
-}
-
-.text-visualization :deep(.stitch-wrapper) {
-  margin: 0.25rem;
-}
-
-@media (max-width: 767px) {
-  .symbols-visualization {
-    min-height: 150px;
-  }
-}
-
-/* Add the stitch-grid styling */
-.stitch-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-  width: 100%;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  justify-items: center;
-}
-
-.stitch-grid span {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  min-width: 65px;
-  min-height: 65px;
-  position: relative;
+.nav-button.large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
 }
 
 /* Mobile styles */
@@ -1973,37 +1693,66 @@ defineExpose({
   .row-navigation {
     padding: 0.75rem;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    align-items: center;
   }
 
   .row-selector {
-    order: -1;
-    width: 100%;
-    margin-bottom: 0.5rem;
+    order: 0;
+    width: auto;
+    margin-bottom: 0;
     max-width: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
   }
-
+  
+  /* Show Row label on mobile by overriding desktop-only */
+  .row-label.desktop-only {
+    display: inline-block !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-right: 0.25rem;
+  }
+  
+  /* Hide row counter on mobile */
+  .row-counter.desktop-only {
+    display: none !important;
+  }
+  
   .row-select {
     min-width: 0;
     flex: 1;
     padding: 0.5rem;
     font-size: 0.9rem;
+    border: 1px solid var(--button-border);
+    border-radius: 8px;
+    background-color: var(--button-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
     background-position: right 0.5rem center;
-    padding-right: 1.8rem;
     background-size: 1rem;
+    padding-right: 1.8rem;
   }
   
-  /* Keep dark mode arrow on mobile */
+  /* Dark mode arrow on mobile */
   :root:not(.light) .row-select {
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   }
 
   .nav-button.large {
-    flex: 1;
-    max-width: 45%;
+    flex: 0 0 auto;
+    min-width: 80px;
+    max-width: none;
     font-size: 0.9rem;
-    padding: 0.6rem 0.5rem;
+    padding: 0.6rem 0.8rem;
   }
 }
 </style> 
