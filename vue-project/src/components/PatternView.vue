@@ -1925,7 +1925,7 @@ defineExpose({
   }
 
   .pattern-card {
-    padding: 1rem;
+    padding: 1rem 0;
   }
 
   .stitch-navigation {

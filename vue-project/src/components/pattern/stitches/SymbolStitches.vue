@@ -734,8 +734,29 @@ defineExpose({
   }
   
   .symbol-stitches :deep(.nav-button) {
-    padding: 0.4rem 0.6rem;
-    min-width: 0;
+    padding: 0.8rem 0.7rem;
+    min-width: 40px;
+    height: 50px;
+  }
+  
+  .symbol-stitches :deep(.prev-arrow),
+  .symbol-stitches :deep(.next-arrow) {
+    font-size: 0;
+    line-height: 0;
+  }
+  
+  .symbol-stitches :deep(.prev-arrow)::after {
+    content: "‹";
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: inline-block;
+  }
+  
+  .symbol-stitches :deep(.next-arrow)::after {
+    content: "›";
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: inline-block;
   }
   
   .symbol-stitches :deep(.full-row-preview) {
@@ -763,6 +784,46 @@ defineExpose({
   .key-label {
     font-size: 0.7rem;
     min-width: 0;
+  }
+  .symbol-stitches :deep(.full-row-preview) {
+    margin-top: 0.25rem;
+    padding-top: 0.75rem;
+  }
+}
+
+/* Mobile arrow styling */
+.symbol-stitches :deep(.prev-arrow)::before,
+.symbol-stitches :deep(.next-arrow)::before,
+.symbol-stitches :deep(.prev-arrow)::after,
+.symbol-stitches :deep(.next-arrow)::after {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .symbol-stitches :deep(.nav-button) {
+    padding: 0.8rem 0.7rem;
+    min-width: 40px;
+    height: 50px;
+  }
+  
+  .symbol-stitches :deep(.prev-arrow),
+  .symbol-stitches :deep(.next-arrow) {
+    font-size: 0;
+    line-height: 0;
+  }
+  
+  .symbol-stitches :deep(.prev-arrow)::after {
+    content: "‹";
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: inline-block;
+  }
+  
+  .symbol-stitches :deep(.next-arrow)::after {
+    content: "›";
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: inline-block;
   }
 }
 </style> 

@@ -606,8 +606,36 @@ defineExpose({
   }
   
   .text-stitches :deep(.nav-button) {
-    padding: 0.4rem 0.6rem;
-    min-width: 0;
+    padding: 0.8rem 0;
+    min-width: 35px;
+    height: 50px;
+  }
+  
+  .text-stitches :deep(.prev-arrow)::before,
+  .text-stitches :deep(.next-arrow)::before,
+  .text-stitches :deep(.prev-arrow)::after,
+  .text-stitches :deep(.next-arrow)::after {
+    display: none;
+  }
+  
+  .text-stitches :deep(.prev-arrow),
+  .text-stitches :deep(.next-arrow) {
+    font-size: 0;
+    line-height: 0;
+  }
+  
+  .text-stitches :deep(.prev-arrow)::after {
+    content: "‹";
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: inline-block;
+  }
+  
+  .text-stitches :deep(.next-arrow)::after {
+    content: "›";
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: inline-block;
   }
   
   .text-stitches :deep(.full-row-preview) {

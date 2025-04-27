@@ -27,7 +27,7 @@
         class="nav-button"
         :disabled="currentStitchIndex === 0"
       >
-        <span>←</span>
+        <span class="arrow-icon prev-arrow">←</span>
       </button>
       
       <!-- Current stitches display -->
@@ -47,7 +47,7 @@
         class="nav-button"
         :disabled="currentStitchIndex + stitchesPerView >= totalStitches"
       >
-        <span>→</span>
+        <span class="arrow-icon next-arrow">→</span>
       </button>
     </div>
 
@@ -334,6 +334,22 @@ defineExpose({
 
   .preview-content {
     padding: 0.75rem;
+  }
+  
+  /* Improving touch targets for mobile */
+  .nav-button {
+    margin: 0 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .arrow-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
   }
 }
 </style> 
