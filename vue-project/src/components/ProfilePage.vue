@@ -16,9 +16,22 @@
     
       <!-- Profile content wrapper -->
       <div class="profile-content">
+        <!-- Desktop header with welcome message and customization -->
         <div class="profile-header">
-          <h1>Your Profile</h1>
-          <p>Manage your account and preferences</p>
+          <div class="header-content">
+            <div>
+              <h1>Your Profile</h1>
+              <p>Manage your account and preferences</p>
+            </div>
+            <div class="desktop-user-greeting">
+              <div class="quick-actions">
+                <button class="secondary-button" @click="handleLogout">
+                  <font-awesome-icon icon="sign-out-alt" />
+                  Log Out
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="profile-grid">
@@ -676,6 +689,34 @@ async function deleteAccount() {
   text-align: center;
 }
 
+.header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.desktop-user-greeting {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .header-content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .desktop-user-greeting {
+    display: flex;
+    align-items: center;
+  }
+  
+  .quick-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+}
+
 .profile-header h1 {
   font-size: 2rem;
   margin-bottom: 0.5rem;
@@ -687,12 +728,57 @@ async function deleteAccount() {
   font-size: 1.1rem;
 }
 
-/* Profile grid layout */
+/* Profile grid layout - default is mobile first */
 .profile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.5rem;
   margin-bottom: 2rem;
+}
+
+/* Desktop layout - responsive design */
+@media (min-width: 768px) {
+  .profile-header {
+    text-align: left;
+    padding-left: 1rem;
+  }
+  
+  .profile-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .profile-card:first-child {
+    grid-column: 1;
+    grid-row: span 2;
+  }
+}
+
+/* Large desktop layout */
+@media (min-width: 1024px) {
+  .profile-content {
+    padding: 2.5rem;
+  }
+  
+  .profile-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .profile-card:first-child {
+    grid-column: 1;
+    grid-row: span 2;
+  }
+  
+  .profile-card:nth-child(2) {
+    grid-column: 2;
+  }
+  
+  .profile-card:nth-child(3) {
+    grid-column: 3;
+  }
+  
+  .profile-card:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
 }
 
 /* Profile cards */
@@ -703,6 +789,8 @@ async function deleteAccount() {
   overflow: hidden;
   border: 1px solid var(--border-color);
   transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 
 .profile-card:hover {
@@ -729,6 +817,84 @@ async function deleteAccount() {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
+}
+
+/* Specific card heights for desktop */
+@media (min-width: 768px) {
+  .profile-form, .preferences-list, .account-actions {
+    flex: 1;
+  }
+  
+  .account-actions-card {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .account-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  /* Enhanced desktop styles for cards */
+  .card-header {
+    padding: 1.5rem;
+  }
+  
+  .card-icon {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+  }
+  
+  .card-header h2 {
+    font-size: 1.35rem;
+  }
+  
+  .profile-form {
+    padding: 2rem;
+  }
+  
+  .preferences-list {
+    padding: 2rem;
+  }
+  
+  .account-actions {
+    padding: 2rem;
+  }
+  
+  /* Improved avatar for desktop */
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Better spacing for form elements */
+  .form-group {
+    margin-bottom: 2rem;
+  }
+  
+  /* Improved action buttons for desktop */
+  .action-button {
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+  
+  .action-icon {
+    font-size: 1.5rem;
+    width: 32px;
+  }
+  
+  .action-details h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.35rem;
+  }
+  
+  .action-details p {
+    font-size: 0.9rem;
+  }
 }
 
 /* Loading spinner */
@@ -1297,7 +1463,6 @@ async function deleteAccount() {
   .status-message {
     left: 1.5rem;
     right: 1.5rem;
-    max-width: none;
   }
 }
 </style> 
