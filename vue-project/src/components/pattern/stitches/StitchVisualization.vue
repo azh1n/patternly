@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue';
 
 const props = defineProps({
   totalStitches: {
@@ -84,6 +84,8 @@ const emits = defineEmits(['update:currentStitchIndex', 'update:stitchesPerView'
 // Navigation state
 const currentStitchIndex = ref(0);
 const stitchesPerView = ref(props.initialStitchesPerView);
+const lastZoomTime = ref(0);
+const isZooming = ref(false);
 
 // Stitch progress indicator
 const stitchProgress = computed(() => {
@@ -149,7 +151,7 @@ const updateScrollPosition = () => {
         
         container.scrollTo({
           left: Math.max(0, scrollPosition),
-          behavior: 'smooth'
+          behavior: isZooming.value ? 'auto' : 'smooth'
         });
       }
     }, 100); // Increased delay to ensure DOM has updated
@@ -163,6 +165,29 @@ watch([currentStitchIndex, stitchesPerView], () => {
   nextTick(() => {
     updateScrollPosition();
   });
+});
+
+// Initialize ResizeObserver outside so we can access it in onUnmounted
+let resizeObserver;
+
+onMounted(() => {
+  // Add a resize observer to detect zoom events
+  resizeObserver = new ResizeObserver(entries => {
+    // When zooming on mobile, multiple resize events fire in quick succession
+    const now = Date.now();
+    isZooming.value = now - lastZoomTime.value < 500;
+    lastZoomTime.value = now;
+  });
+  
+  // Observe the document body for resize events (which occur during zooming)
+  resizeObserver.observe(document.body);
+});
+
+onUnmounted(() => {
+  // Clean up the observer when component is unmounted
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
 });
 
 // Expose methods and state to parent component

@@ -241,6 +241,8 @@ const isSwiping = ref(false)  // Touch swipe state
 const startX = ref(0)  // Touch start position
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
+const lastZoomTime = ref(0)  // Last zoom time for detecting zoom events
+const isZooming = ref(false)  // Flag to track zoom events
 const showRawPattern = ref(false)  // State for showing raw pattern
 const showChartView = ref(false)   // State for showing chart view
 const visualizationMode = ref('text')  // State for visualization mode
@@ -841,9 +843,26 @@ watch(totalRows, (newCount) => {
 
 // Set up window resize listener and touch events for mobile swipe
 onMounted(() => {
-  window.addEventListener('resize', () => {
-    windowWidth.value = window.innerWidth
-  })
+  // Store the initial current row index
+  const initialRowIndex = currentRowIndex.value;
+  
+  const handleResize = () => {
+    // Detect zoom by checking if multiple resize events fire in quick succession
+    const now = Date.now();
+    isZooming.value = now - lastZoomTime.value < 500;
+    lastZoomTime.value = now;
+    
+    // Update window width
+    windowWidth.value = window.innerWidth;
+    
+    // Only reset row index if NOT zooming
+    if (isZooming.value) {
+      // During zoom, we want to maintain the current position
+      console.log('Zoom detected, preserving row position');
+    }
+  };
+  
+  window.addEventListener('resize', handleResize);
   
   const patternCard = document.querySelector('.pattern-card')
   if (patternCard) {
@@ -860,7 +879,7 @@ onMounted(() => {
   
   // Clean up event listeners
   return () => {
-    window.removeEventListener('resize', () => {})
+    window.removeEventListener('resize', handleResize)
     if (patternCard) {
       patternCard.removeEventListener('touchstart', handleTouchStart)
       patternCard.removeEventListener('touchmove', handleTouchMove)
