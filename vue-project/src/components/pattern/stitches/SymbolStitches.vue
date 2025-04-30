@@ -339,12 +339,28 @@ const commonStitches = {
   'dc': { label: 'Double Crochet (dc)' },
   'tr': { label: 'Treble Crochet (tr)' },
   'dtr': { label: 'Double Treble Crochet (dtr)' },
-  'bs': { label: 'Border Stitch (bs)' },
-  'ns': { label: 'Negative Stitch (ns)' }
+  'inc': { label: 'Increase' },
+  'dec': { label: 'Decrease' },
+  'fpdc': { label: 'Front Post Double Crochet (fpdc)' }
+  // Removed bs and ns as they don't have SVG files
 };
 
 // Setup observer for theme changes
 onMounted(() => {
+  // Define the observer
+  const observer = new MutationObserver(() => {
+    // Apply dynamic theme changes to stitch key tooltip
+    const tooltip = document.querySelector('.stitch-key-tooltip-container');
+    if (tooltip) {
+      if (isDarkMode.value) {
+        tooltip.classList.add('dark-theme');
+        tooltip.classList.remove('light-theme');
+      } else {
+        tooltip.classList.add('light-theme');
+        tooltip.classList.remove('dark-theme');
+      }
+    }
+  });
   
   // Observe document root for style changes
   observer.observe(document.documentElement, { 
@@ -358,7 +374,7 @@ onMounted(() => {
     // This is needed because some stitch symbols might be defined in the mapping but don't have SVG files
     const originalHasStitchSymbol = hasStitchSymbol;
     
-    // Create a set of available SVG files
+    // Create a set of available SVGs
     const availableSvgs = new Set([
       'chain.svg', 
       'slip-stitch.svg', 
@@ -373,9 +389,8 @@ onMounted(() => {
       'sc-dec.svg',
       'hdc-dec.svg',
       'dc-dec.svg',
-      'front-post-dc.svg',
-      'bs.svg',
-      'ns.svg'
+      'front-post-dc.svg'
+      // 'border-stitch.svg' and 'negative-stitch.svg' don't exist in the assets folder
     ]);
     
     // Override the original function temporarily for this component

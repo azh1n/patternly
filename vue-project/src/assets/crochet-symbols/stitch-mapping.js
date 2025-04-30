@@ -35,8 +35,9 @@ export const stitchSymbolMapping = {
   'fpdc': 'front-post-dc.svg',
   
   // Stitch codes specific to patterns
-  'ns': 'negative-stitch.svg',
-  'bs': 'border-stitch.svg'
+  // These SVG files don't exist yet - remove the mappings to prevent errors
+  // 'ns': 'negative-stitch.svg',
+  // 'bs': 'border-stitch.svg'
 };
 
 /**
