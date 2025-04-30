@@ -674,6 +674,8 @@ const calculateTotalStitches = (codes) => {
       const match = code.match(/^(\d+)/);
       return total + (match ? parseInt(match[1], 10) : 1);
     }
+    
+    return total;
   }, 0);
 };
 
@@ -1636,12 +1638,20 @@ defineExpose({
   font-size: 0.75rem;
 }
 
+/* Style for repeat patterns */
 .preview-stitch.repeat-pattern {
   grid-column: span 2; /* Make repeat patterns take 2 cells */
   width: auto;
   font-size: 0.8rem;
   white-space: normal;
   line-height: 1.2;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px dashed var(--border-color);
+}
+
+/* Lighter background for repeat patterns in dark mode */
+:root:not(.light) .preview-stitch.repeat-pattern {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 /* Current stitch */

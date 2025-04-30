@@ -14,21 +14,34 @@
           <div v-for="(stitch, i) in currentStitchesView" 
             :key="`focused-stitch-${i}`" 
             class="stitch-wrapper"
+            :class="{ 'repeat-pattern-large': isRepeatPattern(stitch) }"
           >
             <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
-              <template v-if="checkSymbolExists(stitch)">
-                <img 
-                  :src="getSymbolPath(stitch)" 
-                  :alt="stitch" 
-                  class="stitch-svg"
-                />
+              <template v-if="isRepeatPattern(stitch)">
+                <div class="repeat-pattern-content">
+                  <div class="repeat-left-paren">(</div>
+                  <div class="repeat-inner">
+                    {{ formatRepeatPattern(stitch) }}
+                  </div>
+                  <div class="repeat-right-paren">)</div>
+                  <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                </div>
               </template>
               <template v-else>
-                {{ getStitchType(stitch) }}
+                <template v-if="checkSymbolExists(stitch)">
+                  <img 
+                    :src="getSymbolPath(stitch)" 
+                    :alt="stitch" 
+                    class="stitch-svg"
+                  />
+                </template>
+                <template v-else>
+                  {{ getStitchType(stitch) }}
+                </template>
+                <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge smaller-badge">
+                  {{ getStitchCount(stitch) }}
+                </div>
               </template>
-              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge smaller-badge">
-                {{ getStitchCount(stitch) }}
-              </div>
             </div>
           </div>
         </template>
@@ -44,23 +57,36 @@
             :class="{ 
               'preview-stitch': true,
               'current-stitch': i >= currentStitchIndex && i < currentStitchIndex + stitchesPerView,
-              'completed-stitch': i < currentStitchIndex 
+              'completed-stitch': i < currentStitchIndex,
+              'repeat-pattern': isRepeatPattern(stitch)
             }"
           >
             <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
-              <template v-if="checkSymbolExists(stitch)">
-                <img 
-                  :src="getSymbolPath(stitch)" 
-                  :alt="stitch" 
-                  class="stitch-svg"
-                />
+              <template v-if="isRepeatPattern(stitch)">
+                <div class="repeat-pattern-content">
+                  <div class="repeat-left-paren">(</div>
+                  <div class="repeat-inner">
+                    {{ formatRepeatPattern(stitch) }}
+                  </div>
+                  <div class="repeat-right-paren">)</div>
+                  <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                </div>
               </template>
               <template v-else>
-                {{ getStitchType(stitch) }}
+                <template v-if="checkSymbolExists(stitch)">
+                  <img 
+                    :src="getSymbolPath(stitch)" 
+                    :alt="stitch" 
+                    class="stitch-svg"
+                  />
+                </template>
+                <template v-else>
+                  {{ getStitchType(stitch) }}
+                </template>
+                <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
+                  {{ getStitchCount(stitch) }}
+                </div>
               </template>
-              <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
-                {{ getStitchCount(stitch) }}
-              </div>
             </div>
           </div>
         </template>
@@ -267,17 +293,46 @@ function processRowStitches(codes, expandRepeated) {
     codes.forEach(stitch => {
       if (!stitch) return;
       
-      const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-      if (match) {
-        const count = parseInt(match[1]);
-        const type = match[2];
-        
-        for (let i = 0; i < count; i++) {
-          expandedStitches.push(type);
+      // Handle repeat patterns like "(1sc, 1inc) x6"
+      if (typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')) {
+        const repeatMatch = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          const repeatedContent = repeatMatch[1];
+          const repeatCount = parseInt(repeatMatch[2], 10);
+          
+          // Split the repeated content by commas
+          const stitches = repeatedContent.split(',').map(s => s.trim());
+          
+          // Repeat the pattern
+          for (let i = 0; i < repeatCount; i++) {
+            stitches.forEach(s => {
+              const match = s.match(/^(\d+)([a-zA-Z]+)/);
+              if (match) {
+                const count = parseInt(match[1]);
+                const type = match[2];
+                
+                for (let j = 0; j < count; j++) {
+                  expandedStitches.push(type);
+                }
+              } else {
+                expandedStitches.push(s);
+              }
+            });
+          }
         }
       } else {
-        // If no match (no number prefix), just add the stitch as is
-        expandedStitches.push(stitch);
+        const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
+        if (match) {
+          const count = parseInt(match[1]);
+          const type = match[2];
+          
+          for (let i = 0; i < count; i++) {
+            expandedStitches.push(type);
+          }
+        } else {
+          // If no match (no number prefix), just add the stitch as is
+          expandedStitches.push(stitch);
+        }
       }
     });
     
@@ -328,6 +383,27 @@ function getStitchType(stitch) {
     return match[2];
   }
   return stitch;
+}
+
+// Check if a stitch is a repeat pattern
+function isRepeatPattern(stitch) {
+  return typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x');
+}
+
+// Format the repeat pattern content - extract just the part inside parentheses
+function formatRepeatPattern(stitch) {
+  if (!isRepeatPattern(stitch)) return stitch;
+  
+  const match = stitch.match(/\(([^)]+)\)/);
+  return match ? match[1] : stitch;
+}
+
+// Get the multiplier (the "x2" part) from a repeat pattern
+function getRepeatMultiplier(stitch) {
+  if (!isRepeatPattern(stitch)) return '';
+  
+  const match = stitch.match(/x(\d+)/);
+  return match ? `x${match[1]}` : '';
 }
 
 // Common stitches for the key
@@ -550,9 +626,101 @@ defineExpose({
 }
 
 .no-stitches {
+  text-align: center;
   font-style: italic;
   color: var(--text-secondary, #aaa);
   padding: 0.5rem;
+}
+
+/* Repeat pattern styling */
+.stitch-wrapper.repeat-pattern {
+  width: auto;
+  min-width: 100px;
+}
+
+.stitch-wrapper.repeat-pattern .stitch-symbol {
+  width: auto;
+  min-width: 100px;
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  white-space: normal;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px dashed var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Styling for repeat pattern components */
+.repeat-pattern-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.repeat-left-paren, .repeat-right-paren {
+  font-size: 1.1rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.repeat-inner {
+  padding: 0 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.repeat-multiplier {
+  font-weight: bold;
+  color: var(--accent-color);
+  margin-left: 0.25rem;
+}
+
+/* Light theme overrides for repeat patterns */
+:root.light .stitch-wrapper.repeat-pattern .stitch-symbol {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+:root.light .repeat-multiplier {
+  color: #4CAF50;
+}
+
+/* Dark theme overrides for repeat patterns */
+:root:not(.light) .stitch-wrapper.repeat-pattern .stitch-symbol {
+  background-color: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+:root:not(.light) .repeat-multiplier {
+  color: #4CAF50;
+}
+
+/* Large repeat pattern in current stitches */
+.stitch-wrapper.repeat-pattern-large .stitch-symbol {
+  width: auto;
+  min-width: 150px;
+  padding: 0.5rem;
+  background-color: rgba(76, 175, 80, 0.15);
+  border: 1px dashed rgba(76, 175, 80, 0.3);
+  transform: scale(1.1);
+  margin: 0.5rem;
+}
+
+.stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
+  font-size: 1.1rem;
+}
+
+.stitch-wrapper.repeat-pattern-large .repeat-left-paren,
+.stitch-wrapper.repeat-pattern-large .repeat-right-paren {
+  font-size: 1.3rem;
+}
+
+.stitch-wrapper.repeat-pattern-large .repeat-multiplier {
+  font-size: 1.1rem;
+  margin-left: 0.4rem;
 }
 
 /* Stitch key tooltip */
