@@ -25,6 +25,16 @@
         
         <!-- Tools section -->
         <div class="tools-grid">
+          <div class="tool-card" @click="activeToolView = 'firebase-test'">
+            <div class="tool-icon">
+              <font-awesome-icon icon="database" />
+            </div>
+            <div class="tool-content">
+              <h3>Firebase Connectivity Test</h3>
+              <p>Test database connection and saving</p>
+            </div>
+          </div>
+          
           <div class="tool-card disabled">
             <div class="tool-icon">
               <font-awesome-icon icon="file-export" />
@@ -74,6 +84,24 @@
           <font-awesome-icon icon="info-circle" />
           <p>The Tools section is part of our experimental features. We're constantly adding new functionality. Have suggestions? Let us know on our <a href="#" @click.prevent="navigateToAbout">feedback page</a>.</p>
         </div>
+        
+        <!-- Active Tool View -->
+        <div v-if="activeToolView" class="active-tool-view">
+          <div class="tool-header">
+            <button class="back-button" @click="activeToolView = null">
+              <font-awesome-icon icon="arrow-left" />
+              <span>Back to Tools</span>
+            </button>
+            <h2 class="tool-title">
+              {{ getToolTitle(activeToolView) }}
+            </h2>
+          </div>
+          
+          <!-- Firebase Test Tool -->
+          <div v-if="activeToolView === 'firebase-test'" class="tool-content-view">
+            <FirebaseTest />
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -83,9 +111,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SideNavigation from '@/components/SideNavigation.vue'
+import FirebaseTest from '@/components/FirebaseTest.vue'
 
 const router = useRouter()
 const sidebarExpanded = ref(window.innerWidth >= 768)
+const activeToolView = ref(null)
 
 const toggleSidebar = () => {
   sidebarExpanded.value = !sidebarExpanded.value
@@ -93,6 +123,16 @@ const toggleSidebar = () => {
 
 const navigateToAbout = () => {
   router.push('/about')
+}
+
+// Get the appropriate title for the active tool
+const getToolTitle = (toolId) => {
+  switch (toolId) {
+    case 'firebase-test':
+      return 'Firebase Connectivity Test'
+    default:
+      return 'Tool'
+  }
 }
 </script>
 
@@ -287,6 +327,49 @@ const navigateToAbout = () => {
 
 .info-box a:hover {
   text-decoration: underline;
+}
+
+/* Active Tool View */
+.active-tool-view {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1.5rem;
+}
+
+.tool-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.back-button:hover {
+  background-color: rgba(108, 92, 231, 0.1);
+}
+
+.tool-title {
+  margin: 0 0 0 1rem;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.tool-content-view {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
 }
 
 /* Responsive styles */

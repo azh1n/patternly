@@ -15,6 +15,9 @@
       <main class="main-content">
         <div v-if="!selectedPattern" class="home-view">
           
+          <!-- Add the Firebase Test component when no pattern is selected -->
+          <FirebaseTest class="firebase-test-wrapper" />
+          
           <PatternGrid
             :patterns="savedTexts"
             :is-loading="isLoading"
@@ -52,6 +55,7 @@ import PatternView from '@/views/PatternView.vue'
 import PatternGrid from '@/components/PatternGrid.vue'
 import AddPatternModal from '@/components/AddPatternModal.vue'
 import SideNavigation from '@/components/SideNavigation.vue'
+import FirebaseTest from '@/components/FirebaseTest.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -172,45 +176,87 @@ async function addPattern(patternData) {
   }
 }
 
+// Modified handlePatternAdded function with better error handling and validation
 const handlePatternAdded = async (newPattern) => {
-  if (!user.value?.uid) return
+  if (!user.value?.uid) {
+    console.error('User not authenticated');
+    return;
+  }
 
   try {
-    isLoading.value = true
-    const patternData = {
-      ...newPattern,
+    isLoading.value = true;
+    
+    // Validate the pattern data
+    if (!newPattern || !newPattern.name || !newPattern.content) {
+      console.error('Invalid pattern data', newPattern);
+      alert('Invalid pattern data. Please ensure pattern has a name and content.');
+      isLoading.value = false;
+      return;
+    }
+    
+    // Use the working addPattern function that's already tested
+    const patternId = await addPattern({
+      name: newPattern.name,
+      content: newPattern.content
+    });
+    
+    if (patternId) {
+      // Find the newly added pattern
+      const newlyAddedPattern = savedTexts.value.find(p => p.id === patternId);
+      
+      if (newlyAddedPattern) {
+        // Close modal and select the new pattern
+        showAddPattern.value = false;
+        selectPattern(newlyAddedPattern, savedTexts.value.indexOf(newlyAddedPattern));
+      } else {
+        // Refresh patterns if not found
+        await fetchPatterns();
+        showAddPattern.value = false;
+      }
+    } else {
+      console.error('Failed to save pattern');
+      alert('Failed to save pattern. Please try again.');
+    }
+  } catch (error) {
+    // Log detailed error information
+    console.error('Error adding pattern:', error);
+    alert(`Failed to save pattern: ${error.message || 'Unknown error'}`);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Add a direct test function to save a pattern to Firestore
+const testDirectSave = async () => {
+  try {
+    if (!user.value?.uid) {
+      console.error('User not authenticated');
+      return;
+    }
+    
+    const testPatternData = {
+      name: "Test Pattern " + new Date().toISOString(),
+      content: "Row: 1, Color: A, Stitches: 5sc, 2dc, 1sc",
       userId: user.value.uid,
       timestamp: new Date(),
       completedRows: {}
-    }
+    };
     
-    const patternsRef = collection(db, 'patterns')
-    const docRef = await addDoc(patternsRef, patternData)
-
-    // Verify the pattern was added by fetching it
-    const addedDoc = await getDoc(docRef)
+    const patternsRef = collection(db, 'patterns');
+    const docRef = await addDoc(patternsRef, testPatternData);
+    
+    // Verify by fetching
+    const addedDoc = await getDoc(docRef);
     if (addedDoc.exists()) {
-      // Update local state
-      const newPatternWithId = { 
-        id: docRef.id, 
-        ...patternData 
-      }
-      savedTexts.value = [newPatternWithId, ...savedTexts.value]
-      
-      showAddPattern.value = false
-      selectPattern(newPatternWithId, 0)
+      return true;
     } else {
-      console.error('Pattern was not saved successfully')
+      console.error('Test pattern not found after saving');
+      return false;
     }
   } catch (error) {
-    if (error.code === 'permission-denied') {
-      console.error('Permission denied. Check security rules.')
-    } else {
-      console.error('Error adding pattern:', error)
-    }
-    alert('Failed to add pattern. Please try again.')
-  } finally {
-    isLoading.value = false
+    console.error('Error in direct test save:', error);
+    console.error('Error details:', JSON.stringify(error));
+    return false;
   }
 }
 
@@ -281,6 +327,10 @@ watch(() => user.value?.uid, async (newUserId) => {
 
 .spacer {
   flex: 1;
+}
+
+.firebase-test-wrapper {
+  margin-bottom: 2rem;
 }
 
 .main-content {

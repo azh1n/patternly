@@ -443,7 +443,7 @@ const getPatternColor = (pattern) => {
 
 .recent-patterns-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Explicitly set to 4 columns for desktop */
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.5rem;
 }
 

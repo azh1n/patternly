@@ -66,14 +66,37 @@
           </div>
           <div v-else class="preview-stitches">
             <template v-for="(stitch, i) in row.stitches" :key="i">
-              <div 
-                class="preview-stitch" 
-                :class="getStitchClass(stitch)"
-                :title="stitch"
-              >
-                <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                <span class="stitch-type">{{ getStitchType(stitch) }}</span>
-              </div>
+              <!-- Check if this is a repeat pattern like "(1sc, 1inc) x6" -->
+              <template v-if="typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')">
+                <div class="repeat-group">
+                  <span class="repeat-bracket left-bracket">(</span>
+                  
+                  <!-- Extract and display the repeated stitches -->
+                  <template v-for="(repeatedStitch, j) in getRepeatedStitches(stitch)" :key="`nested-rep-${i}-${j}`">
+                    <div 
+                      class="preview-stitch" 
+                      :class="getStitchClass(repeatedStitch)"
+                      :title="repeatedStitch"
+                    >
+                      <span class="stitch-count">{{ getStitchCount(repeatedStitch) }}</span>
+                      <span class="stitch-type">{{ getStitchType(repeatedStitch) }}</span>
+                    </div>
+                  </template>
+                  
+                  <span class="repeat-bracket right-bracket">)</span>
+                  <span class="repeat-count">x{{ getRepeatCount(stitch) }}</span>
+                </div>
+              </template>
+              <template v-else>
+                <div 
+                  class="preview-stitch" 
+                  :class="getStitchClass(stitch)"
+                  :title="stitch"
+                >
+                  <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
+                  <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                </div>
+              </template>
             </template>
           </div>
         </div>
@@ -193,6 +216,34 @@ const getColorHex = (colorName) => {
   };
   
   return colorMap[colorName.toLowerCase()] || colorName;
+};
+
+// Helper function to check if a stitch is a repeat pattern
+const isRepeatPattern = (stitch) => {
+  return typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x');
+};
+
+// Helper function to get repeated stitches from a repeat pattern
+const getRepeatedStitches = (stitch) => {
+  if (!isRepeatPattern(stitch)) return [];
+  
+  // Extract the part inside parentheses
+  const match = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+  if (!match) return [];
+  
+  const repeatedContent = match[1];
+  // Split by commas to get individual stitches
+  return repeatedContent.split(',').map(s => s.trim());
+};
+
+// Helper function to get repeat count from a repeat pattern
+const getRepeatCount = (stitch) => {
+  if (!isRepeatPattern(stitch)) return 1;
+  
+  const match = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+  if (!match) return 1;
+  
+  return parseInt(match[2], 10);
 };
 </script>
 

@@ -205,7 +205,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/services/auth'
 import { 
   collection, query, where, orderBy, 
-  getDocs, doc, deleteDoc
+  getDocs, doc, deleteDoc, addDoc
 } from 'firebase/firestore'
 import { db } from '@/firebase'
 import SideNavigation from '@/components/SideNavigation.vue'
@@ -310,8 +310,30 @@ const viewPattern = (patternId) => {
 }
 
 // Handle pattern added event
-const handlePatternAdded = (newPattern) => {
-  fetchPatterns()
+const handlePatternAdded = async (newPattern) => {
+  try {
+    isLoading.value = true;
+    
+    // Ensure we have the complete pattern data
+    if (!newPattern || !newPattern.name || !newPattern.content) {
+      console.error('Missing required pattern data');
+      return;
+    }
+    
+    // Create a reference to the patterns collection
+    const patternsRef = collection(db, 'patterns');
+    
+    // Add the document to Firestore
+    const docRef = await addDoc(patternsRef, newPattern);
+    
+    // Refresh the patterns list
+    await fetchPatterns();
+  } catch (error) {
+    console.error('Error saving pattern in PatternListView:', error);
+    alert('Failed to save pattern. Please try again.');
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 // Toggle sidebar

@@ -321,69 +321,91 @@ const canSave = computed(() => {
 const formattedPatternForDB = computed(() => {
   if (!parsedRows.value.length) return '';
   
-  return parsedRows.value.map(row => {
-    const colorInfo = row.color ? row.color : '';
-    
-    // Handle stitches formatting, including repeats
-    let stitchesInfo = '';
-    
-    // Check if this is a repeated stitch pattern
-    if (row.stitches && row.stitches.repeated) {
-      // Format repeated section with parentheses and repeat count
-      const beforeRepeat = Array.isArray(row.stitches.beforeRepeat) ? row.stitches.beforeRepeat.join(', ') : '';
-      const repeatedPart = Array.isArray(row.stitches.repeatedStitches) ? row.stitches.repeatedStitches.join(', ') : '';
-      const afterRepeat = Array.isArray(row.stitches.afterRepeat) ? row.stitches.afterRepeat.join(', ') : '';
+  try {
+    const formattedRows = parsedRows.value.map(row => {
+      const colorInfo = row.color ? row.color : '';
       
-      // Get repeat count from the object
-      const repeatCount = row.stitches.repeatCount || '0';
+      // Handle stitches formatting, including repeats
+      let stitchesInfo = '';
       
-      // Build stitches parts array and filter out empty segments
-      const stitchesParts = [];
-      
-      if (beforeRepeat) {
-        stitchesParts.push(beforeRepeat);
-      }
-      
-      // Format the repeat part with consistent spacing
-      if (repeatedPart) {
-        stitchesParts.push(`(${repeatedPart}) x${repeatCount}`);
-      }
-      
-      if (afterRepeat) {
-        stitchesParts.push(afterRepeat);
-      }
-      
-      // Join the parts that have content with consistent spacing
-      stitchesInfo = stitchesParts.join(', ');
-    } else if (Array.isArray(row.stitches)) {
-      // Regular stitch array
-      stitchesInfo = row.stitches.join(', ');
-    } else if (typeof row.stitches === 'string') {
-      // Handle case where stitches might be a string
-      stitchesInfo = row.stitches;
-    } else {
-      // If we can't parse it, use the original row text after stripping row markers
-      const cleanedText = row.text.replace(/^(Round|Row)\s*\d+\s*:?\s*/i, '').trim();
-      // Check for repeat patterns in the raw text
-      const repeatMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
-      if (repeatMatch) {
-        // Preserve the repeat pattern as is
-        const beforeRepeatMatch = cleanedText.match(/^(.*?)\s*\(/);
-        const afterRepeatMatch = cleanedText.match(/x\d+\s*(.*?)$/);
+      // Check if this is a repeated stitch pattern
+      if (row.stitches && row.stitches.repeated) {
+        // Format repeated section with parentheses and repeat count
+        const beforeRepeat = Array.isArray(row.stitches.beforeRepeat) ? row.stitches.beforeRepeat.join(', ') : '';
+        const repeatedPart = Array.isArray(row.stitches.repeatedStitches) ? row.stitches.repeatedStitches.join(', ') : '';
+        const afterRepeat = Array.isArray(row.stitches.afterRepeat) ? row.stitches.afterRepeat.join(', ') : '';
         
-        const beforeRepeat = beforeRepeatMatch && beforeRepeatMatch[1].trim() ? beforeRepeatMatch[1].trim() + ', ' : '';
-        const repeatedPart = repeatMatch[1].trim();
-        const repeatCount = repeatMatch[2];
-        const afterRepeat = afterRepeatMatch && afterRepeatMatch[1].trim() ? ', ' + afterRepeatMatch[1].trim() : '';
+        // Get repeat count from the object
+        const repeatCount = row.stitches.repeatCount || '0';
         
-        stitchesInfo = `${beforeRepeat}(${repeatedPart}) x${repeatCount}${afterRepeat}`;
+        // Build stitches parts array and filter out empty segments
+        const stitchesParts = [];
+        
+        if (beforeRepeat) {
+          stitchesParts.push(beforeRepeat);
+        }
+        
+        // Format the repeat part with consistent spacing
+        if (repeatedPart) {
+          stitchesParts.push(`(${repeatedPart}) x${repeatCount}`);
+        }
+        
+        if (afterRepeat) {
+          stitchesParts.push(afterRepeat);
+        }
+        
+        // Join the parts that have content with consistent spacing
+        stitchesInfo = stitchesParts.join(', ');
+      } else if (Array.isArray(row.stitches)) {
+        // Process the array of stitches which might contain repeat patterns
+        const formattedStitches = row.stitches.map(stitch => {
+          // Check if this stitch is a repeat pattern
+          if (typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')) {
+            // It's already in the correct format, return it as-is
+            return stitch;
+          }
+          // Return normal stitch as-is
+          return stitch;
+        });
+        
+        // Join all stitches with commas
+        stitchesInfo = formattedStitches.join(', ');
+      } else if (typeof row.stitches === 'string') {
+        // Handle case where stitches might be a string
+        stitchesInfo = row.stitches;
       } else {
-        stitchesInfo = cleanedText;
+        // If we can't parse it, use the original row text after stripping row markers
+        const cleanedText = row.text ? row.text.replace(/^(Round|Row)\s*\d+\s*:?\s*/i, '').trim() : '';
+        // Check for repeat patterns in the raw text
+        const repeatMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
+        if (repeatMatch) {
+          // Preserve the repeat pattern as is
+          const beforeRepeatMatch = cleanedText.match(/^(.*?)\s*\(/);
+          const afterRepeatMatch = cleanedText.match(/x\d+\s*(.*?)$/);
+          
+          const beforeRepeat = beforeRepeatMatch && beforeRepeatMatch[1].trim() ? beforeRepeatMatch[1].trim() + ', ' : '';
+          const repeatedPart = repeatMatch[1].trim();
+          const repeatCount = repeatMatch[2];
+          const afterRepeat = afterRepeatMatch && afterRepeatMatch[1].trim() ? ', ' + afterRepeatMatch[1].trim() : '';
+          
+          stitchesInfo = `${beforeRepeat}(${repeatedPart}) x${repeatCount}${afterRepeat}`;
+        } else {
+          stitchesInfo = cleanedText;
+        }
       }
-    }
+      
+      // Remove any problematic characters like ellipses that might cause issues
+      stitchesInfo = stitchesInfo.replace(/…/g, '...');
+      
+      return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
+    }).join('\n');
     
-    return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
-  }).join(', ');
+    return formattedRows;
+  } catch (error) {
+    console.error('Error formatting pattern for DB:', error);
+    // Return a basic representation of the pattern if there's an error
+    return patternText.value;
+  }
 })
 
 // Common patterns for detection
@@ -914,54 +936,140 @@ const extractStitches = (text) => {
     // Remove any "With Color X" prefix
     cleanedText = cleanedText.replace(/With\s+Color\s+[A-Za-z]+,?\s*/i, '').trim();
     
-    // Check for repeat pattern like "(1sc, 1inc) x6" and preserve it
-    const repeatPatternMatch = cleanedText.match(/\(([^)]+)\)\s*x(\d+)/);
-    
-    if (repeatPatternMatch) {
-      // We have a pattern with repeats like "(1sc, 1inc) x6"
-      // We need to preserve this structure instead of flattening it
-      
-      // First, check if there's a stitch count at the end like "(18)"
-      const stitchCountMatch = cleanedText.match(/\(\d+\)$/);
-      if (stitchCountMatch) {
-        cleanedText = cleanedText.replace(/\s*\(\d+\)$/, '').trim();
-      }
-      
-      // Extract everything before the repeat
-      const beforeRepeatMatch = cleanedText.match(/^(.*?)\s*\(/);
-      const beforeRepeat = beforeRepeatMatch ? beforeRepeatMatch[1].trim() : '';
-      
-      // Extract everything after the repeat
-      const afterRepeatMatch = cleanedText.match(/x\d+\s*(.*?)$/);
-      const afterRepeat = afterRepeatMatch ? afterRepeatMatch[1].trim() : '';
-      
-      // Extract the repeated part
-      const repeatedContent = repeatPatternMatch[1].trim();
-      const repeatCount = repeatPatternMatch[2];
-      
-      // Parse the repeated content to extract individual stitches
-      const repeatedStitches = extractStitchesFromText(repeatedContent);
-      
-      // Parse before and after parts if they exist
-      const beforeStitches = beforeRepeat ? extractStitchesFromText(beforeRepeat) : [];
-      const afterStitches = afterRepeat ? extractStitchesFromText(afterRepeat) : [];
-      
-      // Return the structured result
-      return {
-        repeated: true,
-        beforeRepeat: beforeStitches,
-        repeatedStitches: repeatedStitches,
-        afterRepeat: afterStitches,
-        repeatCount: repeatCount
-      };
-    }
-    
-    // For patterns without repeats, extract stitches as before
-    return extractStitchesFromText(cleanedText);
+    // Parse the text to find all repeated patterns and regular stitches
+    return parseRepeatedPatterns(cleanedText);
   } catch (error) {
     console.error("Error extracting stitches:", error);
     return []; // Return empty array on error
   }
+}
+
+// Helper function to parse a pattern string that may contain multiple repeat patterns
+const parseRepeatedPatterns = (text) => {
+  // Remove stitch count at the end like "(18)"
+  text = text.replace(/\(\d+\)$/, '').trim();
+  
+  // Find all repeat pattern matches
+  const repeatRegex = /\(([^)]+)\)\s*x(\d+)/g;
+  let matches = [];
+  let match;
+  
+  while ((match = repeatRegex.exec(text)) !== null) {
+    matches.push({
+      fullMatch: match[0],
+      repeatedContent: match[1],
+      repeatCount: parseInt(match[2], 10),
+      startIndex: match.index,
+      endIndex: match.index + match[0].length
+    });
+  }
+  
+  // If no repeat patterns found, return regular stitches
+  if (matches.length === 0) {
+    return extractStitchesFromText(text);
+  }
+  
+  // If exactly one repeat pattern and it covers most of the content, use the simplified structure
+  if (matches.length === 1) {
+    const repeatMatch = matches[0];
+    
+    // Extract parts before and after the repeat
+    const beforeText = text.substring(0, repeatMatch.startIndex).trim();
+    const afterText = text.substring(repeatMatch.endIndex).trim();
+    
+    // Extract stitches from each part
+    const beforeStitches = beforeText ? extractStitchesFromText(beforeText) : [];
+    const repeatedStitches = extractStitchesFromText(repeatMatch.repeatedContent);
+    const afterStitches = afterText ? extractStitchesFromText(afterText) : [];
+    
+    return {
+      repeated: true,
+      beforeRepeat: beforeStitches,
+      repeatedStitches: repeatedStitches,
+      afterRepeat: afterStitches,
+      repeatCount: repeatMatch.repeatCount
+    };
+  }
+  
+  // For multiple repeat patterns, we need a different approach
+  // We'll treat it as a flat array of stitches but preserve the repeat patterns
+  
+  // Sort matches by their starting position in the text
+  matches.sort((a, b) => a.startIndex - b.startIndex);
+  
+  // Split the text into parts: regular stitches and repeat patterns
+  let parts = [];
+  let lastIndex = 0;
+  
+  for (const repeatMatch of matches) {
+    // Add any text before this repeat pattern
+    if (repeatMatch.startIndex > lastIndex) {
+      const beforeText = text.substring(lastIndex, repeatMatch.startIndex).trim();
+      if (beforeText) {
+        // Split by commas and extract individual stitches
+        const beforeParts = beforeText.split(',').map(part => part.trim()).filter(Boolean);
+        for (const part of beforeParts) {
+          parts.push(part);
+        }
+      }
+    }
+    
+    // Add the repeat pattern as is
+    parts.push(repeatMatch.fullMatch);
+    
+    // Update the last index
+    lastIndex = repeatMatch.endIndex;
+  }
+  
+  // Add any text after the last repeat pattern
+  if (lastIndex < text.length) {
+    const afterText = text.substring(lastIndex).trim();
+    if (afterText) {
+      // Split by commas and extract individual stitches
+      const afterParts = afterText.split(',').map(part => part.trim()).filter(Boolean);
+      for (const part of afterParts) {
+        parts.push(part);
+      }
+    }
+  }
+  
+  // Process each part and convert to standard stitch format
+  const processedParts = parts.map(part => {
+    // If this is a repeat pattern, keep it as is
+    if (part.match(/\([^)]+\)\s*x\d+/)) {
+      return part;
+    }
+    
+    // Otherwise normalize the stitch code
+    return normalizeStitchCode(part);
+  }).filter(Boolean);
+  
+  return processedParts;
+}
+
+// Helper function to normalize a stitch code
+const normalizeStitchCode = (code) => {
+  if (!code) return null;
+  
+  // Clean the code
+  const cleanCode = code.replace(/[.,;:!?]+$/, '').trim();
+  
+  // Try all stitch patterns
+  for (const pattern of stitchPatterns) {
+    const match = cleanCode.match(pattern.pattern);
+    if (match) {
+      const count = match[1] || '1';
+      return `${count}${pattern.name}`;
+    }
+  }
+  
+  // If no specific pattern matched, try a general pattern
+  const generalMatch = cleanCode.match(/(\d+)([a-zA-Z]+)/);
+  if (generalMatch) {
+    return `${generalMatch[1]}${generalMatch[2].toLowerCase()}`;
+  }
+  
+  return null;
 }
 
 // Helper function to extract stitch patterns from a given text
@@ -979,65 +1087,13 @@ const extractStitchesFromText = (text) => {
       // Skip empty parts
       if (!part) continue;
       
-      // Check if this part contains a repeat pattern
-      if (part.includes(')') && part.includes('x')) {
-        // This is a repeat pattern, handle it separately
-        const repeatMatch = part.match(/\(([^)]+)\)\s*x(\d+)/);
-        if (repeatMatch) {
-          const innerContent = repeatMatch[1];
-          const innerParts = innerContent.split(',').map(p => p.trim());
-          
-          for (const innerPart of innerParts) {
-            // Remove any trailing punctuation
-            const cleanInnerPart = innerPart.replace(/[.,;:!?]+$/, '').trim();
-            
-            // Try all the stitch patterns
-            let matched = false;
-            for (const pattern of stitchPatterns) {
-              const match = cleanInnerPart.match(pattern.pattern);
-              if (match) {
-                const count = match[1] || '1';
-                foundStitches.push(`${count}${pattern.name}`);
-                matched = true;
-                break;
-              }
-            }
-            
-            // If no specific pattern matched, try a general pattern
-            if (!matched) {
-              // Look for a number followed by any letters (potential stitch)
-              const generalMatch = cleanInnerPart.match(/(\d+)([a-zA-Z]+)/);
-              if (generalMatch) {
-                foundStitches.push(`${generalMatch[1]}${generalMatch[2].toLowerCase()}`);
-              }
-            }
-          }
-        }
-        continue;
-      }
-      
-      // Remove any trailing punctuation for non-repeat parts
+      // Remove any trailing punctuation
       const cleanPart = part.replace(/[.,;:!?]+$/, '').trim();
       
-      // Try all stitch patterns for non-repeat parts
-      let matched = false;
-      for (const pattern of stitchPatterns) {
-        const match = cleanPart.match(pattern.pattern);
-        if (match) {
-          const count = match[1] || '1';
-          foundStitches.push(`${count}${pattern.name}`);
-          matched = true;
-          break;
-        }
-      }
-      
-      // If no specific pattern matched, try a general pattern
-      if (!matched) {
-        // Look for a number followed by any letters (potential stitch)
-        const generalMatch = cleanPart.match(/(\d+)([a-zA-Z]+)/);
-        if (generalMatch) {
-          foundStitches.push(`${generalMatch[1]}${generalMatch[2].toLowerCase()}`);
-        }
+      // Normalize the stitch code
+      const normalizedStitch = normalizeStitchCode(cleanPart);
+      if (normalizedStitch) {
+        foundStitches.push(normalizedStitch);
       }
     }
     
@@ -1148,6 +1204,12 @@ const savePattern = async () => {
       return
     }
 
+    // Ensure we have a name
+    if (!patternName.value.trim()) {
+      errorMessage.value = 'Please enter a pattern name.'
+      return
+    }
+
     // Format the pattern using the standardized format
     let formattedPattern = patternText.value;
     
@@ -1156,17 +1218,27 @@ const savePattern = async () => {
       formattedPattern = formattedPatternForDB.value;
     }
 
-    // Emit the pattern data
-    emit('pattern-added', {
+    // Ensure content isn't truncated (check for "...")
+    if (formattedPattern.includes('…')) {
+      formattedPattern = formattedPattern.replace(/…/g, '...');
+    }
+
+    // Create a clean pattern data object with required fields
+    const patternData = {
       name: patternName.value.trim(),
-      content: formattedPattern
-    })
+      content: formattedPattern,
+      userId: auth.currentUser.uid,
+      timestamp: new Date()
+    };
+
+    // Emit the pattern data
+    emit('pattern-added', patternData);
     
     // Close the modal
-    closeModal()
+    closeModal();
   } catch (error) {
-    console.error('Error saving pattern:', error)
-    errorMessage.value = 'Error saving pattern: ' + error.message
+    console.error('Error saving pattern:', error);
+    errorMessage.value = 'Error saving pattern: ' + error.message;
   }
 }
 

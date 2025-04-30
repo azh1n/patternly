@@ -25,7 +25,7 @@
         </div>
         
         <div class="row-stitches">
-          <!-- Handle repeated stitches -->
+          <!-- Handle single repeated section structure -->
           <div v-if="row.stitches && row.stitches.repeated" class="horizontal-stitches">
             <!-- Before repeat -->
             <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
@@ -90,12 +90,39 @@
             </template>
           </div>
           
-          <!-- Regular stitches -->
+          <!-- Regular stitches or multiple repeat sections -->
           <div v-else-if="row.stitches && Array.isArray(row.stitches)" class="horizontal-stitches">
             <!-- Flatten structure for better wrapping -->
             <template v-for="(stitch, i) in row.stitches" :key="`stitch-${i}`">
-              <!-- For repeated stitches, display them separately -->
-              <template v-if="displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
+              <!-- Check if this is a repeat pattern like "(1sc, 1inc) x6" -->
+              <template v-if="isRepeatPattern(stitch)">
+                <div class="repeat-group">
+                  <span class="repeat-bracket left-bracket">(</span>
+                  
+                  <!-- Extract and display the repeated stitches -->
+                  <template v-for="(repeatedStitch, j) in getRepeatedStitches(stitch)" :key="`nested-rep-${i}-${j}`">
+                    <template v-if="displayRepeatedStitchesSeparately && getStitchCount(repeatedStitch) > 1">
+                      <div v-for="k in getStitchCount(repeatedStitch)" :key="`nested-rep-stitch-${i}-${j}-${k}`" class="stitch-wrapper repeat-stitch">
+                        <StitchSymbol
+                          :stitch="getStitchType(repeatedStitch)"
+                          :showCount="false"
+                        />
+                      </div>
+                    </template>
+                    <div v-else class="stitch-wrapper repeat-stitch">
+                      <StitchSymbol 
+                        :stitch="repeatedStitch"
+                        :showCount="true"
+                      />
+                    </div>
+                  </template>
+                  
+                  <span class="repeat-bracket right-bracket">)</span>
+                  <span class="repeat-count">x{{ getRepeatCount(stitch) }}</span>
+                </div>
+              </template>
+              <!-- For regular stitches, display them separately -->
+              <template v-else-if="displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1">
                 <div v-for="j in getStitchCount(stitch)" :key="`stitch-${i}-${j}`" class="stitch-wrapper">
                   <StitchSymbol
                     :stitch="getStitchType(stitch)"
@@ -485,9 +512,6 @@ const endPan = () => {
   isPanning.value = false;
 };
 
-// Option to display repeated stitches separately
-
-
 // Extract count from stitch string (e.g., "3dc" -> 3)
 const getStitchCount = (stitch) => {
   const match = stitch.match(/^(\d+)/);
@@ -629,10 +653,29 @@ const getRowStitches = (row) => {
       // Expand repeated stitches into individual stitches
       const expandedStitches = [];
       row.stitches.forEach(stitch => {
-        const count = getStitchCount(stitch);
-        const type = getStitchType(stitch);
-        for (let i = 0; i < count; i++) {
-          expandedStitches.push(type);
+        // Check if this is a repeat pattern
+        if (isRepeatPattern(stitch)) {
+          // Get the repeated stitches and repeat count
+          const repeatedStitches = getRepeatedStitches(stitch);
+          const repeatCount = getRepeatCount(stitch);
+          
+          // Add each repeat
+          for (let i = 0; i < repeatCount; i++) {
+            repeatedStitches.forEach(repeatedStitch => {
+              const count = getStitchCount(repeatedStitch);
+              const type = getStitchType(repeatedStitch);
+              for (let j = 0; j < count; j++) {
+                expandedStitches.push(type);
+              }
+            });
+          }
+        } else {
+          // Regular stitch
+          const count = getStitchCount(stitch);
+          const type = getStitchType(stitch);
+          for (let i = 0; i < count; i++) {
+            expandedStitches.push(type);
+          }
         }
       });
       return expandedStitches;
@@ -759,6 +802,34 @@ const commonStitches = {
   'dc': { label: 'Double Crochet (dc)' },
   'tr': { label: 'Treble Crochet (tr)' },
   'dtr': { label: 'Double Treble Crochet (dtr)' }
+};
+
+// Helper function to check if a stitch is a repeat pattern
+const isRepeatPattern = (stitch) => {
+  return typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x');
+};
+
+// Helper function to get repeated stitches from a repeat pattern
+const getRepeatedStitches = (stitch) => {
+  if (!isRepeatPattern(stitch)) return [];
+  
+  // Extract the part inside parentheses
+  const match = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+  if (!match) return [];
+  
+  const repeatedContent = match[1];
+  // Split by commas to get individual stitches
+  return repeatedContent.split(',').map(s => s.trim());
+};
+
+// Helper function to get repeat count from a repeat pattern
+const getRepeatCount = (stitch) => {
+  if (!isRepeatPattern(stitch)) return 1;
+  
+  const match = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+  if (!match) return 1;
+  
+  return parseInt(match[2], 10);
 };
 </script>
 
