@@ -52,14 +52,16 @@
         <span class="question-mark">?</span>
         <span class="tooltip-text">Key</span>
       </button>
-      <div class="stitch-key-tooltip">
-        <h5>Stitch Key</h5>
-        <div class="key-items">
-          <div v-for="(symbol, abbr) in filteredStitches" :key="`key-${abbr}`" class="key-item">
-            <div class="stitch-symbol" :class="getStitchClass(abbr)">
-              {{ abbr }}
+      <div class="stitch-key-tooltip-container" :class="isDarkMode ? 'dark-theme' : 'light-theme'">
+        <div class="text-stitch-key-tooltip">
+          <h5>Stitch Key</h5>
+          <div class="key-items">
+            <div v-for="(symbol, abbr) in filteredStitches" :key="`key-${abbr}`" class="key-item">
+              <div class="stitch-symbol" :class="getStitchClass(abbr)">
+                {{ abbr }}
+              </div>
+              <span class="key-label">{{ symbol.label }}</span>
             </div>
-            <span class="key-label">{{ symbol.label }}</span>
           </div>
         </div>
       </div>
@@ -70,6 +72,10 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import StitchVisualization from './StitchVisualization.vue';
+import { useTheme } from '@/services/theme';
+
+// Get the theme state from the theme service
+const { isDarkMode } = useTheme();
 
 const props = defineProps({
   currentRow: {
@@ -472,27 +478,27 @@ defineExpose({
   font-size: 0.75rem;
 }
 
-.stitch-key-tooltip {
-  display: none;
+.stitch-key-tooltip-container {
   position: absolute;
   bottom: 100%;
   right: 0;
-  width: 420px;
-  background-color: var(--bg-secondary, #333);
-  border: 1px solid var(--border-color, #444);
-  border-radius: 6px;
-  padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 100;
+  display: none;
 }
 
-.stitch-key-wrapper:hover .stitch-key-tooltip {
+.stitch-key-wrapper:hover .stitch-key-tooltip-container {
   display: block;
 }
 
-.stitch-key-tooltip h5 {
+/* Text stitch key tooltip */
+.text-stitch-key-tooltip {
+  width: 420px;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.text-stitch-key-tooltip h5 {
   margin: 0 0 0.75rem;
-  color: var(--text-primary);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -508,7 +514,6 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background-color: rgba(0, 0, 0, 0.05);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -518,20 +523,61 @@ defineExpose({
 
 .key-label {
   font-size: 0.75rem;
-  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 140px;
 }
 
-/* Light theme overrides for the tooltip */
-:root.light .stitch-key-tooltip {
-  background-color: white;
-  border-color: #e0e0e0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+/* Light theme styles */
+.stitch-key-tooltip-container.light-theme {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E0E0E0 !important;
+  color: #333333 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
+.stitch-key-tooltip-container.light-theme .text-stitch-key-tooltip {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E0E0E0 !important;
+  color: #333333 !important;
+}
+
+.stitch-key-tooltip-container.light-theme h5 {
+  color: #333333 !important;
+}
+
+.stitch-key-tooltip-container.light-theme .key-item {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.stitch-key-tooltip-container.light-theme .key-label {
+  color: #333333 !important;
+}
+
+/* Dark theme styles */
+.stitch-key-tooltip-container.dark-theme .text-stitch-key-tooltip {
+  background-color: #333333 !important;
+  border: 1px solid #444444 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.stitch-key-tooltip-container.dark-theme h5 {
+  color: #FFFFFF !important;
+}
+
+.stitch-key-tooltip-container.dark-theme .key-item {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+  border-color: transparent !important;
+}
+
+.stitch-key-tooltip-container.dark-theme .key-label {
+  color: #FFFFFF !important;
+}
+
+/* Light theme overrides for the question mark */
 :root.light .question-mark {
   background-color: #aaa;
   color: white;
@@ -541,11 +587,15 @@ defineExpose({
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-:root.light .key-item {
-  background-color: rgba(0, 0, 0, 0.03);
+/* Light theme overrides */
+:root.light .stitch-symbol {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Restored light theme overrides */
+/* Restored light theme overrides for stitch types */
 :root.light .stitch-symbol.stitch-sc { background-color: #ffcdd2; color: #000; border-color: #ef9a9a; }
 :root.light .stitch-symbol.stitch-dc { background-color: #bbdefb; color: #000; border-color: #90caf9; }
 :root.light .stitch-symbol.stitch-hdc { background-color: #d1c4e9; color: #000; border-color: #b39ddb; }
@@ -558,8 +608,9 @@ defineExpose({
 :root.light .stitch-symbol.stitch-bs { background-color: #b2dfdb; color: #000; border-color: #80cbc4; }
 :root.light .stitch-symbol.stitch-ns { background-color: #cfd8dc; color: #000; border-color: #b0bec5; }
 
-:root.light .key-label {
-  color: #333;
+:root.light .stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
+  background-color: #e0e0e0 !important;
+  border-color: #ccc !important;
 }
 
 /* Mobile adjustments */
@@ -657,21 +708,26 @@ defineExpose({
     font-size: 1rem;
   }
   
-  .stitch-key-tooltip {
+  /* These styles can be removed as StitchKeyTooltip has its own mobile styles */
+  .stitch-key-tooltip-container {
     width: 310px;
-    left: auto;
-    right: 0;
   }
   
-  .key-item {
-    width: 100%;
-    font-size: 0.7rem;
-    min-width: 0;
+  .text-stitch-key-tooltip {
+    width: 310px;
   }
   
+  /* These key-item and key-label styles can be removed as they're in the StitchKeyTooltip component */
+  .key-item,
   .key-label {
     font-size: 0.7rem;
     min-width: 0;
   }
+  
+  .key-item {
+    width: 100%;
+  }
 }
 </style> 
+
+

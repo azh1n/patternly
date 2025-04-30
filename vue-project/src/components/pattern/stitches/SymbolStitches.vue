@@ -86,34 +86,22 @@
         <span class="question-mark">?</span>
         <span class="tooltip-text">Key</span>
       </button>
-      <div class="stitch-key-tooltip">
-        <h5>Stitch Key</h5>
-        <div class="key-items">
-          <div v-for="(symbol, abbr) in filteredStitches" :key="`key-${abbr}`" class="key-item">
-            <div class="stitch-symbol" :class="getStitchClass(abbr)">
-              <template v-if="checkSymbolExists(abbr)">
-                <img 
-                  :src="getSymbolPath(abbr)" 
-                  :alt="abbr" 
-                  class="stitch-svg"
-                />
-              </template>
-              <template v-else>
-                {{ abbr }}
-              </template>
-            </div>
-            <span class="key-label">{{ symbol.label }}</span>
-          </div>
-        </div>
+      <div class="stitch-key-tooltip-container">
+        <StitchKeyTooltip :stitches="filteredStitches" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, inject, nextTick } from 'vue';
 import StitchVisualization from './StitchVisualization.vue';
 import { hasStitchSymbol, getStitchSymbolPath, stitchSymbolMapping } from '@/assets/crochet-symbols/stitch-mapping.js';
+import { useTheme } from '@/services/theme';
+import StitchKeyTooltip from './StitchKeyTooltip.vue';
+
+// Get the theme state from the theme service
+const { isDarkMode } = useTheme();
 
 const props = defineProps({
   currentRow: {
@@ -355,8 +343,16 @@ const commonStitches = {
   'ns': { label: 'Negative Stitch (ns)' }
 };
 
-// Fix the stitch symbol display function
+// Setup observer for theme changes
 onMounted(() => {
+  
+  // Observe document root for style changes
+  observer.observe(document.documentElement, { 
+    attributes: true,
+    attributeFilter: ['style']
+  });
+  
+  // Fix the stitch symbol display function
   try {
     // Override the hasStitchSymbol function to also check if the SVG file actually exists
     // This is needed because some stitch symbols might be defined in the mapping but don't have SVG files
@@ -399,22 +395,25 @@ onMounted(() => {
   } catch (error) {
     console.error('Error in onMounted:', error);
   }
-});
-
-// Clean up when component is unmounted
-onUnmounted(() => {
-  try {
-    // Set mounted to false to prevent any further updates
-    mounted.value = false;
+  
+  // Clean up
+  onUnmounted(() => {
+    observer.disconnect();
     
-    // Restore the original function if it was saved
-    if (window.originalHasStitchSymbol) {
-      window.hasStitchSymbol = window.originalHasStitchSymbol;
-      delete window.originalHasStitchSymbol;
+    // Clean up stitch symbol override
+    try {
+      // Set mounted to false to prevent any further updates
+      mounted.value = false;
+      
+      // Restore the original function if it was saved
+      if (window.originalHasStitchSymbol) {
+        window.hasStitchSymbol = window.originalHasStitchSymbol;
+        delete window.originalHasStitchSymbol;
+      }
+    } catch (error) {
+      console.error('Error in onUnmounted:', error);
     }
-  } catch (error) {
-    console.error('Error in onUnmounted:', error);
-  }
+  });
 });
 
 // Expose some methods/properties to parent
@@ -587,29 +586,110 @@ defineExpose({
   font-size: 0.75rem;
 }
 
-.stitch-key-tooltip {
-  display: none;
+.stitch-key-tooltip-container {
   position: absolute;
   bottom: 100%;
   right: 0;
-  width: 420px;
-  background-color: var(--bg-secondary, #333);
-  border: 1px solid var(--border-color, #444);
-  border-radius: 6px;
-  padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 100;
+  display: none;
 }
 
-.stitch-key-wrapper:hover .stitch-key-tooltip {
+.stitch-key-wrapper:hover .stitch-key-tooltip-container {
   display: block;
 }
 
+/* Light theme styles */
+.stitch-key-tooltip-container.light-theme {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E0E0E0 !important;
+  color: #333333 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-key-tooltip-container.light-theme h5 {
+  color: #333333 !important;
+}
+
+.stitch-key-tooltip-container.light-theme .key-item {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.stitch-key-tooltip-container.light-theme .key-label {
+  color: #333333 !important;
+}
+
+/* Dark theme styles */
+.stitch-key-tooltip-container.dark-theme {
+  background-color: #333333 !important;
+  border: 1px solid #444444 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.stitch-key-tooltip-container.dark-theme h5 {
+  color: #FFFFFF !important;
+}
+
+.stitch-key-tooltip-container.dark-theme .key-item {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+  border-color: transparent !important;
+}
+
+.stitch-key-tooltip-container.dark-theme .key-label {
+  color: #FFFFFF !important;
+}
+
+/* Remove media query as we handle theme in JS */
+@media (prefers-color-scheme: dark) {
+  .stitch-key-tooltip-container {
+    background-color: #333333;
+    border: 1px solid #444444;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .stitch-key-tooltip-container h5 {
+    color: #FFFFFF;
+  }
+  
+  .key-item {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-color: transparent;
+  }
+  
+  .key-label {
+    color: #FFFFFF;
+  }
+}
+
+/* Remove app-specific dark mode styling as we handle it in JS */
+:root:not(.light) .stitch-key-tooltip-container {
+  background-color: #333333 !important;
+  border: 1px solid #444444 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+:root:not(.light) .stitch-key-tooltip-container h5 {
+  color: #FFFFFF !important;
+}
+
+:root:not(.light) .key-item {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+  border-color: transparent !important;
+}
+
+:root:not(.light) .key-label {
+  color: #FFFFFF !important;
+}
+
+/* Keep structure styles but remove color styles */
 .stitch-key-tooltip h5 {
   margin: 0 0 0.75rem;
-  color: var(--text-primary);
   font-size: 0.9rem;
   text-align: center;
+  /* Color will be set via JavaScript */
 }
 
 .key-items {
@@ -623,67 +703,21 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background-color: rgba(0, 0, 0, 0.05);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
   width: calc(50% - 0.375rem);
   min-width: 180px;
+  /* Colors will be set via JavaScript */
 }
 
 .key-label {
   font-size: 0.75rem;
-  color: var(--text-primary, #fff);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 140px;
-}
-
-/* Light theme overrides for the tooltip */
-:root.light .stitch-key-tooltip {
-  background-color: white;
-  border-color: #e0e0e0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-:root.light .question-mark {
-  background-color: #aaa;
-  color: white;
-}
-
-:root.light .stitch-key-trigger:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-:root.light .key-item {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-
-/* Restored light theme overrides */
-:root.light .stitch-symbol {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  color: #333;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-:root.light .stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
-  background-color: #e0e0e0 !important;
-  border-color: #ccc !important;
-}
-
-:root.light .key-label {
-  color: #333;
-}
-
-:root.light .expand-toggle {
-  background: #2979ff;
-  color: white;
-}
-
-:root.light .expand-toggle[aria-pressed="true"] {
-  background: #1565c0;
+  /* Color will be set via JavaScript */
 }
 
 /* Mobile adjustments */
@@ -802,6 +836,28 @@ defineExpose({
   }
 }
 
+/* Light theme overrides */
+:root.light .stitch-symbol {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+:root.light .stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
+  background-color: #e0e0e0 !important;
+  border-color: #ccc !important;
+}
+
+:root.light .expand-toggle {
+  background: #2979ff;
+  color: white;
+}
+
+:root.light .expand-toggle[aria-pressed="true"] {
+  background: #1565c0;
+}
+
 /* Mobile arrow styling */
 .symbol-stitches :deep(.prev-arrow)::before,
 .symbol-stitches :deep(.next-arrow)::before,
@@ -836,5 +892,26 @@ defineExpose({
     font-weight: bold;
     display: inline-block;
   }
+}
+
+/* Additional theme targeting using CSS variables */
+.stitch-key-tooltip {
+  background-color: var(--card-bg, #FFFFFF) !important;
+  border: 1px solid var(--border-color, #E0E0E0) !important;
+  color: var(--text-primary, #333333) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stitch-key-tooltip h5 {
+  color: var(--text-primary, #333333) !important;
+}
+
+.key-item {
+  background-color: var(--hover-bg, rgba(0, 0, 0, 0.05)) !important;
+  border-color: var(--border-color, rgba(0, 0, 0, 0.05)) !important;
+}
+
+.key-label {
+  color: var(--text-primary, #333333) !important;
 }
 </style> 
