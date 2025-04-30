@@ -15,7 +15,7 @@
             :key="`focused-stitch-${i}`" 
             class="stitch-wrapper"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
               <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
@@ -26,7 +26,7 @@
       <template #row-preview>
         <template v-if="currentRow && currentRow.codes && currentRow.codes.length">
           <div 
-            v-for="(stitch, i) in processRowStitches(currentRow.codes, false)" 
+            v-for="(stitch, i) in processRowStitches(currentRow.codes, displayRepeatedStitchesSeparately)" 
             :key="`preview-stitch-${i}`" 
             class="stitch-wrapper"
             :class="{ 
@@ -35,7 +35,7 @@
               'completed-stitch': i < currentStitchIndex 
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
               <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
@@ -45,6 +45,16 @@
         </div>
       </template>
     </StitchVisualization>
+
+    <!-- Toggle for expand/collapse stitches -->
+    <button
+      class="expand-toggle"
+      :aria-pressed="displayRepeatedStitchesSeparately"
+      @click="toggleStitchDisplay"
+    >
+      <span v-if="displayRepeatedStitchesSeparately">Collapse Stitches</span>
+      <span v-else>Expand Stitches</span>
+    </button>
 
     <!-- Stitch key tooltip -->
     <div class="stitch-key-wrapper">
@@ -184,7 +194,7 @@ const filteredStitches = computed(() => {
 const currentStitchesView = computed(() => {
   if (!props.currentRow || !props.currentRow.codes || !props.currentRow.codes.length) return [];
   
-  const processedStitches = processRowStitches(props.currentRow.codes, false);
+  const processedStitches = processRowStitches(props.currentRow.codes, displayRepeatedStitchesSeparately.value);
   // Always show exactly stitchesPerView blocks, regardless of their stitch count
   return processedStitches.slice(currentStitchIndex.value, currentStitchIndex.value + stitchesPerView.value);
 });
@@ -198,9 +208,14 @@ const updateStitchesPerView = (count) => {
   stitchesPerView.value = count;
 };
 
+// Toggle for expanding/collapsing stitches
+const toggleStitchDisplay = () => {
+  displayRepeatedStitchesSeparately.value = !displayRepeatedStitchesSeparately.value;
+};
+
 // Watch for changes to total stitches
-watch([() => props.currentRow], () => {
-  // Reset index when row changes
+watch([() => props.currentRow, displayRepeatedStitchesSeparately], () => {
+  // Reset index when row changes or stitch display mode changes
   currentStitchIndex.value = 0;
   
   // Sync with child component
@@ -303,7 +318,8 @@ const commonStitches = {
 // Expose some methods/properties to parent
 defineExpose({
   currentStitchIndex,
-  stitchesPerView
+  stitchesPerView,
+  displayRepeatedStitchesSeparately
 });
 </script>
 
@@ -727,6 +743,44 @@ defineExpose({
   .key-item {
     width: 100%;
   }
+  
+  .expand-toggle {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.8rem;
+    margin: 0.2rem auto 0.6rem auto;
+  }
+}
+
+.expand-toggle {
+  margin: 0.5rem auto 1rem auto;
+  padding: 0.35rem 1.2rem;
+  background: var(--accent-color, #4f87ff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  outline: none;
+  display: inline-block;
+  align-self: center;
+}
+
+.expand-toggle[aria-pressed="true"] {
+  background: var(--accent-hover, #3a6fd9);
+}
+
+.stitch-symbol.with-count {
+  overflow: visible;
+}
+
+:root.light .expand-toggle {
+  background: #2979ff;
+  color: white;
+}
+
+:root.light .expand-toggle[aria-pressed="true"] {
+  background: #1565c0;
 }
 </style> 
 
