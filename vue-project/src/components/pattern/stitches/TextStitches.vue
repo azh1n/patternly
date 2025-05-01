@@ -38,6 +38,9 @@
               </template>
               <template v-else>
                 <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
+                <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge smaller-badge">
+                  {{ getStitchCount(stitch) }}
+                </div>
               </template>
             </div>
           </div>
@@ -80,6 +83,9 @@
               </template>
               <template v-else>
                 <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
+                <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
+                  {{ getStitchCount(stitch) }}
+                </div>
               </template>
             </div>
           </div>
@@ -464,6 +470,7 @@ defineExpose({
 /* Stitch wrapper */
 .stitch-wrapper {
   display: inline-block;
+  margin: 2px;
 }
 
 .stitch-wrapper.preview-stitch {
@@ -500,6 +507,36 @@ defineExpose({
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Stitch count badge */
+.stitch-count-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  background-color: var(--accent-color, #4f87ff);
+  color: white;
+  border-radius: 9px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid white;
+  padding: 0 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.stitch-count-badge.smaller-badge {
+  min-width: 14px;
+  height: 14px;
+  top: -4px;
+  right: -4px;
+  font-size: 0.5rem;
+  padding: 0 2px;
+  border-width: 1px;
+}
+
 /* Inline stitch count styling */
 .stitch-count-inline {
   font-weight: bold;
@@ -525,6 +562,7 @@ defineExpose({
   height: auto;
   min-width: auto;
   font-size: 0.75rem;
+  padding: 0;
   white-space: normal;
   background-color: rgba(0, 0, 0, 0.05);
   border: 1px dashed var(--border-color);
@@ -910,9 +948,6 @@ defineExpose({
     width: 34px;
     height: 34px;
     font-size: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
   
   .stitch-wrapper {
@@ -925,6 +960,15 @@ defineExpose({
   
   .stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
     border: 1.5px solid var(--accent-color, #4f87ff);
+  }
+  
+  .stitch-count-badge {
+    min-width: 15px;
+    height: 15px;
+    font-size: 0.65rem;
+    top: -4px;
+    right: -4px;
+    padding: 0 2px;
   }
   
   .text-stitches :deep(.current-stitches) {
@@ -943,23 +987,17 @@ defineExpose({
   .text-stitches :deep(.stitch-navigation) {
     padding: 0.5rem 0.25rem;
     gap: 0.5rem;
-    display: flex;
-    align-items: center;
   }
   
   .text-stitches :deep(.stitch-content) {
     min-width: 0;
     padding: 0;
-    transform: translateY(10px); /* Adjusted for better vertical alignment */
   }
   
   .text-stitches :deep(.nav-button) {
-    padding: 0.8rem 0;
-    min-width: 35px;
+    padding: 0.8rem 0.7rem;
+    min-width: 40px;
     height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
   
   .text-stitches :deep(.prev-arrow)::before,
