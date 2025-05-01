@@ -598,13 +598,15 @@ defineExpose({
 }
 
 .repeat-paren-container.left {
-  justify-content: center;
+  justify-content: flex-end;
   padding-right: 2px;
 }
 
 .repeat-paren-container.right {
   justify-content: flex-start;
   padding-left: 0;
+  display: flex;
+  align-items: center;
 }
 
 .repeat-left-paren, .repeat-right-paren {
@@ -614,9 +616,7 @@ defineExpose({
 }
 
 .repeat-comma {
-  position: absolute;
-  right: 4px;
-  opacity: 0.7;
+  display: none; /* Hide the commas */
 }
 
 /* Keep structure styles but remove old selectors that are no longer used */
@@ -646,7 +646,7 @@ defineExpose({
 .repeat-multiplier {
   font-weight: bold;
   color: var(--accent-color);
-  margin-left: 0.15rem;
+  margin-left: 0; /* Remove the margin to bring multiplier closer to parenthesis */
   font-size: 0.9rem;
   white-space: nowrap;
 }

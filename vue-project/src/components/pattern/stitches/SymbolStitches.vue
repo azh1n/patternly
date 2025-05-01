@@ -752,13 +752,15 @@ function getRepeatGridStyle(stitch) {
 }
 
 .repeat-paren-container.left {
-  justify-content: center;
+  justify-content: flex-end;
   padding-right: 2px;
 }
 
 .repeat-paren-container.right {
   justify-content: flex-start;
   padding-left: 0;
+  display: flex;
+  align-items: center;
 }
 
 .repeat-stitch {
@@ -789,9 +791,7 @@ function getRepeatGridStyle(stitch) {
 }
 
 .repeat-comma {
-  position: absolute;
-  right: 4px;
-  opacity: 0.7;
+  display: none; /* Hide the commas */
 }
 
 .repeat-multiplier {
@@ -799,7 +799,7 @@ function getRepeatGridStyle(stitch) {
   color: var(--accent-color);
   font-size: 0.9rem;
   white-space: nowrap;
-  margin-left: 2px;
+  margin-left: 0;
 }
 
 /* Large repeat pattern in current stitches */
@@ -950,12 +950,6 @@ function getRepeatGridStyle(stitch) {
 :root.light .repeat-stitch.stitch-ns {
   background-color: rgba(96, 125, 139, 0.2);
   color: #263238;
-}
-
-.repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color);
-  margin-left: 0.25rem;
 }
 
 /* Light theme overrides for repeat patterns */
