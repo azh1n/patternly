@@ -21,7 +21,12 @@
                 <div class="repeat-pattern-content">
                   <div class="repeat-left-paren">(</div>
                   <div class="repeat-inner">
-                    {{ formatRepeatPattern(stitch) }}
+                    <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`current-repeat-stitch-${rIndex}`">
+                      <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                        <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                      </div>
+                      <span v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</span>
+                    </template>
                   </div>
                   <div class="repeat-right-paren">)</div>
                   <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
@@ -54,7 +59,12 @@
                 <div class="repeat-pattern-content">
                   <div class="repeat-left-paren">(</div>
                   <div class="repeat-inner">
-                    {{ formatRepeatPattern(stitch) }}
+                    <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
+                      <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                        <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                      </div>
+                      <span v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</span>
+                    </template>
                   </div>
                   <div class="repeat-right-paren">)</div>
                   <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
@@ -362,12 +372,20 @@ function isRepeatPattern(stitch) {
   return typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x');
 }
 
-// Format the repeat pattern content - extract just the part inside parentheses
+// Format the repeat pattern content
 function formatRepeatPattern(stitch) {
   if (!isRepeatPattern(stitch)) return stitch;
   
   const match = stitch.match(/\(([^)]+)\)/);
   return match ? match[1] : stitch;
+}
+
+// Get individual stitches from a repeat pattern
+function getRepeatStitches(stitch) {
+  if (!isRepeatPattern(stitch)) return [];
+  
+  const content = formatRepeatPattern(stitch);
+  return content.split(',').map(s => s.trim());
 }
 
 // Get the multiplier (the "x2" part) from a repeat pattern
@@ -496,6 +514,134 @@ defineExpose({
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
+}
+
+.repeat-stitch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  font-weight: 500;
+  margin: 0.1rem;
+}
+
+.repeat-comma {
+  margin: 0 0.1rem;
+  opacity: 0.7;
+}
+
+/* Stitch type colors inside repeat patterns */
+.repeat-stitch.stitch-sc {
+  background-color: rgba(76, 175, 80, 0.25);
+  color: #e8f5e9;
+}
+
+.repeat-stitch.stitch-dc {
+  background-color: rgba(33, 150, 243, 0.25);
+  color: #e3f2fd;
+}
+
+.repeat-stitch.stitch-hdc {
+  background-color: rgba(103, 58, 183, 0.25);
+  color: #ede7f6;
+}
+
+.repeat-stitch.stitch-tr {
+  background-color: rgba(255, 152, 0, 0.25);
+  color: #fff8e1;
+}
+
+.repeat-stitch.stitch-dtr {
+  background-color: rgba(255, 87, 34, 0.25);
+  color: #fbe9e7;
+}
+
+.repeat-stitch.stitch-ch {
+  background-color: rgba(76, 175, 80, 0.25);
+  color: #e8f5e9;
+}
+
+.repeat-stitch.stitch-sl {
+  background-color: rgba(158, 158, 158, 0.25);
+  color: #f5f5f5;
+}
+
+.repeat-stitch.stitch-inc {
+  background-color: rgba(63, 81, 181, 0.25);
+  color: #e8eaf6;
+}
+
+.repeat-stitch.stitch-dec {
+  background-color: rgba(156, 39, 176, 0.25);
+  color: #f3e5f5;
+}
+
+.repeat-stitch.stitch-bs {
+  background-color: rgba(0, 188, 212, 0.25);
+  color: #e0f7fa;
+}
+
+.repeat-stitch.stitch-ns {
+  background-color: rgba(96, 125, 139, 0.25);
+  color: #eceff1;
+}
+
+/* Light theme overrides for stitch colors */
+:root.light .repeat-stitch.stitch-sc {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #1b5e20;
+}
+
+:root.light .repeat-stitch.stitch-dc {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #0d47a1;
+}
+
+:root.light .repeat-stitch.stitch-hdc {
+  background-color: rgba(103, 58, 183, 0.2);
+  color: #4a148c;
+}
+
+:root.light .repeat-stitch.stitch-tr {
+  background-color: rgba(255, 152, 0, 0.2);
+  color: #e65100;
+}
+
+:root.light .repeat-stitch.stitch-dtr {
+  background-color: rgba(255, 87, 34, 0.2);
+  color: #bf360c;
+}
+
+:root.light .repeat-stitch.stitch-ch {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #1b5e20;
+}
+
+:root.light .repeat-stitch.stitch-sl {
+  background-color: rgba(158, 158, 158, 0.2);
+  color: #212121;
+}
+
+:root.light .repeat-stitch.stitch-inc {
+  background-color: rgba(63, 81, 181, 0.2);
+  color: #1a237e;
+}
+
+:root.light .repeat-stitch.stitch-dec {
+  background-color: rgba(156, 39, 176, 0.2);
+  color: #4a148c;
+}
+
+:root.light .repeat-stitch.stitch-bs {
+  background-color: rgba(0, 188, 212, 0.2);
+  color: #006064;
+}
+
+:root.light .repeat-stitch.stitch-ns {
+  background-color: rgba(96, 125, 139, 0.2);
+  color: #263238;
 }
 
 .repeat-multiplier {
