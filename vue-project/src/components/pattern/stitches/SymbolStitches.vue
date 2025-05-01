@@ -36,6 +36,9 @@
                           <template v-else>
                             <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                           </template>
+                          <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge">
+                            {{ getStitchCount(repeatStitch) }}
+                          </div>
                         </div>
                         <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
                       </div>
@@ -98,8 +101,11 @@
                           />
                         </template>
                         <template v-else>
-                          <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                          {{ getStitchType(repeatStitch) }}
                         </template>
+                        <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge">
+                          {{ getStitchCount(repeatStitch) }}
+                        </div>
                       </div>
                       <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
                     </div>
@@ -806,6 +812,7 @@ function getRepeatGridStyle(stitch) {
 }
 
 .repeat-stitch {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -815,7 +822,7 @@ function getRepeatGridStyle(stitch) {
   width: 40px;
   box-sizing: border-box;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
   font-size: 0.8rem;
 }
@@ -1425,5 +1432,27 @@ function getRepeatGridStyle(stitch) {
 
 .key-label {
   color: var(--text-primary, #333333) !important;
+}
+
+.repeat-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  font-size: 0.65rem;
+  z-index: 5;
+  padding: 0 3px;
+  overflow: visible;
+}
+
+@media (max-width: 767px) {
+  .repeat-badge {
+    min-width: 14px;
+    height: 14px;
+    font-size: 0.6rem;
+    top: -5px;
+    right: -5px;
+  }
 }
 </style> 
