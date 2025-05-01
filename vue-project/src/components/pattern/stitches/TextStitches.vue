@@ -420,7 +420,8 @@ function getRepeatGridStyle(stitch) {
     justifyContent: 'center',
     alignItems: 'center',
     gap: '4px',
-    '--stitch-count': stitchCount
+    '--stitch-count': stitchCount,
+    paddingInline: '7px'
   };
 }
 
@@ -1142,8 +1143,8 @@ defineExpose({
 
 /* CSS rules for focused view repeat patterns */
 .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-  padding: 0;
-  margin: 2px;
+  padding-inline: 10px;
+  margin-inline: 50px;
   background-color: transparent;
   border-radius: 0;
 }
