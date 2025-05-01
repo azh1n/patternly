@@ -16,7 +16,7 @@
             class="stitch-wrapper"
             :class="{ 'repeat-pattern-large': isRepeatPattern(stitch) }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
+            <div class="stitch-symbol" :class="getStitchClass(stitch)">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
                   <div class="repeat-paren-container left">
@@ -38,9 +38,6 @@
               </template>
               <template v-else>
                 <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
-                <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge smaller-badge">
-                  {{ getStitchCount(stitch) }}
-                </div>
               </template>
             </div>
           </div>
@@ -61,7 +58,7 @@
               'repeat-pattern': isRepeatPattern(stitch)
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
+            <div class="stitch-symbol" :class="getStitchClass(stitch)">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
                   <div class="repeat-paren-container left">
@@ -83,9 +80,6 @@
               </template>
               <template v-else>
                 <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
-                <div v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-badge">
-                  {{ getStitchCount(stitch) }}
-                </div>
               </template>
             </div>
           </div>
@@ -509,32 +503,11 @@ defineExpose({
 
 /* Stitch count badge */
 .stitch-count-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 18px;
-  height: 18px;
-  background-color: var(--accent-color, #4f87ff);
-  color: white;
-  border-radius: 9px;
-  font-size: 0.75rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid white;
-  padding: 0 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  display: none;
 }
 
 .stitch-count-badge.smaller-badge {
-  min-width: 14px;
-  height: 14px;
-  top: -4px;
-  right: -4px;
-  font-size: 0.5rem;
-  padding: 0 2px;
-  border-width: 1px;
+  display: none;
 }
 
 /* Inline stitch count styling */
