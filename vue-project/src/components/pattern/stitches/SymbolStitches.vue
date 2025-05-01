@@ -717,6 +717,8 @@ function getRepeatGridStyle(stitch) {
   border: 1px solid white;
   padding: 0 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 5;
+  overflow: visible;
 }
 
 .stitch-count-badge.smaller-badge {
@@ -767,6 +769,7 @@ function getRepeatGridStyle(stitch) {
 
 /* Styling for repeat pattern components */
 .repeat-pattern-content {
+  position: relative;
   display: grid;
   align-items: center;
   justify-content: center;
@@ -869,6 +872,8 @@ function getRepeatGridStyle(stitch) {
   justify-content: center;
   height: 40px;
   margin: 0;
+  overflow: visible;
+  position: relative;
 }
 
 .symbol-stitches :deep(.current-stitches) .repeat-stitch {
@@ -879,6 +884,8 @@ function getRepeatGridStyle(stitch) {
   box-shadow: none;
   border: none;
   border-radius: 3px;
+  overflow: visible;
+  position: relative;
 }
 
 .symbol-stitches :deep(.current-stitches) .repeat-comma {
@@ -1434,16 +1441,40 @@ function getRepeatGridStyle(stitch) {
   color: var(--text-primary, #333333) !important;
 }
 
+/* Base repeat badge styling */
 .repeat-badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -6px;
+  right: -6px;
   min-width: 16px;
   height: 16px;
   font-size: 0.65rem;
-  z-index: 5;
+  z-index: 999;
   padding: 0 3px;
+}
+
+/* Specific styling for repeat badges in the preview row */
+.symbol-stitches :deep(.preview-stitch) .repeat-badge {
+  top: -6px;
+  right: -6px;
+  z-index: 999;
+}
+
+/* Specific styling for repeat badges in the focused view */
+.symbol-stitches :deep(.current-stitches) .repeat-badge {
+  top: -4px;
+  right: -5px;
+  min-width: 14px;
+  height: 14px;
+  font-size: 0.5rem;
+  z-index: 1;
+}
+
+/* Ensure the repeat pattern containers can display badges properly */
+.symbol-stitches :deep(.current-stitches) .repeat-stitch,
+.symbol-stitches :deep(.preview-content) .repeat-stitch {
   overflow: visible;
+  position: relative;
 }
 
 @media (max-width: 767px) {
@@ -1453,6 +1484,14 @@ function getRepeatGridStyle(stitch) {
     font-size: 0.6rem;
     top: -5px;
     right: -5px;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-badge {
+    top: -8px;
+    right: -8px;
+    min-width: 15px;
+    height: 15px;
+    font-size: 0.65rem;
   }
 }
 </style> 
