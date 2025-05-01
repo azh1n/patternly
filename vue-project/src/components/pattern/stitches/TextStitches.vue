@@ -1036,7 +1036,7 @@ defineExpose({
   transform: scale(1.1);
   height: 44px;
   width: calc((var(--stitch-count) + 1) * 44px) !important;
-  grid-template-columns: 16px repeat(var(--stitch-count), 44px) 28px !important;
+  grid-template-columns: 16px repeat(var(--stitch-count), 50px) 28px !important;
 }
 
 .stitch-wrapper.repeat-pattern-large .repeat-left-paren,
@@ -1143,7 +1143,7 @@ defineExpose({
 
 /* CSS rules for focused view repeat patterns */
 .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-  margin-inline: 55px;
+  margin-inline: 60px;
   background-color: transparent;
   border-radius: 0;
 }
@@ -1178,10 +1178,10 @@ defineExpose({
 }
 
 .text-stitches :deep(.current-stitches) .repeat-stitch {
-  width: 44px !important;
-  height: 44px !important;
-  font-size: 0.9rem;
-  font-weight: 500;
+  width: 50px !important;
+  height: 50px !important;
+  font-size: 1.1rem;
+  font-weight: 600;
   box-shadow: none;
   border: none;
   border-radius: 3px;
