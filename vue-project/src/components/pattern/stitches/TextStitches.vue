@@ -19,15 +19,21 @@
             <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
-                  <div class="repeat-left-paren">(</div>
+                  <div class="repeat-paren-container left">
+                    <div class="repeat-left-paren">(</div>
+                  </div>
                   <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
-                    <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
-                      <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                    <div class="repeat-stitch-container">
+                      <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                        <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                      </div>
+                      <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
                     </div>
-                    <span v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</span>
                   </template>
-                  <div class="repeat-right-paren">)</div>
-                  <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                  <div class="repeat-paren-container right">
+                    <div class="repeat-right-paren">)</div>
+                    <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                  </div>
                 </div>
               </template>
               <template v-else>
@@ -55,15 +61,21 @@
             <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
-                  <div class="repeat-left-paren">(</div>
+                  <div class="repeat-paren-container left">
+                    <div class="repeat-left-paren">(</div>
+                  </div>
                   <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
-                    <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
-                      <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                    <div class="repeat-stitch-container">
+                      <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                        <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                      </div>
+                      <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
                     </div>
-                    <span v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</span>
                   </template>
-                  <div class="repeat-right-paren">)</div>
-                  <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                  <div class="repeat-paren-container right">
+                    <div class="repeat-right-paren">)</div>
+                    <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                  </div>
                 </div>
               </template>
               <template v-else>
@@ -391,22 +403,25 @@ function getRepeatGridStyle(stitch) {
   const stitches = getRepeatStitches(stitch);
   const stitchCount = stitches.length;
   
-  // Grid columns: leftParen + stitches with commas + rightParen + multiplier
-  let columns = 'auto ';
+  // Width of a single stitch in pixels
+  const singleStitchWidth = 40; 
   
-  // Add columns for stitches and commas between them
-  for (let i = 0; i < stitchCount; i++) {
-    columns += 'auto ';
-    if (i < stitchCount - 1) {
-      columns += 'auto ';
-    }
-  }
+  // Total width: number of stitches inside repeat + 1 extra stitch width
+  const totalWidth = (stitchCount + 1) * singleStitchWidth + 40;
   
-  columns += 'auto auto';
+  // Create a grid with columns:
+  // - First column for left parenthesis (fixed width)
+  // - One column per stitch (each 40px wide)
+  // - Last column for right parenthesis and multiplier (remaining space)
+  const columnsForStitches = `repeat(${stitchCount}, ${singleStitchWidth}px)`;
   
   return {
-    gridTemplateColumns: columns,
-    width: `calc(${stitchCount * 40 + 30}px)` // 40px per stitch + extra for parens and multiplier
+    display: 'grid',
+    gridTemplateColumns: `15px ${columnsForStitches} 25px`,
+    width: `${totalWidth}px`,
+    justifyContent: 'space-between',
+    gap: '0',
+    '--stitch-count': stitchCount
   };
 }
 
@@ -449,7 +464,6 @@ defineExpose({
 /* Stitch wrapper */
 .stitch-wrapper {
   display: inline-block;
-  margin: 2px;
 }
 
 .stitch-wrapper.preview-stitch {
@@ -511,7 +525,6 @@ defineExpose({
   height: auto;
   min-width: auto;
   font-size: 0.75rem;
-  padding: 0.25rem;
   white-space: normal;
   background-color: rgba(0, 0, 0, 0.05);
   border: 1px dashed var(--border-color);
@@ -528,17 +541,47 @@ defineExpose({
   align-items: center;
   justify-content: center;
   width: 100%;
-  grid-template-columns: auto 1fr auto auto;
-  grid-gap: 0.1rem;
+  height: 40px;
+}
+
+.repeat-stitch-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  position: relative;
+}
+
+.repeat-paren-container {
+  display: flex;
+  align-items: center;
+  height: 40px;
+}
+
+.repeat-paren-container.left {
+  justify-content: center;
+  padding-right: 2px;
+}
+
+.repeat-paren-container.right {
+  justify-content: flex-start;
+  padding-left: 0;
 }
 
 .repeat-left-paren, .repeat-right-paren {
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 500;
   opacity: 0.8;
-  margin: 0 0.1rem;
 }
 
+.repeat-comma {
+  position: absolute;
+  right: 4px;
+  opacity: 0.7;
+}
+
+/* Keep structure styles but remove old selectors that are no longer used */
 .repeat-inner {
   display: flex;
   flex-wrap: nowrap;
@@ -551,23 +594,15 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.1rem;
   border-radius: 3px;
   font-weight: 500;
-  margin: 0 0.1rem;
-  height: 30px;
+  height: 40px;
   width: 40px;
-  flex-shrink: 0;
   box-sizing: border-box;
-  font-size: 0.85rem;
-}
-
-.repeat-comma {
-  margin: 0;
-  opacity: 0.7;
-  width: 8px;
-  text-align: center;
-  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
 }
 
 .repeat-multiplier {
@@ -1024,28 +1059,26 @@ defineExpose({
 }
 
 /* Large repeat pattern in current stitches */
-.stitch-wrapper.repeat-pattern-large .stitch-symbol {
-  width: auto;
-  min-width: 150px;
-  padding: 0.5rem;
-  background-color: rgba(76, 175, 80, 0.15);
-  border: 1px dashed rgba(76, 175, 80, 0.3);
-  transform: scale(1.1);
-  margin: 0.5rem;
-}
-
 .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-  font-size: 1.1rem;
+  transform: scale(1.1);
+  height: 44px;
+  width: calc((var(--stitch-count) + 1) * 44px) !important;
+  grid-template-columns: 16px repeat(var(--stitch-count), 44px) 28px !important;
 }
 
 .stitch-wrapper.repeat-pattern-large .repeat-left-paren,
 .stitch-wrapper.repeat-pattern-large .repeat-right-paren {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
 }
 
 .stitch-wrapper.repeat-pattern-large .repeat-multiplier {
   font-size: 1.1rem;
-  margin-left: 0.4rem;
+}
+
+.stitch-wrapper.repeat-pattern-large .repeat-stitch {
+  height: 44px;
+  width: 44px;
+  font-size: 0.9rem;
 }
 
 /* Light theme overrides for repeat patterns */
