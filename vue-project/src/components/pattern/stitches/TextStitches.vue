@@ -11,34 +11,36 @@
       <!-- Current stitches slot -->
       <template #current-stitches>
         <template v-if="currentRow && currentRow.codes && currentRow.codes.length">
-          <div v-for="(stitch, i) in currentStitchesView" 
-            :key="`focused-stitch-${i}`" 
-            class="stitch-wrapper"
-            :class="{ 'repeat-pattern-large': isRepeatPattern(stitch) }"
-          >
-            <div class="stitch-symbol" :class="getStitchClass(stitch)">
-              <template v-if="isRepeatPattern(stitch)">
-                <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
-                  <div class="repeat-paren-container left">
-                    <div class="repeat-left-paren">(</div>
-                  </div>
-                  <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
-                    <div class="repeat-stitch-container">
-                      <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
-                        <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
-                      </div>
-                      <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
+          <div class="current-stitches-container" :style="currentStitchesContainerStyle">
+            <div v-for="(stitch, i) in currentStitchesView" 
+              :key="`focused-stitch-${i}`" 
+              class="stitch-wrapper"
+              :class="{ 'repeat-pattern-large': isRepeatPattern(stitch) }"
+            >
+              <div class="stitch-symbol" :class="getStitchClass(stitch)">
+                <template v-if="isRepeatPattern(stitch)">
+                  <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
+                    <div class="repeat-paren-container left">
+                      <div class="repeat-left-paren">(</div>
                     </div>
-                  </template>
-                  <div class="repeat-paren-container right">
-                    <div class="repeat-right-paren">)</div>
-                    <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                    <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
+                      <div class="repeat-stitch-container">
+                        <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                          <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                        </div>
+                        <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
+                      </div>
+                    </template>
+                    <div class="repeat-paren-container right">
+                      <div class="repeat-right-paren">)</div>
+                      <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
+                    </div>
                   </div>
-                </div>
-              </template>
-              <template v-else>
-                <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
-              </template>
+                </template>
+                <template v-else>
+                  <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
+                </template>
+              </div>
             </div>
           </div>
         </template>
@@ -151,6 +153,11 @@ const displayRepeatedStitchesSeparately = ref(false);
 const currentStitchIndex = ref(0);
 const stitchesPerView = ref(props.initialStitchesPerView);
 const stitchVisRef = ref(null);
+const currentStitchesContainerStyle = computed(() => {
+  return {
+    '--stitches-per-view': stitchesPerView.value
+  };
+});
 
 // Computed values 
 const totalStitches = computed(() => {
@@ -403,24 +410,16 @@ function getRepeatGridStyle(stitch) {
   const stitches = getRepeatStitches(stitch);
   const stitchCount = stitches.length;
   
-  // Width of a single stitch in pixels
+  // Fixed width for a single stitch
   const singleStitchWidth = 40; 
-  
-  // Total width: number of stitches inside repeat + 1 extra stitch width
-  const totalWidth = (stitchCount + 1) * singleStitchWidth + 40;
-  
-  // Create a grid with columns:
-  // - First column for left parenthesis (fixed width)
-  // - One column per stitch (each 40px wide)
-  // - Last column for right parenthesis and multiplier (remaining space)
-  const columnsForStitches = `repeat(${stitchCount}, ${singleStitchWidth}px)`;
   
   return {
     display: 'grid',
-    gridTemplateColumns: `15px ${columnsForStitches} 25px`,
-    width: `${totalWidth}px`,
-    justifyContent: 'space-between',
-    gap: '0',
+    gridTemplateColumns: `20px repeat(${stitchCount}, ${singleStitchWidth}px) 30px`,
+    width: 'auto',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '4px',
     '--stitch-count': stitchCount
   };
 }
@@ -461,10 +460,78 @@ defineExpose({
   width: 100%;
 }
 
+/* Current stitches container with fixed width */
+.current-stitches-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 25px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 10px;
+  overflow-x: hidden;
+}
+
 /* Stitch wrapper */
 .stitch-wrapper {
   display: inline-block;
   margin: 2px;
+  transition: all 0.2s ease;
+}
+
+/* Make stitch size responsive based on stitches per view */
+.text-stitches :deep(.current-stitches) .stitch-wrapper {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+
+/* Stitch symbol styling */
+.stitch-symbol {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.text-stitches :deep(.current-stitches) .stitch-symbol {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+/* Make repeat patterns responsive */
+.text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+  width: auto;
+  flex-basis: auto;
+  max-width: 280px;
+}
+
+.text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
+  width: auto !important;
+  max-width: 100%;
+}
+
+.text-stitches :deep(.current-stitches) {
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0;
 }
 
 .stitch-wrapper.preview-stitch {
@@ -485,20 +552,6 @@ defineExpose({
   opacity: 0.7;
   background-color: var(--completed-bg, #555) !important;
   border-color: var(--completed-border, #444) !important;
-}
-
-/* Stitch symbol styling */
-.stitch-symbol {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Stitch count badge */
@@ -917,123 +970,31 @@ defineExpose({
 
 /* Mobile adjustments */
 @media (max-width: 767px) {
-  .stitch-symbol {
-    width: 34px;
-    height: 34px;
-    font-size: 0.75rem;
+  .current-stitches-container {
+    padding: 2px;
+    gap: 2px;
   }
   
-  .stitch-wrapper {
+  .text-stitches :deep(.current-stitches) .stitch-wrapper {
     margin: 1px;
+    min-width: 25px;
   }
   
-  .stitch-wrapper.preview-stitch.current-stitch {
-    transform: translateY(-2px);
+  .text-stitches :deep(.current-stitches) .stitch-symbol {
+    min-width: 25px;
+    height: 34px;
+    font-size: clamp(0.6rem, 1.5vw, 0.75rem);
   }
   
-  .stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
-    border: 1.5px solid var(--accent-color, #4f87ff);
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+    max-width: 100%;
   }
   
-  .stitch-count-badge {
-    min-width: 15px;
-    height: 15px;
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
+    min-width: 25px;
+    height: 25px !important;
+    min-height: 25px;
     font-size: 0.65rem;
-    top: -4px;
-    right: -4px;
-    padding: 0 2px;
-  }
-  
-  .text-stitches :deep(.current-stitches) {
-    gap: 0.25rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 0;
-    min-height: 40px;
-  }
-  
-  .text-stitches :deep(.preview-content) {
-    gap: 0.2rem;
-    padding: 0.25rem 0;
-  }
-  
-  .text-stitches :deep(.stitch-navigation) {
-    padding: 0.5rem 0.25rem;
-    gap: 0.5rem;
-  }
-  
-  .text-stitches :deep(.stitch-content) {
-    min-width: 0;
-    padding: 0;
-  }
-  
-  .text-stitches :deep(.nav-button) {
-    padding: 0.8rem 0.7rem;
-    min-width: 40px;
-    height: 50px;
-  }
-  
-  .text-stitches :deep(.prev-arrow)::before,
-  .text-stitches :deep(.next-arrow)::before,
-  .text-stitches :deep(.prev-arrow)::after,
-  .text-stitches :deep(.next-arrow)::after {
-    display: none;
-  }
-  
-  .text-stitches :deep(.prev-arrow)::after {
-    content: "‹";
-    font-size: 1.8rem;
-    font-weight: bold;
-    display: inline-block;
-  }
-  
-  .text-stitches :deep(.next-arrow)::after {
-    content: "›";
-    font-size: 1.8rem;
-    font-weight: bold;
-    display: inline-block;
-  }
-  
-  .text-stitches :deep(.prev-arrow),
-  .text-stitches :deep(.next-arrow) {
-    font-size: 0;
-    line-height: 0;
-  }
-  
-  .text-stitches :deep(.full-row-preview) {
-    margin-top: 0.25rem;
-    padding-top: 0.75rem;
-  }
-  
-  .text-stitches :deep(.full-row-preview h3) {
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
-  }
-  
-  /* These styles can be removed as StitchKeyTooltip has its own mobile styles */
-  .stitch-key-tooltip-container {
-    width: 310px;
-  }
-  
-  .text-stitch-key-tooltip {
-    width: 310px;
-  }
-  
-  /* These key-item and key-label styles can be removed as they're in the StitchKeyTooltip component */
-  .key-item,
-  .key-label {
-    font-size: 0.7rem;
-    min-width: 0;
-  }
-  
-  .key-item {
-    width: 100%;
-  }
-  
-  .expand-toggle {
-    font-size: 0.8rem;
-    padding: 0.25rem 0.8rem;
-    margin: 0.2rem auto 0.6rem auto;
   }
 }
 
