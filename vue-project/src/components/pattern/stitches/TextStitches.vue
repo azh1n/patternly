@@ -1453,7 +1453,7 @@ defineExpose({
     background-color: rgba(76, 175, 80, 0.15);
     border-color: rgba(76, 175, 80, 0.3);
     border: 1px solid rgba(76, 175, 80, 0.3);
-    width: 70%;
+    width: 85%;
     height: auto;
     padding: 0;
   }
@@ -1468,7 +1468,8 @@ defineExpose({
     justify-content: center;
     align-items: center;
     margin: 0;
-    gap: 0px !important
+    gap: 0 !important;
+    grid-template-columns: 12px repeat(var(--stitch-count), auto) 20px !important;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch-container {
@@ -1476,16 +1477,20 @@ defineExpose({
     align-items: center;
     justify-content: center;
     height: 40px;
+    padding: 0;
+    margin: 0;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch {
-    width: 50px !important;
-    height: 50px !important;
-    font-size: 1.1rem;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 0.9rem;
     font-weight: 600;
     box-shadow: none;
     border: none;
     border-radius: 3px;
+    margin: 0;
+    padding: 0;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-comma {
@@ -1496,16 +1501,20 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 44px;
+    height: 40px;
+    padding: 0;
+    margin: 0;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-paren-container.left {
-    margin-right: -5px;
+    margin-right: 0;
+    padding-right: 0;
     justify-content: flex-end;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-paren-container.right {
-    margin-left: -4px;
+    margin-left: 0;
+    padding-left: 0;
     justify-content: flex-start;
     display: flex;
     align-items: center;
