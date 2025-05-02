@@ -408,6 +408,7 @@ const deletePattern = async () => {
   min-height: 100vh;
   position: relative;
   background-color: var(--main-bg);
+  width: 100%;
 }
 
 .main-container {
@@ -415,6 +416,7 @@ const deletePattern = async () => {
   margin-left: 60px;
   transition: margin-left 0.3s ease;
   width: calc(100% - 60px);
+  max-width: 100%;
 }
 
 .main-container.sidebar-expanded {
@@ -430,6 +432,7 @@ const deletePattern = async () => {
   background-color: var(--header-bg);
   border-bottom: 1px solid var(--border-color);
   height: 60px;
+  width: 100%;
 }
 
 .menu-btn {
@@ -462,6 +465,7 @@ const deletePattern = async () => {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
 }
 
 /* Page header */
@@ -898,9 +902,16 @@ const deletePattern = async () => {
 
 /* Responsive styles */
 @media (max-width: 767px) {
+  .app-layout {
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+  
   .main-container {
     margin-left: 0;
     width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
   
   .main-container.sidebar-expanded {
@@ -910,33 +921,50 @@ const deletePattern = async () => {
   
   .mobile-header {
     display: flex;
+    width: 100%;
   }
   
   .pattern-list-content {
-    padding: 1.5rem 1rem;
+    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
   }
   
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+    width: 100%;
+  }
+  
+  .header-actions {
+    width: 100%;
+  }
+  
+  .add-pattern-btn {
+    width: 100%;
+    justify-content: center;
   }
   
   .filters-container {
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
   }
   
   .filters-group {
     justify-content: space-between;
+    width: 100%;
   }
   
   .patterns-grid {
     grid-template-columns: 1fr;
+    width: 100%;
   }
   
   .pattern-list-item {
     padding: 0.75rem;
+    width: 100%;
   }
   
   .pattern-list-color {
@@ -953,6 +981,12 @@ const deletePattern = async () => {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
+  }
+  
+  .modal-container {
+    width: 95%;
+    max-width: 95%;
+    margin: 0 10px;
   }
 }
 </style> 
