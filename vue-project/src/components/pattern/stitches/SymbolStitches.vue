@@ -724,8 +724,8 @@ function getRepeatGridStyle(stitch) {
 .stitch-count-badge.smaller-badge {
   min-width: 14px;
   height: 14px;
-  top: -4px;
-  right: -4px;
+  top: -2px;
+  right: 0px;
   font-size: 0.5rem;
   padding: 0 2px;
   border-width: 1px;
@@ -1261,7 +1261,8 @@ function getRepeatGridStyle(stitch) {
   font-size: 0.9rem;
   padding: 0;
   white-space: normal;
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3) !important;
   border: 1px dashed var(--border-color);
   display: flex;
   align-items: center;
