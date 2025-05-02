@@ -361,6 +361,9 @@ const getPatternColor = (pattern) => {
 .feature-cards {
   margin-bottom: 3rem;
   width: 100%;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .cards-grid {
@@ -609,6 +612,10 @@ const getPatternColor = (pattern) => {
     font-size: 1rem;
   }
   
+  .feature-cards {
+    max-width: 100%;
+  }
+  
   .recent-patterns-grid {
     grid-template-columns: 1fr;
     grid-auto-flow: row;
@@ -629,6 +636,10 @@ const getPatternColor = (pattern) => {
   .dashboard-content {
     max-width: 100%;
     padding: 1.5rem;
+  }
+  
+  .feature-cards {
+    max-width: 500px;
   }
   
   .recent-patterns-grid {
