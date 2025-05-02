@@ -18,6 +18,37 @@
           <p class="subtitle">Your digital pattern crafting hub</p>
         </div>
         
+        <!-- Recent patterns section - Moved to appear first -->
+        <section class="recent-patterns" v-if="recentPatterns.length > 0">
+          <div class="section-title">
+            <h2>Recently Modified</h2>
+            <router-link to="/patterns" class="view-all">
+              View All
+              <font-awesome-icon icon="chevron-right" />
+            </router-link>
+          </div>
+          
+          <div class="recent-patterns-grid">
+            <div 
+              v-for="pattern in recentPatterns" 
+              :key="pattern.id" 
+              class="pattern-card"
+              @click="viewPattern(pattern.id)"
+            >
+              <div class="pattern-preview">
+                <!-- Pattern preview placeholder -->
+                <div class="pattern-placeholder" :style="{ backgroundColor: getPatternColor(pattern) }">
+                  <font-awesome-icon icon="th" />
+                </div>
+              </div>
+              <div class="pattern-info">
+                <h3>{{ pattern.name }}</h3>
+                <p class="pattern-date">{{ formatDate(pattern.timestamp) }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        
         <!-- Feature navigation cards -->
         <section class="feature-cards">
           <div class="section-title">
@@ -86,37 +117,6 @@
               </div>
               <div class="card-arrow">
                 <font-awesome-icon icon="arrow-right" />
-              </div>
-            </div>
-          </div>
-        </section>
-        
-        <!-- Recent patterns section -->
-        <section class="recent-patterns" v-if="recentPatterns.length > 0">
-          <div class="section-title">
-            <h2>Recently Modified</h2>
-            <router-link to="/patterns" class="view-all">
-              View All
-              <font-awesome-icon icon="chevron-right" />
-            </router-link>
-          </div>
-          
-          <div class="recent-patterns-grid">
-            <div 
-              v-for="pattern in recentPatterns" 
-              :key="pattern.id" 
-              class="pattern-card"
-              @click="viewPattern(pattern.id)"
-            >
-              <div class="pattern-preview">
-                <!-- Pattern preview placeholder -->
-                <div class="pattern-placeholder" :style="{ backgroundColor: getPatternColor(pattern) }">
-                  <font-awesome-icon icon="th" />
-                </div>
-              </div>
-              <div class="pattern-info">
-                <h3>{{ pattern.name }}</h3>
-                <p class="pattern-date">{{ formatDate(pattern.timestamp) }}</p>
               </div>
             </div>
           </div>
@@ -202,6 +202,9 @@ const fetchRecentPatterns = async () => {
       id: doc.id,
       ...doc.data()
     }))
+    
+    // Ensure we have the correct data structure for horizontal display
+    console.log('Recent patterns loaded:', recentPatterns.value.length)
   } catch (error) {
     console.error('Error fetching recent patterns:', error)
   }
@@ -360,8 +363,8 @@ const getPatternColor = (pattern) => {
 }
 
 .cards-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Explicitly set to 4 columns for desktop */
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
 }
 
@@ -443,8 +446,10 @@ const getPatternColor = (pattern) => {
 
 .recent-patterns-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: row;
   gap: 1.5rem;
+  width: 100%;
 }
 
 .pattern-card {
@@ -454,6 +459,7 @@ const getPatternColor = (pattern) => {
   border: 1px solid var(--border-color);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
 }
 
 .pattern-card:hover {
@@ -601,9 +607,9 @@ const getPatternColor = (pattern) => {
     font-size: 1rem;
   }
   
-  .cards-grid,
   .recent-patterns-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-flow: row;
   }
   
   .quick-start-step {
@@ -614,16 +620,16 @@ const getPatternColor = (pattern) => {
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-  .cards-grid,
   .recent-patterns-grid {
     grid-template-columns: repeat(2, 1fr);
+    grid-auto-flow: row;
   }
 }
 
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .cards-grid,
   .recent-patterns-grid {
     grid-template-columns: repeat(3, 1fr);
+    grid-auto-flow: row;
   }
 }
 </style> 
