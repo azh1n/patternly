@@ -23,23 +23,26 @@
         <!-- Pattern header with title, controls, and progress -->
         <div class="pattern-header" v-if="pattern">
           <div class="header-content">
-            <h1>{{ pattern.name }}</h1>
+            <h1 class="pattern-title">{{ pattern.name }}</h1>
             <div class="pattern-controls">
-              <button @click="confirmDelete" class="delete-button">
+              <button @click="confirmDelete" class="delete-button" aria-label="Delete pattern">
                 <font-awesome-icon icon="trash" />
-                Delete Pattern
+                <span class="desktop-only">Delete Pattern</span>
+                <span class="mobile-only">Delete</span>
               </button>
             </div>
           </div>
           <!-- Progress bar showing completion status -->
-          <div class="progress-bar">
-            <div class="progress-track">
-              <div 
-                class="progress-fill"
-                :style="{ width: `${completionPercentage}%` }"
-              ></div>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-track">
+                <div 
+                  class="progress-fill"
+                  :style="{ width: `${completionPercentage}%` }"
+                ></div>
+              </div>
+              <span class="progress-text">{{ completedRows }} of {{ totalRows }} rows completed</span>
             </div>
-            <span class="progress-text">{{ completedRows }} of {{ totalRows }} rows completed</span>
           </div>
         </div>
 
@@ -61,7 +64,7 @@
                 >
                   <font-awesome-icon :icon="isRowComplete ? 'check-circle' : 'circle'" />
                   <span class="desktop-only">{{ isRowComplete ? 'Completed' : 'Mark Complete' }}</span>
-                  <span class="mobile-only">{{ isRowComplete ? 'Done' : 'Complete' }}</span>
+                  <span class="mobile-only">{{ isRowComplete ? 'Done' : 'Mark' }}</span>
                 </button>
                 
                 <button 
@@ -100,6 +103,16 @@
               @input="markAsUnsaved"
               style="color: #ffffff !important;"
             ></textarea>
+            <div class="notes-actions mobile-only">
+              <button @click="saveNotes" class="mobile-save-button" :class="{ 'unsaved': !notesSaved }">
+                <font-awesome-icon icon="save" />
+                Save Notes
+              </button>
+              <button @click="hideNotes" class="mobile-close-button">
+                <font-awesome-icon icon="times" />
+                Close
+              </button>
+            </div>
           </div>
 
           <!-- Pattern card with stitch navigation -->
@@ -131,13 +144,16 @@
               @click="previousRow" 
               class="nav-button large"
               :disabled="currentRowIndex === 0"
+              aria-label="Previous row"
             >
               <font-awesome-icon icon="arrow-left" />
+              <span class="mobile-tooltip">Prev</span>
             </button>
             <div class="row-selector">
               <select 
                 v-model="currentRowIndex" 
                 class="row-select"
+                aria-label="Select row"
               >
                 <option 
                   v-for="(row, index) in parsedRows" 
@@ -153,8 +169,10 @@
               @click="nextRow" 
               class="nav-button large"
               :disabled="currentRowIndex === parsedRows.length - 1"
+              aria-label="Next row"
             >
               <font-awesome-icon icon="arrow-right" />
+              <span class="mobile-tooltip">Next</span>
             </button>
           </div>
           
@@ -1123,10 +1141,11 @@ defineExpose({
   margin-bottom: 1rem;
 }
 
-.header-content h1 {
+.pattern-title {
   margin: 0;
   font-size: 2rem;
   color: var(--text-primary);
+  line-height: 1.3;
 }
 
 /* Delete button styles */
@@ -1148,8 +1167,12 @@ defineExpose({
 }
 
 /* Progress bar styles */
-.progress-bar {
+.progress-container {
   margin-top: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
 }
 
 .progress-track {
@@ -1272,11 +1295,12 @@ defineExpose({
 
 /* Row notes section styles */
 .row-notes-section {
-  margin: 1rem ;
+  margin: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   animation: fadeIn 0.3s ease;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
 }
 
 .notes-header {
@@ -1368,6 +1392,67 @@ defineExpose({
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile notes action buttons */
+.notes-actions {
+  display: none;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  gap: 0.75rem;
+}
+
+.mobile-save-button,
+.mobile-close-button {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.mobile-save-button {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+}
+
+.mobile-save-button.unsaved {
+  animation: pulse 1.5s infinite;
+}
+
+.mobile-close-button {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+/* Mobile specific notes styles */
+@media (max-width: 767px) {
+  .notes-actions.mobile-only {
+    display: flex;
+  }
+  
+  /* Hide header buttons on mobile since we have the bottom buttons */
+  .notes-header .save-notes-button,
+  .notes-header .close-notes-button {
+    display: none;
+  }
+  
+  .notes-header {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .notes-textarea {
+    height: 100px; /* Increased height for easier typing on mobile */
+    padding: 0.75rem;
+    font-size: 16px; /* Prevent iOS zoom on focus */
+    border-bottom: 1px solid var(--border-color);
+  }
 }
 
 /* Row color indicator */
@@ -1497,6 +1582,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  position: relative;
 }
 
 .nav-button:hover:not(:disabled) {
@@ -1515,6 +1601,49 @@ defineExpose({
   max-width: none;
   font-size: 0.9rem;
   padding: 0.6rem 0.8rem;
+}
+
+/* Mobile tooltip for navigation buttons */
+.mobile-tooltip {
+  display: none;
+  position: absolute;
+  bottom: -22px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .nav-button.large {
+    flex: 0 0 auto;
+    min-width: 50px;
+    width: 50px;
+    height: 50px;
+    max-width: none;
+    font-size: 1rem;
+    padding: 0;
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px; /* Make space for the tooltip */
+  }
+  
+  .mobile-tooltip {
+    display: block;
+  }
+  
+  /* Add basic animation for button feedback */
+  .nav-button:active:not(:disabled) {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  
+  .row-navigation {
+    padding-bottom: 1.2rem; /* Add more space at the bottom */
+  }
 }
 
 /* Stitch content styles */
@@ -1757,8 +1886,9 @@ defineExpose({
   }
 
   .pattern-content {
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
 
   .experimental-badge {
@@ -1768,56 +1898,110 @@ defineExpose({
   }
 
   .pattern-header {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
   }
 
   .header-content {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
-  .header-content h1 {
+  .pattern-title {
     font-size: 1.5rem;
+    line-height: 1.3;
+    /* Allow text to wrap nicely on mobile */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+    max-width: 80%;
   }
 
   .delete-button {
-    padding: 0.5rem 0.8rem;
+    padding: 0.6rem;
     font-size: 0.9rem;
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .delete-button .mobile-only {
+    display: none !important;
+  }
+  
+  /* Progress bar enhancements */
+  .progress-track {
+    height: 6px;
+    border-radius: 3px;
+  }
+
+  .progress-text {
+    font-size: 0.85rem;
+    margin-top: 0.6rem;
+    text-align: center;
   }
 
   .row-header {
-    padding: 1rem;
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.02);
   }
 
   .row-number {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
   }
 
   .row-color-indicator {
     font-size: 0.9rem;
+    margin-top: 0.2rem;
+    font-weight: 600;
   }
 
   .row-info {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
   }
   
   .row-info-left {
     width: 100%;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
   
   .row-controls {
     width: 100%;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
   }
   
   .complete-button,
   .notes-button {
     flex: 1;
     justify-content: center;
-    padding: 0.4rem 0.5rem;
-    font-size: 0.9rem;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Notes section enhancements */
+  .row-notes-section {
+    margin: 0.75rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  }
+  
+  .notes-header {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .notes-textarea {
+    height: 100px; /* Increased height for easier typing on mobile */
+    padding: 0.75rem;
+    font-size: 16px; /* Prevent iOS zoom on focus */
   }
 
   .stitch-control {
@@ -1833,64 +2017,69 @@ defineExpose({
   }
 
   .pattern-card {
-    padding: 0.25rem 0;
+    padding: 0.5rem 0;
   }
 
   .stitch-navigation {
-    margin-bottom: 1rem;
+    margin: 0.5rem 0 1rem;
+    padding: 0.5rem;
+  }
+
+  /* Visualization components with proper spacing */
+  
+  .visualization-component :deep(.current-stitches) .stitch-wrapper .stitch-symbol {
+    transform: scale(1.5);
+    margin: 0.5rem;
+    min-height: 40px;
   }
 
   .current-stitches {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     gap: 0.5rem;
+    padding: 0.5rem 0;
   }
 
   .preview-content {
-    grid-template-columns: repeat(auto-fill, minmax(45px, 45px));
+    grid-template-columns: repeat(auto-fill, minmax(42px, 42px));
     gap: 6px;
-    padding: 0.25rem;
+    padding: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: thin;
+    justify-content: flex-start;
   }
 
   .preview-stitch {
     font-size: 0.85rem;
-    width: 45px;
+    width: 42px;
     height: 32px;
+    border-radius: 6px;
   }
   
   /* Scale down text for mobile repeat patterns */
   .preview-stitch.repeat-pattern {
     font-size: 0.75rem;
+    line-height: 1.1;
   }
   
-  /* Scale down text for digit numbers on mobile */
-  .preview-stitch[class*="dc"],
-  .preview-stitch[class*="bs"],
-  .preview-stitch[class*="inc"],
-  .preview-stitch[class*="dec"] {
-    font-size: 0.8rem;
-  }
-  
-  .preview-stitch:is([class*="10"][class*="dc"], [class*="11"][class*="dc"], [class*="20"][class*="dc"], [class*="22"][class*="dc"]) {
-    font-size: 0.75rem;
-  }
-  
-  .preview-stitch:is([class*="30"][class*="dc"]) {
-    font-size: 0.7rem;
+  /* Current stitch highlight enhancement */
+  .preview-stitch.current-stitch {
+    border-width: 2px;
+    box-shadow: 0 0 8px rgba(66, 184, 131, 0.6);
+    transform: translateY(-2px);
   }
 
   .row-navigation {
-    padding: 0.5rem;
-    padding-bottom: 0.5rem;
-    gap: 0.5rem;
+    padding: 0.85rem;
+    gap: 0.75rem;
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
   }
 
   .row-selector {
     order: 0;
-    width: auto;
-    margin-bottom: 0;
+    flex: 1;
     max-width: none;
     display: flex;
     align-items: center;
@@ -1898,50 +2087,93 @@ defineExpose({
     gap: 0.5rem;
   }
   
-  /* Show Row label on mobile by overriding desktop-only */
-  .row-label.desktop-only {
-    display: inline-block !important;
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-right: 0.25rem;
-  }
-  
-  /* Hide row counter on mobile */
-  .row-counter.desktop-only {
-    display: none !important;
-  }
-  
   .row-select {
     min-width: 0;
     flex: 1;
-    padding: 0.5rem;
+    padding: 0.65rem 0.5rem;
     font-size: 0.9rem;
-    border: 1px solid var(--button-border);
-    border-radius: 8px;
-    background-color: var(--button-bg);
-    color: var(--text-primary);
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.5rem center;
+    border-radius: 10px;
+    padding-right: 2rem;
+    background-position: right 0.6rem center;
     background-size: 1rem;
-    padding-right: 1.8rem;
-  }
-  
-  /* Dark mode arrow on mobile */
-  :root:not(.light) .row-select {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   .nav-button.large {
     flex: 0 0 auto;
-    min-width: 80px;
+    min-width: 50px;
+    width: 50px;
+    height: 50px;
     max-width: none;
-    font-size: 0.9rem;
-    padding: 0.6rem 0.8rem;
+    font-size: 1rem;
+    padding: 0;
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Experimental features section */
+  .experimental-features {
+    padding: 1rem 0.75rem;
+  }
+  
+  .feature-button {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+  
+  .toggle-container {
+    display: flex;
+    width: 100%;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .toggle-container .feature-button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* Add enhanced touch handling for mobile */
+@media (max-width: 767px) {
+  /* Increase tap target sizes */
+  button, 
+  .nav-button,
+  .feature-button,
+  select {
+    min-height: 44px; /* Apple's recommended minimum tap target size */
+  }
+  
+  /* Add subtle visual feedback for touch */
+  button:active, 
+  .nav-button:active, 
+  .feature-button:active,
+  .row-select:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+  
+  /* Add momentum-based scrolling for touch devices */
+  .preview-content {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbars on mobile while preserving functionality */
+  .preview-content::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .preview-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
   }
 }
 
