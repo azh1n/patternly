@@ -613,6 +613,7 @@ function getRepeatGridStyle(stitch) {
   margin: 0 auto;
   padding: 15px;
   overflow-x: hidden;
+  overflow-y: visible;
 }
 
 /* Stitch wrapper */
@@ -849,6 +850,11 @@ function getRepeatGridStyle(stitch) {
   .current-stitches-container {
     padding: 2px;
     gap: 2px;
+    overflow: visible;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) {
+    overflow: visible;
   }
   
   .symbol-stitches :deep(.current-stitches) .stitch-wrapper {
