@@ -1,6 +1,6 @@
 <template>
   <div class="app-layout">
-    <SideNavigation v-model:expanded="sidebarExpanded" />
+    <SideNavigation ref="sideNav" v-model:expanded="sidebarExpanded" />
     
     <div class="main-container" :class="{ 'sidebar-expanded': sidebarExpanded }">
       <!-- Mobile header with menu button -->
@@ -68,6 +68,7 @@ const currentTextIndex = ref(0)
 const selectedPattern = ref(null)
 const showAddPattern = ref(false)
 const sidebarExpanded = ref(window.innerWidth >= 768)
+const sideNav = ref(null)
 
 onMounted(async () => {
   try {
@@ -268,7 +269,13 @@ const handlePatternDeleted = async () => {
 
 // Toggle sidebar expanded state
 const toggleSidebar = () => {
-  sidebarExpanded.value = !sidebarExpanded.value
+  if (sideNav.value) {
+    // Call the navigation component's method directly
+    sideNav.value.toggleNavigation()
+  } else {
+    // Fallback to the reactive property if ref isn't available
+    sidebarExpanded.value = !sidebarExpanded.value
+  }
 }
 
 // Watch for user changes

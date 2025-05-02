@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, defineExpose } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserSettings } from '@/services/userSettings'
 
@@ -151,6 +151,11 @@ const toggleNavigation = () => {
 const navigateToHome = () => {
   navigateTo('/')
 }
+
+// Expose methods to parent components
+defineExpose({
+  toggleNavigation
+})
 </script>
 
 <style scoped>

@@ -2,7 +2,7 @@
 <template>
   <!-- Main pattern view container with side navigation -->
   <div class="app-layout">
-    <SideNavigation v-model:expanded="sidebarExpanded" />
+    <SideNavigation ref="sideNav" v-model:expanded="sidebarExpanded" />
     
     <div class="main-container" :class="{ 'sidebar-expanded': sidebarExpanded }">
       <!-- Mobile header with menu button -->
@@ -270,8 +270,18 @@ const { experimentalFeatures } = useUserSettings()
 // Add sidebar toggle functionality
 const sidebarExpanded = ref(window.innerWidth >= 768)
 
+// Add the sideNav ref
+const sideNav = ref(null)
+
+// Update the toggleSidebar function to use the ref
 const toggleSidebar = () => {
-  sidebarExpanded.value = !sidebarExpanded.value
+  if (sideNav.value) {
+    // Call the navigation component's method directly
+    sideNav.value.toggleNavigation()
+  } else {
+    // Fallback to the reactive property if ref isn't available
+    sidebarExpanded.value = !sidebarExpanded.value
+  }
 }
 
 // Load the pattern data when component mounts
@@ -496,10 +506,7 @@ const processPatternWithRepeats = (pattern) => {
 
 // For debugging parsed patterns
 const logPattern = (pattern) => {
-  console.log('Pattern:', pattern);
-  console.log('Expanded:', expandRepeatedSections(pattern));
   const codes = processPatternWithRepeats(pattern);
-  console.log('Codes:', codes);
   return pattern;
 }
 
@@ -927,7 +934,6 @@ onMounted(() => {
     // Only reset row index if NOT zooming
     if (isZooming.value) {
       // During zoom, we want to maintain the current position
-      console.log('Zoom detected, preserving row position');
     }
   };
   
