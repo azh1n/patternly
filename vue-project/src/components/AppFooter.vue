@@ -34,8 +34,10 @@
         <h4 class="footer-heading">Legal</h4>
         <nav class="footer-nav">
           <router-link to="/privacy-policy" class="footer-link">Privacy Policy</router-link>
-          <router-link to="/terms" class="footer-link">Terms of Service</router-link>
-          <router-link to="/cookies" class="footer-link">Cookie Policy</router-link>
+          <router-link to="/terms-of-service" class="footer-link">Terms of Service</router-link>
+          <router-link to="/copyright-policy" class="footer-link">Copyright Policy</router-link>
+          <!-- Refund Policy link temporarily hidden until marketplace is ready -->
+          <!-- <router-link to="/refund-policy" class="footer-link">Refund Policy</router-link> -->
         </nav>
       </div>
       

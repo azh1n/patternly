@@ -14,6 +14,9 @@ import ProfilePage from '../components/ProfilePage.vue'
 import GoogleAuthCallback from '../components/GoogleAuthCallback.vue'
 import AboutView from '../views/AboutView.vue'
 import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
+import TermsOfServiceView from '../views/TermsOfServiceView.vue'
+import CopyrightPolicyView from '../views/CopyrightPolicyView.vue'
+import RefundPolicyView from '../views/RefundPolicyView.vue'
 
 // Initialize user settings to check for experimental features
 const { experimentalFeatures, initSettings } = useUserSettings()
@@ -83,6 +86,25 @@ const router = createRouter({
       component: PrivacyPolicyView,
       meta: { requiresAuth: false }
     },
+    {
+      path: '/terms-of-service',
+      name: 'terms-of-service',
+      component: TermsOfServiceView, 
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/copyright-policy',
+      name: 'copyright-policy',
+      component: CopyrightPolicyView,
+      meta: { requiresAuth: false }
+    },
+    // Refund Policy route temporarily hidden until marketplace is ready
+    // {
+    //   path: '/refund-policy',
+    //   name: 'refund-policy',
+    //   component: RefundPolicyView,
+    //   meta: { requiresAuth: false }
+    // },
     {
       path: '/auth/callback',
       name: 'auth-callback',
