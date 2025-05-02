@@ -308,7 +308,8 @@ const getPatternColor = (pattern) => {
 /* Dashboard content */
 .dashboard-content {
   padding: 2rem;
-  max-width: 100%;
+  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -446,7 +447,7 @@ const getPatternColor = (pattern) => {
 
 .recent-patterns-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   grid-auto-flow: row;
   gap: 1.5rem;
   width: 100%;
@@ -468,7 +469,7 @@ const getPatternColor = (pattern) => {
 }
 
 .pattern-preview {
-  height: 140px;
+  height: 180px;
   overflow: hidden;
 }
 
@@ -597,6 +598,7 @@ const getPatternColor = (pattern) => {
   
   .dashboard-content {
     padding: 1.5rem 1rem;
+    max-width: 100%;
   }
   
   .page-header h1 {
@@ -608,7 +610,7 @@ const getPatternColor = (pattern) => {
   }
   
   .recent-patterns-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     grid-auto-flow: row;
   }
   
@@ -617,18 +619,35 @@ const getPatternColor = (pattern) => {
     gap: 1rem;
     align-items: flex-start;
   }
+  
+  .pattern-preview {
+    height: 160px;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
+  .dashboard-content {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+  
   .recent-patterns-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
     grid-auto-flow: row;
+  }
+  
+  .pattern-preview {
+    height: 160px;
   }
 }
 
 @media (min-width: 1024px) and (max-width: 1279px) {
+  .dashboard-content {
+    max-width: 1000px;
+  }
+  
   .recent-patterns-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
     grid-auto-flow: row;
   }
 }
