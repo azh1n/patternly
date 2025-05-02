@@ -20,25 +20,27 @@
         </div>
       </div>
       
-      <div class="footer-section links">
-        <h4 class="footer-heading">Site</h4>
-        <nav class="footer-nav">
-          <router-link to="/" class="footer-link">Home</router-link>
-          <router-link to="/about" class="footer-link">About</router-link>
-          <router-link to="/tools" class="footer-link">Tools</router-link>
-          <router-link to="/dashboard" class="footer-link">Dashboard</router-link>
-        </nav>
-      </div>
-      
-      <div class="footer-section links">
-        <h4 class="footer-heading">Legal</h4>
-        <nav class="footer-nav">
-          <router-link to="/privacy-policy" class="footer-link">Privacy Policy</router-link>
-          <router-link to="/terms-of-service" class="footer-link">Terms of Service</router-link>
-          <router-link to="/copyright-policy" class="footer-link">Copyright Policy</router-link>
-          <!-- Refund Policy link temporarily hidden until marketplace is ready -->
-          <!-- <router-link to="/refund-policy" class="footer-link">Refund Policy</router-link> -->
-        </nav>
+      <div class="footer-columns">
+        <div class="footer-section links">
+          <h4 class="footer-heading">Site</h4>
+          <nav class="footer-nav">
+            <router-link to="/" class="footer-link">Home</router-link>
+            <router-link to="/about" class="footer-link">About</router-link>
+            <router-link to="/tools" class="footer-link">Tools</router-link>
+            <router-link to="/dashboard" class="footer-link">Dashboard</router-link>
+          </nav>
+        </div>
+        
+        <div class="footer-section links">
+          <h4 class="footer-heading">Legal</h4>
+          <nav class="footer-nav">
+            <router-link to="/privacy-policy" class="footer-link">Privacy Policy</router-link>
+            <router-link to="/terms-of-service" class="footer-link">Terms of Service</router-link>
+            <router-link to="/copyright-policy" class="footer-link">Copyright Policy</router-link>
+            <!-- Refund Policy link temporarily hidden until marketplace is ready -->
+            <!-- <router-link to="/refund-policy" class="footer-link">Refund Policy</router-link> -->
+          </nav>
+        </div>
       </div>
       
       <div class="footer-section newsletter">
@@ -73,8 +75,8 @@ const currentYear = ref(new Date().getFullYear());
 .footer {
   width: 100%;
   background-color: var(--header-bg);
-  padding: 2.5rem 1rem 1rem;
-  margin-top: 3rem;
+  padding: 2rem 1rem 0.75rem;
+  margin-top: 2.5rem;
   border-top: 1px solid var(--border-color);
   color: var(--text-primary);
   position: relative;
@@ -91,11 +93,17 @@ const currentYear = ref(new Date().getFullYear());
   max-width: var(--max-content-width);
   width: 100%;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
   padding: 0 1rem;
   box-sizing: border-box;
+}
+
+.footer-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
 }
 
 .footer-section {
@@ -113,14 +121,14 @@ const currentYear = ref(new Date().getFullYear());
 
 .footer-tagline {
   color: var(--text-secondary);
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
   font-size: 0.95rem;
 }
 
 .footer-heading {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
   color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -129,7 +137,7 @@ const currentYear = ref(new Date().getFullYear());
 .footer-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.8rem;
 }
 
 .footer-link {
@@ -138,17 +146,17 @@ const currentYear = ref(new Date().getFullYear());
   font-size: 0.9rem;
   transition: color 0.2s ease, transform 0.2s ease;
   display: inline-block;
-  padding: 0.1rem 0;
+  padding: 0.4rem 0;
 }
 
-.footer-link:hover {
+.footer-link:hover, .footer-link:active {
   color: var(--accent-color);
   transform: translateX(3px);
 }
 
 .social-links {
   display: flex;
-  gap: 0.8rem;
+  gap: 1rem;
   margin-top: 0.8rem;
 }
 
@@ -156,15 +164,15 @@ const currentYear = ref(new Date().getFullYear());
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background-color: var(--button-bg);
   color: var(--text-secondary);
   transition: all 0.3s ease;
 }
 
-.social-link:hover {
+.social-link:hover, .social-link:active {
   background-color: var(--accent-color);
   color: white;
   transform: translateY(-3px);
@@ -179,9 +187,9 @@ const currentYear = ref(new Date().getFullYear());
 
 .newsletter-form {
   display: flex;
-  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
   gap: 8px;
-  max-width: 300px;
 }
 
 .newsletter-input {
@@ -190,9 +198,10 @@ const currentYear = ref(new Date().getFullYear());
   color: #fff;
   padding: 6px 12px;
   border-radius: 4px;
-  height: 36px;
+  height: 44px;
   font-size: 14px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .newsletter-input:focus {
@@ -204,24 +213,23 @@ const currentYear = ref(new Date().getFullYear());
   background-color: var(--accent-color);
   color: white;
   border: none;
-  padding: 6px 12px;
+  padding: 0 16px;
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
-  height: 32px;
+  height: 44px;
   font-size: 14px;
-  align-self: flex-start;
-  min-width: 90px;
+  white-space: nowrap;
 }
 
-.newsletter-button:hover {
+.newsletter-button:hover, .newsletter-button:active {
   background-color: var(--accent-hover);
 }
 
 .footer-bottom {
   max-width: var(--max-content-width);
   width: 100%;
-  margin: 2rem auto 0;
+  margin: 1.5rem auto 0;
   padding: 1.2rem 1rem 0;
   border-top: 1px solid var(--border-color);
   display: flex;
@@ -250,9 +258,14 @@ const currentYear = ref(new Date().getFullYear());
   }
   
   .footer-content {
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
     padding: 0 2rem;
     gap: 3rem;
+  }
+  
+  .footer-columns {
+    display: contents;
   }
   
   .footer-bottom {
@@ -267,6 +280,10 @@ const currentYear = ref(new Date().getFullYear());
   .footer-content {
     grid-template-columns: 2fr repeat(3, 1fr);
     gap: 2rem;
+  }
+  
+  .footer-columns {
+    display: contents;
   }
 }
 

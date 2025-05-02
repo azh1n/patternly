@@ -11,7 +11,7 @@
     <aside class="nav-sidebar" :class="{ 'expanded': isExpanded }">
       <!-- Logo and collapse button section -->
       <div class="sidebar-header">
-        <h1 class="app-logo" @click="navigateToHome">Patternly</h1>
+        <h1 class="app-logo">Patternly</h1>
         <button class="collapse-btn" @click="toggleNavigation">
           <font-awesome-icon :icon="isExpanded ? 'chevron-left' : 'chevron-right'" />
         </button>
@@ -210,7 +210,6 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: pointer;
 }
 
 .collapse-btn {
