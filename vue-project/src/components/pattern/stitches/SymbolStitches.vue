@@ -1088,6 +1088,17 @@ function getRepeatGridStyle(stitch) {
     font-size: clamp(0.6rem, 1.5vw, 0.75rem);
   }
   
+  /* Add styles for SVG images in focused view on mobile */
+  .symbol-stitches :deep(.current-stitches) .stitch-symbol .stitch-svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-symbol .stitch-svg.medium {
+    width: 18px;
+    height: 18px;
+  }
+  
   /* Focused view repeat styles for mobile */
   .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
     margin-inline: 0;
