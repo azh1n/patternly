@@ -1321,11 +1321,11 @@ function getRepeatGridStyle(stitch) {
   }
   
   .symbol-stitches :deep(.current-stitches) .repeat-badge {
-    top: -8px;
-    right: -8px;
-    min-width: 15px;
-    height: 15px;
-    font-size: 0.65rem;
+    top: -2px;
+    right: 0px;
+    min-width: 14px;
+    height: 14px;
+    font-size: 0.5rem;
   }
 }
 
