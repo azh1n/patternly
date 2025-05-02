@@ -1725,6 +1725,7 @@ defineExpose({
   margin-bottom: 0.75rem;
   font-size: 1.2rem;
   color: var(--text-primary);
+  font-weight: 600;
 }
 
 .preview-content {

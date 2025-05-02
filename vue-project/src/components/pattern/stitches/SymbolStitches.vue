@@ -769,7 +769,6 @@ function getRepeatGridStyle(stitch) {
 
 /* Styling for repeat pattern components */
 .repeat-pattern-content {
-  position: relative;
   display: grid;
   align-items: center;
   justify-content: center;
@@ -814,22 +813,6 @@ function getRepeatGridStyle(stitch) {
   display: none; /* Hide the commas */
 }
 
-.repeat-stitch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-  font-weight: 500;
-  height: 40px;
-  width: 40px;
-  box-sizing: border-box;
-  position: relative;
-  overflow: visible;
-  text-overflow: ellipsis;
-  font-size: 0.8rem;
-}
-
 .repeat-multiplier {
   font-weight: bold;
   color: var(--accent-color);
@@ -838,301 +821,12 @@ function getRepeatGridStyle(stitch) {
   white-space: nowrap;
 }
 
-/* CSS rules for focused view repeat patterns */
-.symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-  margin-inline: 60px;
-  background-color: transparent;
-  border-radius: 0;
-}
-
-.symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  width: 100%;
-  height: auto;
-  padding: 0;
-}
-
-.symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-  transform: none;
-  width: 100% !important;
-  max-width: 100%;
-  height: auto;
-  min-height: 44px;
-  display: grid;
-  justify-content: center;
-  align-items: center;
-  margin: 0;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  margin: 0;
-  overflow: visible;
-  position: relative;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch {
-  width: 50px !important;
-  height: 50px !important;
-  font-size: 1.1rem;
-  font-weight: 600;
-  box-shadow: none;
-  border: none;
-  border-radius: 3px;
-  overflow: visible;
-  position: relative;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-comma {
-  display: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-paren-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 44px;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-paren-container.left {
-  padding-right: 2px;
-  justify-content: flex-end;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-paren-container.right {
-  padding-left: 0;
-  justify-content: flex-start;
-  display: flex;
-  align-items: center;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-left-paren,
-.symbol-stitches :deep(.current-stitches) .repeat-right-paren {
-  font-size: 1.4rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color, #4f87ff);
-  margin-left: 0;
-  font-size: 1.1rem;
-  white-space: nowrap;
-}
-
-/* Desktop styles for repeat patterns */
-@media (min-width: 768px) {
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    margin-inline: 60px;
-    background-color: transparent;
-    border-radius: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-    background-color: rgba(76, 175, 80, 0.15);
-    border-color: rgba(76, 175, 80, 0.3);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    width: 100%;
-    height: auto;
-    padding: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-    transform: none;
-    width: 100% !important;
-    max-width: 100%;
-    height: auto;
-    min-height: 44px;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-stitch-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    margin: 0;
-    overflow: visible;
-    position: relative;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-stitch {
-    width: 50px !important;
-    height: 50px !important;
-    font-size: 1.1rem;
-    font-weight: 600;
-    box-shadow: none;
-    border: none;
-    border-radius: 3px;
-    overflow: visible;
-    position: relative;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-comma {
-    display: none;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 44px;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container.left {
-    padding-right: 2px;
-    justify-content: flex-end;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container.right {
-    padding-left: 0;
-    justify-content: flex-start;
-    display: flex;
-    align-items: center;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-left-paren,
-  .symbol-stitches :deep(.current-stitches) .repeat-right-paren {
-    font-size: 1.4rem;
-    font-weight: 500;
-    opacity: 0.8;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-multiplier {
-    font-weight: bold;
-    color: var(--accent-color, #4f87ff);
-    margin-left: 0;
-    font-size: 1.1rem;
-    white-space: nowrap;
-  }
-}
-
-/* Mobile styles for repeat patterns */
-@media (max-width: 767px) {
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    margin-inline: 60px;
-    background-color: transparent;
-    border-radius: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-    background-color: rgba(76, 175, 80, 0.15);
-    border-color: rgba(76, 175, 80, 0.3);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    width: 100%;
-    height: auto;
-    padding: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-    transform: none;
-    width: 100% !important;
-    max-width: 100%;
-    height: auto;
-    min-height: 44px;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-stitch-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    margin: 0;
-    overflow: visible;
-    position: relative;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-stitch {
-    width: 50px !important;
-    height: 50px !important;
-    font-size: 1.1rem;
-    font-weight: 600;
-    box-shadow: none;
-    border: none;
-    border-radius: 3px;
-    overflow: visible;
-    position: relative;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-comma {
-    display: none;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 44px;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container.left {
-    padding-right: 2px;
-    justify-content: flex-end;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container.right {
-    padding-left: 0;
-    justify-content: flex-start;
-    display: flex;
-    align-items: center;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-left-paren,
-  .symbol-stitches :deep(.current-stitches) .repeat-right-paren {
-    font-size: 1.4rem;
-    font-weight: 500;
-    opacity: 0.8;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-multiplier {
-    font-weight: bold;
-    color: var(--accent-color, #4f87ff);
-    margin-left: 0;
-    font-size: 1.1rem;
-    white-space: nowrap;
-  }
-}
-
-.stitch-svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-/* SVG size variants for repeat patterns */
-.stitch-svg.small {
-  width: 26px;
-  height: 26px;
-  margin: 0;
-  padding: 0;
-}
-
-.stitch-svg.medium {
-  width: 30px;
-  height: 30px;
-  margin: 0;
-  padding: 0;
-}
-
 /* Large repeat pattern in current stitches */
 .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
   transform: scale(1.1);
   height: 44px;
   width: calc((var(--stitch-count) + 1) * 44px) !important;
-  grid-template-columns: 16px repeat(var(--stitch-count), 44px) 28px !important;
+  grid-template-columns: 16px repeat(var(--stitch-count), 50px) 28px !important;
 }
 
 .stitch-wrapper.repeat-pattern-large .repeat-left-paren,
@@ -1148,10 +842,6 @@ function getRepeatGridStyle(stitch) {
   height: 44px;
   width: 44px;
   font-size: 0.9rem;
-}
-
-.stitch-symbol.with-count {
-  overflow: visible;
 }
 
 /* Mobile adjustments */
@@ -1184,258 +874,17 @@ function getRepeatGridStyle(stitch) {
     font-size: 0.65rem;
   }
   
-  .symbol-stitches :deep(.current-stitches) .stitch-svg.medium {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-.expand-toggle {
-  margin: 0.5rem auto 1rem auto;
-  padding: 0.35rem 1.2rem;
-  background: var(--accent-color, #4f87ff);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  outline: none;
-  display: inline-block;
-  align-self: center;
-}
-
-.expand-toggle[aria-pressed="true"] {
-  background: var(--accent-hover, #3a6fd9);
-}
-
-:root.light .expand-toggle {
-  background: #2979ff;
-  color: white;
-}
-
-:root.light .expand-toggle[aria-pressed="true"] {
-  background: #1565c0;
-}
-
-/* Light theme overrides */
-:root.light .stitch-symbol {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  color: #333;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-:root.light .stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
-  background-color: #e0e0e0 !important;
-  border-color: #ccc !important;
-}
-
-/* Stitch key tooltip */
-.stitch-key-wrapper {
-  position: relative;
-  display: inline-block;
-  align-self: flex-end;
-  margin: 0;
-  margin-left: auto;
-}
-
-.stitch-key-trigger {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-secondary, #aaa);
-  font-size: 0.8rem;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.stitch-key-trigger:hover {
-  color: var(--text-primary);
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.question-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: var(--text-secondary, #aaa);
-  color: var(--bg-primary, #222);
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.tooltip-text {
-  font-size: 0.75rem;
-}
-
-.stitch-key-tooltip-container {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  z-index: 100;
-  display: none;
-}
-
-.stitch-key-wrapper:hover .stitch-key-tooltip-container {
-  display: block;
-}
-
-/* Light theme styles */
-.stitch-key-tooltip-container.light-theme {
-  background-color: #FFFFFF !important;
-  border: 1px solid #E0E0E0 !important;
-  color: #333333 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-key-tooltip-container.light-theme h5 {
-  color: #333333 !important;
-}
-
-.stitch-key-tooltip-container.light-theme .key-item {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
-}
-
-.stitch-key-tooltip-container.light-theme .key-label {
-  color: #333333 !important;
-}
-
-/* Dark theme styles */
-.stitch-key-tooltip-container.dark-theme {
-  background-color: #333333 !important;
-  border: 1px solid #444444 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-.stitch-key-tooltip-container.dark-theme h5 {
-  color: #FFFFFF !important;
-}
-
-.stitch-key-tooltip-container.dark-theme .key-item {
-  background-color: rgba(0, 0, 0, 0.15) !important;
-  border-color: transparent !important;
-}
-
-.stitch-key-tooltip-container.dark-theme .key-label {
-  color: #FFFFFF !important;
-}
-
-/* Remove media query as we handle theme in JS */
-@media (prefers-color-scheme: dark) {
-  .stitch-key-tooltip-container {
-    background-color: #333333;
-    border: 1px solid #444444;
-    color: #FFFFFF;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  .symbol-stitches :deep(.full-row-preview) {
+    margin-top: 0.25rem;
+    padding-top: 0.75rem;
   }
   
-  .stitch-key-tooltip-container h5 {
-    color: #FFFFFF;
+  .symbol-stitches :deep(.full-row-preview h3) {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
   }
   
-  .key-item {
-    background-color: rgba(0, 0, 0, 0.15);
-    border-color: transparent;
-  }
-  
-  .key-label {
-    color: #FFFFFF;
-  }
-}
-
-/* Remove app-specific dark mode styling as we handle it in JS */
-:root:not(.light) .stitch-key-tooltip-container {
-  background-color: #333333 !important;
-  border: 1px solid #444444 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-:root:not(.light) .stitch-key-tooltip-container h5 {
-  color: #FFFFFF !important;
-}
-
-:root:not(.light) .key-item {
-  background-color: rgba(0, 0, 0, 0.15) !important;
-  border-color: transparent !important;
-}
-
-:root:not(.light) .key-label {
-  color: #FFFFFF !important;
-}
-
-/* Keep structure styles but remove color styles */
-.stitch-key-tooltip h5 {
-  margin: 0 0 0.75rem;
-  font-size: 0.9rem;
-  text-align: center;
-  /* Color will be set via JavaScript */
-}
-
-.key-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: flex-start;
-}
-
-.key-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  width: calc(50% - 0.375rem);
-  min-width: 180px;
-  /* Colors will be set via JavaScript */
-}
-
-.key-label {
-  font-size: 0.75rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 140px;
-  /* Color will be set via JavaScript */
-}
-
-/* Light theme overrides for repeat patterns */
-:root.light .stitch-wrapper.repeat-pattern .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.1);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-:root.light .repeat-multiplier {
-  color: #4CAF50;
-}
-
-/* Dark theme overrides for repeat patterns */
-:root:not(.light) .stitch-wrapper.repeat-pattern .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-/* Mobile adjustments */
-@media (max-width: 767px) {
-  .stitch-symbol {
-    width: 34px;
-    height: 34px;
-    font-size: 0.75rem;
-  }
-  
-  .stitch-wrapper {
+  .stitch-wrapper.preview-stitch {
     margin: 1px;
   }
   
@@ -1447,158 +896,58 @@ function getRepeatGridStyle(stitch) {
     border: 1.5px solid var(--accent-color, #4f87ff);
   }
   
-  .stitch-count-badge {
-    min-width: 15px;
-    height: 15px;
-    font-size: 0.65rem;
-    top: -4px;
-    right: -4px;
-    padding: 0 2px;
-  }
-  
-  .expand-toggle {
-    font-size: 0.8rem;
-    padding: 0.25rem 0.8rem;
-    margin: 0.2rem auto 0.6rem auto;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) {
-    gap: 0.25rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 0;
-    min-height: 40px;
-  }
-  
   .symbol-stitches :deep(.preview-content) {
-    gap: 0.2rem;
-    padding: 0.25rem 0;
-  }
-  
-  .symbol-stitches :deep(.stitch-navigation) {
-    padding: 0.5rem 0.25rem;
-    gap: 0.5rem;
-  }
-  
-  .symbol-stitches :deep(.stitch-content) {
-    min-width: 0;
-    padding: 0;
-  }
-  
-  .symbol-stitches :deep(.nav-button) {
-    padding: 0.8rem 0.7rem;
-    min-width: 40px;
-    height: 50px;
-  }
-  
-  .symbol-stitches :deep(.prev-arrow),
-  .symbol-stitches :deep(.next-arrow) {
-    font-size: 0;
-    line-height: 0;
-  }
-  
-  .symbol-stitches :deep(.prev-arrow)::after {
-    content: "‹";
-    font-size: 1.8rem;
-    font-weight: bold;
-    display: inline-block;
-  }
-  
-  .symbol-stitches :deep(.next-arrow)::after {
-    content: "›";
-    font-size: 1.8rem;
-    font-weight: bold;
-    display: inline-block;
-  }
-  
-  .symbol-stitches :deep(.full-row-preview) {
-    margin-top: 0.25rem;
-    padding-top: 0.75rem;
-  }
-  
-  .symbol-stitches :deep(.full-row-preview h3) {
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
-  }
-  
-  .stitch-key-tooltip {
-    width: 340px;
-    left: auto;
-    right: 0;
-  }
-  
-  .key-item {
-    width: 100%;
-    font-size: 0.7rem;
-    min-width: 0;
-  }
-  
-  .key-label {
-    font-size: 0.7rem;
-    min-width: 0;
-  }
-  .symbol-stitches :deep(.full-row-preview) {
-    margin-top: 0.25rem;
-    padding-top: 0.75rem;
+    gap: 2px;
+    padding: 2px 0;
   }
 }
 
-/* Light theme overrides */
-:root.light .stitch-symbol {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  color: #333;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+/* Full row preview styling */
+.symbol-stitches :deep(.full-row-preview) {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #444);
 }
 
-:root.light .stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
-  background-color: #e0e0e0 !important;
-  border-color: #ccc !important;
+.symbol-stitches :deep(.full-row-preview h3) {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
-:root.light .expand-toggle {
-  background: #2979ff;
-  color: white;
+.symbol-stitches :deep(.preview-content) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
-:root.light .expand-toggle[aria-pressed="true"] {
-  background: #1565c0;
+/* Stitch appearance in preview */
+.stitch-wrapper.preview-stitch .stitch-symbol {
+  width: 45px;
+  height: 45px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 1rem;
 }
 
-/* Mobile arrow styling */
-.symbol-stitches :deep(.prev-arrow)::before,
-.symbol-stitches :deep(.next-arrow)::before,
-.symbol-stitches :deep(.prev-arrow)::after,
-.symbol-stitches :deep(.next-arrow)::after {
-  display: none;
+.stitch-wrapper.preview-stitch .stitch-svg {
+  width: 35px;
+  height: 35px;
+  object-fit: contain;
 }
 
-@media (max-width: 767px) {
-  .symbol-stitches :deep(.nav-button) {
-    padding: 0.8rem 0.7rem;
-    min-width: 40px;
-    height: 50px;
-  }
-  
-  .symbol-stitches :deep(.prev-arrow),
-  .symbol-stitches :deep(.next-arrow) {
-    font-size: 0;
-    line-height: 0;
-  }
-  
-  .symbol-stitches :deep(.prev-arrow)::after {
-    content: "‹";
-    font-size: 1.8rem;
-    font-weight: bold;
-    display: inline-block;
-  }
-  
-  .symbol-stitches :deep(.next-arrow)::after {
-    content: "›";
-    font-size: 1.8rem;
-    font-weight: bold;
-    display: inline-block;
-  }
+.stitch-wrapper.preview-stitch .stitch-svg.small {
+  width: 28px;
+  height: 28px;
 }
 
 /* Additional theme targeting using CSS variables */
@@ -1674,5 +1023,406 @@ function getRepeatGridStyle(stitch) {
     height: 15px;
     font-size: 0.65rem;
   }
+}
+
+/* Light theme overrides for completed stitches */
+:root.light .stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
+  background-color: #e0e0e0 !important;
+  border-color: #ccc !important;
+}
+
+.symbol-stitches :deep(.preview-content) {
+  gap: 0.2rem;
+  padding: 0.25rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.stitch-wrapper.preview-stitch {
+  position: relative;
+  transition: all 0.2s ease;
+  margin: 2px;
+}
+
+.stitch-wrapper.preview-stitch.current-stitch {
+  transform: translateY(-3px);
+}
+
+.stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
+  border: 2px solid var(--accent-color, #4f87ff);
+  box-shadow: 0 0 8px rgba(79, 135, 255, 0.4);
+}
+
+.stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
+  opacity: 0.7;
+  background-color: var(--completed-bg, #555) !important;
+  border-color: var(--completed-border, #444) !important;
+}
+
+/* Mobile specific preview adjustments */
+@media (max-width: 767px) {
+  .symbol-stitches :deep(.full-row-preview) {
+    margin-top: 0.25rem;
+    padding-top: 0.75rem;
+  }
+  
+  .symbol-stitches :deep(.full-row-preview h3) {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .stitch-wrapper.preview-stitch {
+    margin: 1px;
+  }
+  
+  .stitch-wrapper.preview-stitch.current-stitch {
+    transform: translateY(-2px);
+  }
+  
+  .stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
+    border: 1.5px solid var(--accent-color, #4f87ff);
+  }
+}
+
+/* Full row preview styling */
+.symbol-stitches :deep(.full-row-preview) {
+  margin-top: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #444);
+}
+
+.symbol-stitches :deep(.full-row-preview h3) {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.symbol-stitches :deep(.preview-content) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Stitch appearance in preview */
+.stitch-wrapper.preview-stitch .stitch-symbol {
+  width: 45px;
+  height: 45px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.stitch-wrapper.preview-stitch .stitch-svg {
+  width: 35px;
+  height: 35px;
+  object-fit: contain;
+}
+
+.stitch-wrapper.preview-stitch .stitch-svg.small {
+  width: 28px;
+  height: 28px;
+}
+
+/* Increase badge size for preview */
+.stitch-wrapper.preview-stitch .stitch-count-badge {
+  min-width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  top: -8px;
+  right: -8px;
+  padding: 0 4px;
+}
+
+/* Larger repeat pattern stitches */
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
+  width: 45px !important;
+  height: 45px !important;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 767px) {
+  .stitch-wrapper.preview-stitch .stitch-symbol {
+    width: 40px;
+    height: 40px;
+    font-size: 0.85rem;
+  }
+  
+  .stitch-wrapper.preview-stitch .stitch-svg {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .stitch-wrapper.preview-stitch .stitch-svg.small {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .stitch-wrapper.preview-stitch .stitch-count-badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Styling for repeat pattern components */
+.repeat-pattern-content {
+  position: relative;
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+}
+
+.repeat-stitch-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  position: relative;
+}
+
+.repeat-paren-container {
+  display: flex;
+  align-items: center;
+  height: 40px;
+}
+
+.repeat-paren-container.left {
+  justify-content: flex-end;
+  padding-right: 2px;
+}
+
+.repeat-paren-container.right {
+  justify-content: flex-start;
+  padding-left: 0;
+  display: flex;
+  align-items: center;
+}
+
+.repeat-left-paren, .repeat-right-paren {
+  font-size: 1.2rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.repeat-comma {
+  display: none; /* Hide the commas */
+}
+
+.repeat-stitch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-weight: 500;
+  height: 40px;
+  width: 40px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: visible;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+}
+
+.repeat-multiplier {
+  font-weight: bold;
+  color: var(--accent-color);
+  margin-left: 0; /* Remove the margin to bring multiplier closer to parenthesis */
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+/* Repeat pattern styling in preview */
+.stitch-wrapper.preview-stitch.repeat-pattern {
+  width: auto;
+  min-width: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .stitch-symbol {
+  width: auto;
+  min-width: 150px;
+  height: auto;
+  min-height: 45px;
+  font-size: 0.9rem;
+  padding: 0;
+  white-space: normal;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px dashed var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  box-sizing: border-box;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 45px;
+  gap: 4px;
+  grid-template-columns: 20px repeat(var(--stitch-count), 45px) 30px;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
+  width: 45px !important;
+  height: 45px !important;
+  font-size: 0.9rem;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-left-paren,
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-right-paren {
+  font-size: 1.4rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
+  font-weight: bold;
+  color: var(--accent-color);
+  margin-left: 0;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .stitch-wrapper.preview-stitch.repeat-pattern .stitch-symbol {
+    min-width: 120px;
+    min-height: 40px;
+    font-size: 0.8rem;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
+    height: 40px;
+    gap: 2px;
+    grid-template-columns: 15px repeat(var(--stitch-count), 40px) 25px;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 0.85rem;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-left-paren,
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-right-paren {
+    font-size: 1.2rem;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
+    font-size: 0.9rem;
+  }
+}
+
+/* Stitch key wrapper */
+.stitch-key-wrapper {
+  position: relative;
+  display: inline-block;
+  align-self: flex-end;
+  margin: 0;
+}
+
+.stitch-key-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary, #aaa);
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.stitch-key-trigger:hover {
+  color: var(--text-primary);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.question-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--text-secondary, #aaa);
+  color: var(--bg-primary, #222);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.tooltip-text {
+  font-size: 0.75rem;
+}
+
+.stitch-key-tooltip-container {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  z-index: 100;
+  display: none;
+}
+
+.stitch-key-wrapper:hover .stitch-key-tooltip-container {
+  display: block;
+}
+
+/* Expand toggle button */
+.expand-toggle {
+  margin: 0.5rem auto 1rem auto;
+  padding: 0.35rem 1.2rem;
+  background: var(--accent-color, #4f87ff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  outline: none;
+  display: inline-block;
+  align-self: center;
+}
+
+.expand-toggle[aria-pressed="true"] {
+  background: var(--accent-hover, #3a6fd9);
+}
+
+/* Light theme overrides */
+:root.light .expand-toggle {
+  background: #2979ff;
+  color: white;
+}
+
+:root.light .expand-toggle[aria-pressed="true"] {
+  background: #1565c0;
+}
+
+:root.light .question-mark {
+  background-color: #aaa;
+  color: white;
+}
+
+:root.light .stitch-key-trigger:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 </style> 

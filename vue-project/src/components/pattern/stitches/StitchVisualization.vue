@@ -406,6 +406,7 @@ defineExpose({
   margin-bottom: 1rem;
   font-size: 1.2rem;
   color: var(--text-primary);
+  font-weight: 600;
 }
 
 .preview-content {
