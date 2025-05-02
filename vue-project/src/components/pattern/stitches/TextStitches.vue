@@ -1444,7 +1444,7 @@ defineExpose({
 /* Mobile styles for repeat patterns */
 @media (max-width: 767px) {
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    margin-inline: 60px;
+    margin-inline: 0;
     background-color: transparent;
     border-radius: 0;
   }
@@ -1453,7 +1453,7 @@ defineExpose({
     background-color: rgba(76, 175, 80, 0.15);
     border-color: rgba(76, 175, 80, 0.3);
     border: 1px solid rgba(76, 175, 80, 0.3);
-    width: 100%;
+    width: 70%;
     height: auto;
     padding: 0;
   }
@@ -1468,6 +1468,7 @@ defineExpose({
     justify-content: center;
     align-items: center;
     margin: 0;
+    gap: 0px !important
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch-container {
@@ -1475,7 +1476,6 @@ defineExpose({
     align-items: center;
     justify-content: center;
     height: 40px;
-    margin: 0;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch {
@@ -1500,12 +1500,12 @@ defineExpose({
   }
   
   .text-stitches :deep(.current-stitches) .repeat-paren-container.left {
-    padding-right: 2px;
+    margin-right: -5px;
     justify-content: flex-end;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-paren-container.right {
-    padding-left: 0;
+    margin-left: -4px;
     justify-content: flex-start;
     display: flex;
     align-items: center;
@@ -1513,7 +1513,7 @@ defineExpose({
   
   .text-stitches :deep(.current-stitches) .repeat-left-paren,
   .text-stitches :deep(.current-stitches) .repeat-right-paren {
-    font-size: 1.4rem;
+    font-size: 1rem;
     font-weight: 500;
     opacity: 0.8;
   }
@@ -1522,7 +1522,7 @@ defineExpose({
     font-weight: bold;
     color: var(--accent-color, #4f87ff);
     margin-left: 0;
-    font-size: 1.1rem;
+    font-size: 0.8rem;
     white-space: nowrap;
   }
 }
