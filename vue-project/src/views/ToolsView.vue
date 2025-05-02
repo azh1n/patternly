@@ -25,7 +25,7 @@
         
         <!-- Tools section -->
         <div class="tools-grid">
-          <div class="tool-card" @click="activeToolView = 'firebase-test'">
+          <div v-if="isLocalhost" class="tool-card" @click="activeToolView = 'firebase-test'">
             <div class="tool-icon">
               <font-awesome-icon icon="database" />
             </div>
@@ -98,7 +98,7 @@
           </div>
           
           <!-- Firebase Test Tool -->
-          <div v-if="activeToolView === 'firebase-test'" class="tool-content-view">
+          <div v-if="activeToolView === 'firebase-test' && isLocalhost" class="tool-content-view">
             <FirebaseTest />
           </div>
         </div>
@@ -108,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import SideNavigation from '@/components/SideNavigation.vue'
 import FirebaseTest from '@/components/FirebaseTest.vue'
@@ -117,6 +117,18 @@ const router = useRouter()
 const sidebarExpanded = ref(window.innerWidth >= 768)
 const sideNav = ref(null)
 const activeToolView = ref(null)
+const isLocalhost = ref(false)
+
+onMounted(() => {
+  // Check if the application is running on localhost
+  isLocalhost.value = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1'
+  
+  // Reset the active tool view if it's firebase-test and not localhost
+  if (activeToolView.value === 'firebase-test' && !isLocalhost.value) {
+    activeToolView.value = null
+  }
+})
 
 const toggleSidebar = () => {
   if (sideNav.value) {
@@ -136,7 +148,7 @@ const navigateToAbout = () => {
 const getToolTitle = (toolId) => {
   switch (toolId) {
     case 'firebase-test':
-      return 'Firebase Connectivity Test'
+      return isLocalhost.value ? 'Firebase Connectivity Test' : 'Tool'
     default:
       return 'Tool'
   }
