@@ -993,7 +993,8 @@ defineExpose({
   
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
     min-width: 25px;
-    height: 25px !important;
+    height: 40px !important;
+    width: 40px !important;
     min-height: 25px;
     font-size: 0.65rem;
   }
