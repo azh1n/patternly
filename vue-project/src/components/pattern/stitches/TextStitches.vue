@@ -1334,7 +1334,6 @@ defineExpose({
 
 .text-stitches :deep(.current-stitches) .repeat-stitch-item {
   width: 100%;
-  margin-bottom: 4px;
 }
 
 /* Hide commas in focused view */
@@ -1365,7 +1364,7 @@ defineExpose({
 }
 
 .text-stitches :deep(.current-stitches) .repeat-content {
-  padding: 8px 12px;
+  padding: 5px 12px;
   min-height: 38px;
 }
 
