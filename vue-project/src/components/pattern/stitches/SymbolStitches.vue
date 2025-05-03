@@ -1215,6 +1215,11 @@ function getRepeatGridStyle(stitch) {
     gap: 2px;
     padding: 2px 0;
   }
+  
+  /* Full preview repeat pattern mobile styles */
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
+    padding-inline: 0px !important;
+  }
 }
 
 /* Full row preview styling */

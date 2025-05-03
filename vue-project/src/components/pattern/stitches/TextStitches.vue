@@ -1534,6 +1534,11 @@ defineExpose({
     font-size: 0.8rem;
     white-space: nowrap;
   }
+  
+  /* Full preview repeat pattern mobile styles */
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
+    padding-inline: 0px !important;
+  }
 }
 </style> 
 
