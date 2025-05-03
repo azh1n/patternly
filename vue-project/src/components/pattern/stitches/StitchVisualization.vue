@@ -412,7 +412,7 @@ defineExpose({
 .preview-content {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
   overflow-x: auto;
   padding: 0.5rem;

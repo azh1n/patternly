@@ -1760,7 +1760,7 @@ const handlePatternUpdated = (updatedPattern) => {
 .preview-content {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(50px, 50px));
-  gap: 8px;
+  gap: 10px;
   margin-top: 1rem;
   padding: 0.5rem;
   overflow-x: auto;
