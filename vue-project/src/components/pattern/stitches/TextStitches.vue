@@ -969,7 +969,48 @@ defineExpose({
   border-color: #ccc !important;
 }
 
-/* Mobile adjustments */
+/* Desktop and mobile specific styles */
+@media (min-width: 768px) {
+  /* Ensure preview stitches match SymbolStitches.vue in desktop view */
+  .stitch-wrapper.preview-stitch .stitch-symbol {
+    width: 45px;
+    height: 45px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .stitch-symbol {
+    width: auto;
+    min-width: 150px;
+    height: auto;
+    min-height: 45px;
+    padding: 0;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
+    display: grid;
+    height: 45px;
+    grid-template-columns: 20px repeat(var(--stitch-count), 45px) 30px;
+    gap: 4px;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 0.9rem;
+  }
+  
+  .text-stitches :deep(.preview-content) {
+    gap: 10px;
+    padding: 10px;
+  }
+}
+
+/* Mobile styles for repeat patterns */
 @media (max-width: 767px) {
   .current-stitches-container {
     padding: 2px;
@@ -989,461 +1030,6 @@ defineExpose({
   
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
     max-width: 100%;
-  }
-  
-  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
-    min-width: 25px;
-    height: 40px !important;
-    width: 40px !important;
-    min-height: 25px;
-    font-size: 0.65rem;
-  }
-}
-
-.expand-toggle {
-  margin: 0.5rem auto 1rem auto;
-  padding: 0.35rem 1.2rem;
-  background: var(--accent-color, #4f87ff);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  outline: none;
-  display: inline-block;
-  align-self: center;
-}
-
-.expand-toggle[aria-pressed="true"] {
-  background: var(--accent-hover, #3a6fd9);
-}
-
-.stitch-symbol.with-count {
-  overflow: visible;
-}
-
-:root.light .expand-toggle {
-  background: #2979ff;
-  color: white;
-}
-
-:root.light .expand-toggle[aria-pressed="true"] {
-  background: #1565c0;
-}
-
-/* Large repeat pattern in current stitches */
-.stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-  transform: scale(1.1);
-  height: 44px;
-  width: calc((var(--stitch-count) + 1) * 44px) !important;
-  grid-template-columns: 16px repeat(var(--stitch-count), 50px) 28px !important;
-}
-
-.stitch-wrapper.repeat-pattern-large .repeat-left-paren,
-.stitch-wrapper.repeat-pattern-large .repeat-right-paren {
-  font-size: 1.4rem;
-}
-
-.stitch-wrapper.repeat-pattern-large .repeat-multiplier {
-  font-size: 1.1rem;
-}
-
-.stitch-wrapper.repeat-pattern-large .repeat-stitch {
-  height: 44px;
-  width: 44px;
-  font-size: 0.9rem;
-}
-
-/* Light theme overrides for repeat patterns */
-:root.light .stitch-wrapper.repeat-pattern .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.1);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-:root.light .repeat-multiplier {
-  color: #4CAF50;
-}
-
-/* Dark theme overrides for repeat patterns */
-:root:not(.light) .stitch-wrapper.repeat-pattern .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-:root:not(.light) .repeat-multiplier {
-  color: #4CAF50;
-}
-
-/* Stitch type colors */
-.stitch-symbol.stitch-sc {
-  background-color: #e91e63;
-  color: white;
-  border-color: #c2185b;
-}
-
-.stitch-symbol.stitch-dc {
-  background-color: #2196f3;
-  color: white;
-  border-color: #1976d2;
-}
-
-.stitch-symbol.stitch-hdc {
-  background-color: #673ab7;
-  color: white;
-  border-color: #512da8;
-}
-
-.stitch-symbol.stitch-tr {
-  background-color: #ff9800;
-  color: white;
-  border-color: #f57c00;
-}
-
-.stitch-symbol.stitch-dtr {
-  background-color: #ff5722;
-  color: white;
-  border-color: #e64a19;
-}
-
-.stitch-symbol.stitch-ch {
-  background-color: #4caf50;
-  color: white;
-  border-color: #388e3c;
-}
-
-.stitch-symbol.stitch-sl {
-  background-color: #9e9e9e;
-  color: white;
-  border-color: #757575;
-}
-
-.stitch-symbol.stitch-inc {
-  background-color: #3f51b5;
-  color: white;
-  border-color: #303f9f;
-}
-
-.stitch-symbol.stitch-dec {
-  background-color: #9c27b0;
-  color: white;
-  border-color: #7b1fa2;
-}
-
-.stitch-symbol.stitch-bs {
-  background-color: #00bcd4;
-  color: white;
-  border-color: #0097a7;
-}
-
-.stitch-symbol.stitch-ns {
-  background-color: #607d8b;
-  color: white;
-  border-color: #546e7a;
-}
-
-/* CSS rules for focused view repeat patterns */
-.text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-  margin-inline: 60px;
-  background-color: transparent;
-  border-radius: 0;
-}
-
-.text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  width: 100%;
-  height: auto;
-  padding: 0;
-}
-
-.text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-  transform: none;
-  width: 100% !important;
-  max-width: 100%;
-  height: auto;
-  min-height: 44px;
-  display: grid;
-  justify-content: center;
-  align-items: center;
-  margin: 0;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  margin: 0;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch {
-  width: 50px !important;
-  height: 50px !important;
-  font-size: 1.1rem;
-  font-weight: 600;
-  box-shadow: none;
-  border: none;
-  border-radius: 3px;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-comma {
-  display: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-paren-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 44px;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-paren-container.left {
-  padding-right: 2px;
-  justify-content: flex-end;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-paren-container.right {
-  padding-left: 0;
-  justify-content: flex-start;
-  display: flex;
-  align-items: center;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-left-paren,
-.text-stitches :deep(.current-stitches) .repeat-right-paren {
-  font-size: 1.4rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color, #4f87ff);
-  margin-left: 0;
-  font-size: 1.1rem;
-  white-space: nowrap;
-}
-
-/* Override stitch colors in focused view repeat patterns to match the preview */
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-sc {
-  background-color: rgba(76, 175, 80, 0.25);
-  color: #e8f5e9;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-dc {
-  background-color: rgba(33, 150, 243, 0.25);
-  color: #e3f2fd;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-hdc {
-  background-color: rgba(103, 58, 183, 0.25);
-  color: #ede7f6;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-tr {
-  background-color: rgba(255, 152, 0, 0.25);
-  color: #fff8e1;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-dtr {
-  background-color: rgba(255, 87, 34, 0.25);
-  color: #fbe9e7;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-ch {
-  background-color: rgba(76, 175, 80, 0.25);
-  color: #e8f5e9;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-sl {
-  background-color: rgba(158, 158, 158, 0.25);
-  color: #f5f5f5;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-inc {
-  background-color: rgba(63, 81, 181, 0.25);
-  color: #e8eaf6;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-dec {
-  background-color: rgba(156, 39, 176, 0.25);
-  color: #f3e5f5;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-bs {
-  background-color: rgba(0, 188, 212, 0.25);
-  color: #e0f7fa;
-  border: none;
-}
-
-.text-stitches :deep(.current-stitches) .repeat-stitch.stitch-ns {
-  background-color: rgba(96, 125, 139, 0.25);
-  color: #eceff1;
-  border: none;
-}
-
-/* Light theme overrides for focused view repeat stitches */
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-sc {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: #1b5e20;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-dc {
-  background-color: rgba(33, 150, 243, 0.2);
-  color: #0d47a1;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-hdc {
-  background-color: rgba(103, 58, 183, 0.2);
-  color: #4a148c;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-tr {
-  background-color: rgba(255, 152, 0, 0.2);
-  color: #e65100;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-dtr {
-  background-color: rgba(255, 87, 34, 0.2);
-  color: #bf360c;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-ch {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: #1b5e20;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-sl {
-  background-color: rgba(158, 158, 158, 0.2);
-  color: #212121;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-inc {
-  background-color: rgba(63, 81, 181, 0.2);
-  color: #1a237e;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-dec {
-  background-color: rgba(156, 39, 176, 0.2);
-  color: #4a148c;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-bs {
-  background-color: rgba(0, 188, 212, 0.2);
-  color: #006064;
-}
-
-:root.light .text-stitches :deep(.current-stitches) .repeat-stitch.stitch-ns {
-  background-color: rgba(96, 125, 139, 0.2);
-  color: #263238;
-}
-
-/* Light theme override for focused repeat pattern container */
-:root.light .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.1);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-/* Desktop styles for repeat patterns */
-@media (min-width: 768px) {
-  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    margin-inline: 60px;
-    background-color: transparent;
-    border-radius: 0;
-  }
-  
-  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-    background-color: rgba(76, 175, 80, 0.15);
-    border-color: rgba(76, 175, 80, 0.3);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    width: 100%;
-    height: auto;
-    padding: 0;
-  }
-  
-  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-    transform: none;
-    width: 100% !important;
-    max-width: 100%;
-    height: auto;
-    min-height: 44px;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-stitch-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    margin: 0;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-stitch {
-    width: 50px !important;
-    height: 50px !important;
-    font-size: 1.1rem;
-    font-weight: 600;
-    box-shadow: none;
-    border: none;
-    border-radius: 3px;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-comma {
-    display: none;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-paren-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 44px;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-paren-container.left {
-    padding-right: 2px;
-    justify-content: flex-end;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-paren-container.right {
-    padding-left: 0;
-    justify-content: flex-start;
-    display: flex;
-    align-items: center;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-left-paren,
-  .text-stitches :deep(.current-stitches) .repeat-right-paren {
-    font-size: 1.4rem;
-    font-weight: 500;
-    opacity: 0.8;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-multiplier {
-    font-weight: bold;
-    color: var(--accent-color, #4f87ff);
-    margin-left: 0;
-    font-size: 1.1rem;
-    white-space: nowrap;
-  }
-}
-
-/* Mobile styles for repeat patterns */
-@media (max-width: 767px) {
-  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
     margin-inline: 0;
     background-color: transparent;
     border-radius: 0;
@@ -1456,6 +1042,14 @@ defineExpose({
     width: 85%;
     height: auto;
     padding: 0;
+  }
+  
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
+    min-width: 25px;
+    height: 40px !important;
+    width: 40px !important;
+    min-height: 25px;
+    font-size: 0.65rem;
   }
   
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
@@ -1539,6 +1133,122 @@ defineExpose({
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
     padding-inline: 0px !important;
   }
+}
+
+/* Expand toggle button */
+.expand-toggle {
+  margin: 0.5rem auto 1rem auto;
+  padding: 0.35rem 1.2rem;
+  background: var(--accent-color, #4f87ff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  outline: none;
+  display: inline-block;
+  align-self: center;
+}
+
+.expand-toggle[aria-pressed="true"] {
+  background: var(--accent-hover, #3a6fd9);
+}
+
+.stitch-symbol.with-count {
+  overflow: visible;
+}
+
+/* Light theme overrides for expand toggle */
+:root.light .expand-toggle {
+  background: #2979ff;
+  color: white;
+}
+
+:root.light .expand-toggle[aria-pressed="true"] {
+  background: #1565c0;
+}
+
+/* Full row preview styling */
+.text-stitches :deep(.full-row-preview) {
+  margin-top: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #444);
+}
+
+.text-stitches :deep(.full-row-preview h3) {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.text-stitches :deep(.preview-content) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Repeat pattern styling in preview */
+.stitch-wrapper.preview-stitch.repeat-pattern {
+  width: auto;
+  min-width: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .stitch-symbol {
+  width: auto;
+  min-width: 150px;
+  height: auto;
+  min-height: 45px;
+  font-size: 0.9rem;
+  padding: 0;
+  white-space: normal;
+  background-color: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3) !important;
+  border: 1px dashed var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  box-sizing: border-box;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 45px;
+  gap: 4px;
+  grid-template-columns: 20px repeat(var(--stitch-count), 45px) 30px;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
+  width: 45px !important;
+  height: 45px !important;
+  font-size: 0.9rem;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-left-paren,
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-right-paren {
+  font-size: 1.4rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
+  font-weight: bold;
+  color: var(--accent-color);
+  margin-left: 0;
+  font-size: 1.1rem;
+  white-space: nowrap;
 }
 </style> 
 
