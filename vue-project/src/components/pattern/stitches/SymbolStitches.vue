@@ -34,7 +34,7 @@
                             />
                           </template>
                           <template v-else>
-                            <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                            <span v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                           </template>
                           <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge">
                             {{ getStitchCount(repeatStitch) }}
