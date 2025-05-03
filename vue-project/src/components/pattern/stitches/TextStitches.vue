@@ -1461,9 +1461,9 @@ defineExpose({
 /* Adjust the repeat card for the focused view to make it look more like the preview */
 .text-stitches :deep(.current-stitches) .repeat-card {
   min-width: auto;
-  width: 100%;
+  width: 75%;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 10px auto;
 }
 
 .text-stitches :deep(.current-stitches) .repeat-header {
