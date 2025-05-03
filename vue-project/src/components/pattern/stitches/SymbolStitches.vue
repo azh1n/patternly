@@ -16,15 +16,21 @@
               :key="`focused-stitch-${i}`" 
               class="stitch-wrapper"
               :class="{ 'repeat-pattern-large': isRepeatPattern(stitch) }"
+              :style="isRepeatPattern(stitch) ? 
+                {'--repeat-stitch-count': getRepeatStitches(stitch).length} : {}"
             >
               <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
                 <template v-if="isRepeatPattern(stitch)">
-                  <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
-                    <div class="repeat-paren-container left">
-                      <div class="repeat-left-paren">(</div>
+                  <div class="repeat-card">
+                    <div class="repeat-header">
+                      <span class="repeat-label">Repeat</span>
+                      <span class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</span>
                     </div>
-                    <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`current-repeat-stitch-${rIndex}`">
-                      <div class="repeat-stitch-container">
+                    <div class="repeat-content" 
+                        :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
+                      <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
+                          :key="`current-repeat-stitch-${rIndex}`"
+                          class="repeat-stitch-item">
                         <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
                           <template v-if="checkSymbolExists(repeatStitch)">
                             <img 
@@ -34,18 +40,13 @@
                             />
                           </template>
                           <template v-else>
-                            <span v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                            <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                           </template>
                           <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge">
                             {{ getStitchCount(repeatStitch) }}
                           </div>
                         </div>
-                        <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
                       </div>
-                    </template>
-                    <div class="repeat-paren-container right">
-                      <div class="repeat-right-paren">)</div>
-                      <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
                     </div>
                   </div>
                 </template>
@@ -86,12 +87,16 @@
           >
             <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
               <template v-if="isRepeatPattern(stitch)">
-                <div class="repeat-pattern-content" :style="getRepeatGridStyle(stitch)">
-                  <div class="repeat-paren-container left">
-                    <div class="repeat-left-paren">(</div>
+                <div class="repeat-card preview">
+                  <div class="repeat-header">
+                    <span class="repeat-label">Repeat</span>
+                    <span class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</span>
                   </div>
-                  <template v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
-                    <div class="repeat-stitch-container">
+                  <div class="repeat-content"
+                      :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
+                    <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
+                        :key="`repeat-stitch-${rIndex}`"
+                        class="repeat-stitch-item">
                       <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
                         <template v-if="checkSymbolExists(repeatStitch)">
                           <img 
@@ -101,18 +106,14 @@
                           />
                         </template>
                         <template v-else>
-                          {{ getStitchType(repeatStitch) }}
+                          <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                         </template>
                         <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge">
                           {{ getStitchCount(repeatStitch) }}
                         </div>
                       </div>
-                      <div v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</div>
+                      <span v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</span>
                     </div>
-                  </template>
-                  <div class="repeat-paren-container right">
-                    <div class="repeat-right-paren">)</div>
-                    <div class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</div>
                   </div>
                 </div>
               </template>
@@ -768,804 +769,6 @@ function getRepeatGridStyle(stitch) {
   box-sizing: border-box;
 }
 
-/* Styling for repeat pattern components */
-.repeat-pattern-content {
-  display: grid;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 40px;
-}
-
-.repeat-stitch-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 40px;
-  position: relative;
-}
-
-.repeat-paren-container {
-  display: flex;
-  align-items: center;
-  height: 40px;
-}
-
-.repeat-paren-container.left {
-  justify-content: flex-end;
-  padding-right: 2px;
-}
-
-.repeat-paren-container.right {
-  justify-content: flex-start;
-  padding-left: 0;
-  display: flex;
-  align-items: center;
-}
-
-.repeat-left-paren, .repeat-right-paren {
-  font-size: 1.2rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.repeat-comma {
-  display: none; /* Hide the commas */
-}
-
-.repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color);
-  margin-left: 0; /* Remove the margin to bring multiplier closer to parenthesis */
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-/* Large repeat pattern in current stitches */
-.stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-  transform: scale(1.1);
-  height: 44px;
-  width: calc((var(--stitch-count) + 1) * 44px) !important;
-  grid-template-columns: 16px repeat(var(--stitch-count), 50px) 28px !important;
-}
-
-.stitch-wrapper.repeat-pattern-large .repeat-left-paren,
-.stitch-wrapper.repeat-pattern-large .repeat-right-paren {
-  font-size: 1.4rem;
-}
-
-.stitch-wrapper.repeat-pattern-large .repeat-multiplier {
-  font-size: 1.1rem;
-}
-
-.stitch-wrapper.repeat-pattern-large .repeat-stitch {
-  height: 44px;
-  width: 44px;
-  font-size: 0.9rem;
-}
-
-/* CSS rules for focused view repeat patterns - copied from TextStitches.vue */
-.symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-  margin-inline: 60px;
-  background-color: transparent;
-  border-radius: 0;
-}
-
-.symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  width: 100%;
-  height: auto;
-  padding: 0;
-}
-
-.symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-  transform: none;
-  width: 100% !important;
-  max-width: 100%;
-  height: auto;
-  min-height: 44px;
-  display: grid;
-  justify-content: center;
-  align-items: center;
-  margin: 0;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  margin: 0;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-  font-weight: 500;
-  height: 50px !important;
-  width: 50px !important;
-  box-sizing: border-box;
-  overflow: visible;
-  text-overflow: ellipsis;
-  font-size: 1.1rem;
-  font-weight: 600;
-  box-shadow: none;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-comma {
-  display: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-paren-container {
-  display: flex;
-  align-items: center;
-  height: 44px;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-paren-container.left {
-  justify-content: flex-end;
-  padding-right: 2px;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-paren-container.right {
-  justify-content: flex-start;
-  padding-left: 0;
-  display: flex;
-  align-items: center;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-left-paren,
-.symbol-stitches :deep(.current-stitches) .repeat-right-paren {
-  font-size: 1.4rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color, #4f87ff);
-  margin-left: 0;
-  font-size: 1.1rem;
-  white-space: nowrap;
-}
-
-/* Light theme override for focused repeat pattern container */
-:root.light .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-  background-color: rgba(76, 175, 80, 0.1);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-/* Override stitch colors in focused view repeat patterns to match the preview */
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-sc {
-  background-color: rgba(76, 175, 80, 0.25);
-  color: #e8f5e9;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-dc {
-  background-color: rgba(33, 150, 243, 0.25);
-  color: #e3f2fd;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-hdc {
-  background-color: rgba(103, 58, 183, 0.25);
-  color: #ede7f6;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-tr {
-  background-color: rgba(255, 152, 0, 0.25);
-  color: #fff8e1;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-dtr {
-  background-color: rgba(255, 87, 34, 0.25);
-  color: #fbe9e7;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-ch {
-  background-color: rgba(76, 175, 80, 0.25);
-  color: #e8f5e9;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-sl {
-  background-color: rgba(158, 158, 158, 0.25);
-  color: #f5f5f5;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-inc {
-  background-color: rgba(63, 81, 181, 0.25);
-  color: #e8eaf6;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-dec {
-  background-color: rgba(156, 39, 176, 0.25);
-  color: #f3e5f5;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-bs {
-  background-color: rgba(0, 188, 212, 0.25);
-  color: #e0f7fa;
-  border: none;
-}
-
-.symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-ns {
-  background-color: rgba(96, 125, 139, 0.25);
-  color: #eceff1;
-  border: none;
-}
-
-/* Light theme overrides for focused view repeat stitches */
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-sc {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: #1b5e20;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-dc {
-  background-color: rgba(33, 150, 243, 0.2);
-  color: #0d47a1;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-hdc {
-  background-color: rgba(103, 58, 183, 0.2);
-  color: #4a148c;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-tr {
-  background-color: rgba(255, 152, 0, 0.2);
-  color: #e65100;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-dtr {
-  background-color: rgba(255, 87, 34, 0.2);
-  color: #bf360c;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-ch {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: #1b5e20;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-sl {
-  background-color: rgba(158, 158, 158, 0.2);
-  color: #212121;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-inc {
-  background-color: rgba(63, 81, 181, 0.2);
-  color: #1a237e;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-dec {
-  background-color: rgba(156, 39, 176, 0.2);
-  color: #4a148c;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-bs {
-  background-color: rgba(0, 188, 212, 0.2);
-  color: #006064;
-}
-
-:root.light .symbol-stitches :deep(.current-stitches) .repeat-stitch.stitch-ns {
-  background-color: rgba(96, 125, 139, 0.2);
-  color: #263238;
-}
-
-/* Mobile styles for repeat patterns */
-@media (max-width: 767px) {
-  .current-stitches-container {
-    padding: 2px;
-    gap: 2px;
-    overflow: visible;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) {
-    overflow: visible;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper {
-    margin: 1px;
-    min-width: 25px;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-symbol {
-    min-width: 25px;
-    height: 34px;
-    font-size: clamp(0.6rem, 1.5vw, 0.75rem);
-  }
-  
-  /* Add styles for SVG images in focused view on mobile */
-  .symbol-stitches :deep(.current-stitches) .stitch-symbol .stitch-svg {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-symbol .stitch-svg.medium {
-    width: 18px;
-    height: 18px;
-  }
-  
-  /* Focused view repeat styles for mobile */
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    margin-inline: 0;
-    background-color: transparent;
-    border-radius: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-    background-color: rgba(76, 175, 80, 0.15);
-    border-color: rgba(76, 175, 80, 0.3);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    width: 85%;
-    height: auto;
-    padding: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
-    transform: none;
-    width: 100% !important;
-    max-width: 100%;
-    height: auto;
-    min-height: 44px;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-    gap: 0 !important;
-    grid-template-columns: 12px repeat(var(--stitch-count), auto) 20px !important;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-stitch-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-stitch {
-    width: 40px !important;
-    height: 40px !important;
-    font-size: 0.9rem;
-    font-weight: 600;
-    box-shadow: none;
-    border: none;
-    border-radius: 3px;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container.left {
-    margin-right: 0;
-    padding-right: 0;
-    justify-content: flex-end;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-paren-container.right {
-    margin-left: 0;
-    padding-left: 0;
-    justify-content: flex-start;
-    display: flex;
-    align-items: center;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-left-paren,
-  .symbol-stitches :deep(.current-stitches) .repeat-right-paren {
-    font-size: 1rem;
-    font-weight: 500;
-    opacity: 0.8;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-multiplier {
-    font-weight: bold;
-    color: var(--accent-color, #4f87ff);
-    margin-left: 0;
-    font-size: 0.8rem;
-    white-space: nowrap;
-  }
-  
-  /* Full row preview mobile styles - restored */
-  .symbol-stitches :deep(.full-row-preview) {
-    margin-top: 0.25rem;
-    padding-top: 0.75rem;
-  }
-  
-  .symbol-stitches :deep(.full-row-preview h3) {
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
-  }
-  
-  .stitch-wrapper.preview-stitch {
-    margin: 1px;
-  }
-  
-  .stitch-wrapper.preview-stitch.current-stitch {
-    transform: translateY(-2px);
-  }
-  
-  .stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
-    border: 1.5px solid var(--accent-color, #4f87ff);
-  }
-  
-  .symbol-stitches :deep(.preview-content) {
-    gap: 2px;
-    padding: 2px 0;
-  }
-  
-  /* Full preview repeat pattern mobile styles */
-  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
-    padding-inline: 0px !important;
-  }
-}
-
-/* Full row preview styling */
-.symbol-stitches :deep(.full-row-preview) {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #444);
-}
-
-.symbol-stitches :deep(.full-row-preview h3) {
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-  text-align: center;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.symbol-stitches :deep(.preview-content) {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px;
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-/* Stitch appearance in preview */
-.stitch-wrapper.preview-stitch .stitch-symbol {
-  width: 45px;
-  height: 45px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 1rem;
-}
-
-.stitch-wrapper.preview-stitch .stitch-svg {
-  width: 35px;
-  height: 35px;
-  object-fit: contain;
-}
-
-.stitch-wrapper.preview-stitch .stitch-svg.small {
-  width: 28px;
-  height: 28px;
-}
-
-/* Additional theme targeting using CSS variables */
-.stitch-key-tooltip {
-  background-color: var(--card-bg, #FFFFFF) !important;
-  border: 1px solid var(--border-color, #E0E0E0) !important;
-  color: var(--text-primary, #333333) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-}
-
-.stitch-key-tooltip h5 {
-  color: var(--text-primary, #333333) !important;
-}
-
-.key-item {
-  background-color: var(--hover-bg, rgba(0, 0, 0, 0.05)) !important;
-  border-color: var(--border-color, rgba(0, 0, 0, 0.05)) !important;
-}
-
-.key-label {
-  color: var(--text-primary, #333333) !important;
-}
-
-/* Base repeat badge styling */
-.repeat-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 16px;
-  height: 16px;
-  font-size: 0.65rem;
-  z-index: 999;
-  padding: 0 3px;
-}
-
-/* Specific styling for repeat badges in the preview row */
-.symbol-stitches :deep(.preview-stitch) .repeat-badge {
-  top: -6px;
-  right: -6px;
-  z-index: 999;
-}
-
-/* Specific styling for repeat badges in the focused view */
-.symbol-stitches :deep(.current-stitches) .repeat-badge {
-  top: -4px;
-  right: -5px;
-  min-width: 14px;
-  height: 14px;
-  font-size: 0.5rem;
-  z-index: 1;
-}
-
-/* Ensure the repeat pattern containers can display badges properly */
-.symbol-stitches :deep(.current-stitches) .repeat-stitch,
-.symbol-stitches :deep(.preview-content) .repeat-stitch {
-  overflow: visible;
-  position: relative;
-}
-
-@media (max-width: 767px) {
-  .repeat-badge {
-    min-width: 14px;
-    height: 14px;
-    font-size: 0.6rem;
-    top: -5px;
-    right: -5px;
-  }
-  
-  .symbol-stitches :deep(.current-stitches) .repeat-badge {
-    top: -2px;
-    right: 0px;
-    min-width: 14px;
-    height: 14px;
-    font-size: 0.5rem;
-  }
-}
-
-/* Light theme overrides for completed stitches */
-:root.light .stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
-  background-color: #e0e0e0 !important;
-  border-color: #ccc !important;
-}
-
-.symbol-stitches :deep(.preview-content) {
-  gap: 0.2rem;
-  padding: 0.25rem 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.stitch-wrapper.preview-stitch {
-  position: relative;
-  transition: all 0.2s ease;
-  margin: 2px;
-}
-
-.stitch-wrapper.preview-stitch.current-stitch {
-  transform: translateY(-3px);
-}
-
-.stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
-  border: 2px solid var(--accent-color, #4f87ff);
-  box-shadow: 0 0 8px rgba(79, 135, 255, 0.4);
-}
-
-.stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
-  opacity: 0.7;
-  background-color: var(--completed-bg, #555) !important;
-  border-color: var(--completed-border, #444) !important;
-}
-
-/* Mobile specific preview adjustments */
-@media (max-width: 767px) {
-  .symbol-stitches :deep(.full-row-preview) {
-    margin-top: 0.25rem;
-    padding-top: 0.75rem;
-  }
-  
-  .symbol-stitches :deep(.full-row-preview h3) {
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
-  }
-  
-  .stitch-wrapper.preview-stitch {
-    margin: 1px;
-  }
-  
-  .stitch-wrapper.preview-stitch.current-stitch {
-    transform: translateY(-2px);
-  }
-  
-  .stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
-    border: 1.5px solid var(--accent-color, #4f87ff);
-  }
-}
-
-/* Full row preview styling */
-.symbol-stitches :deep(.full-row-preview) {
-  margin-top: 0.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color, #444);
-}
-
-.symbol-stitches :deep(.full-row-preview h3) {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  text-align: center;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.symbol-stitches :deep(.preview-content) {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  padding: 10px;
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-/* Stitch appearance in preview */
-.stitch-wrapper.preview-stitch .stitch-symbol {
-  width: 45px;
-  height: 45px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 1rem;
-}
-
-.stitch-wrapper.preview-stitch .stitch-svg {
-  width: 35px;
-  height: 35px;
-  object-fit: contain;
-}
-
-.stitch-wrapper.preview-stitch .stitch-svg.small {
-  width: 28px;
-  height: 28px;
-}
-
-/* Increase badge size for preview */
-.stitch-wrapper.preview-stitch .stitch-count-badge {
-  min-width: 20px;
-  height: 20px;
-  font-size: 0.75rem;
-  top: -8px;
-  right: -8px;
-  padding: 0 4px;
-}
-
-/* Larger repeat pattern stitches */
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
-  width: 45px !important;
-  height: 45px !important;
-  font-size: 0.9rem;
-}
-
-@media (max-width: 767px) {
-  .stitch-wrapper.preview-stitch .stitch-symbol {
-    width: 40px;
-    height: 40px;
-    font-size: 0.85rem;
-  }
-  
-  .stitch-wrapper.preview-stitch .stitch-svg {
-    width: 30px;
-    height: 30px;
-  }
-  
-  .stitch-wrapper.preview-stitch .stitch-svg.small {
-    width: 24px;
-    height: 24px;
-  }
-  
-  .stitch-wrapper.preview-stitch .stitch-count-badge {
-    min-width: 18px;
-    height: 18px;
-    font-size: 0.7rem;
-  }
-}
-
-/* Styling for repeat pattern components */
-.repeat-pattern-content {
-  position: relative;
-  display: grid;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 40px;
-}
-
-.repeat-stitch-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 40px;
-  position: relative;
-}
-
-.repeat-paren-container {
-  display: flex;
-  align-items: center;
-  height: 40px;
-}
-
-.repeat-paren-container.left {
-  justify-content: flex-end;
-  padding-right: 2px;
-}
-
-.repeat-paren-container.right {
-  justify-content: flex-start;
-  padding-left: 0;
-  display: flex;
-  align-items: center;
-}
-
-.repeat-left-paren, .repeat-right-paren {
-  font-size: 1.2rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.repeat-comma {
-  display: none; /* Hide the commas */
-}
-
-.repeat-stitch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-  font-weight: 500;
-  height: 40px;
-  width: 40px;
-  box-sizing: border-box;
-  position: relative;
-  overflow: visible;
-  text-overflow: ellipsis;
-  font-size: 0.8rem;
-}
-
-.repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color);
-  margin-left: 0; /* Remove the margin to bring multiplier closer to parenthesis */
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-/* Repeat pattern styling in preview */
 .stitch-wrapper.preview-stitch.repeat-pattern {
   width: auto;
   min-width: auto;
@@ -1745,5 +948,385 @@ function getRepeatGridStyle(stitch) {
 
 :root.light .stitch-key-trigger:hover {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Modern repeat pattern styling */
+.repeat-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  max-width: 350px;
+  width: auto;
+  background: rgba(60, 60, 70, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.repeat-card.preview {
+  min-width: 180px;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.repeat-card.preview .repeat-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  gap: 10px;
+}
+
+.repeat-card.preview .repeat-stitch-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.repeat-card.preview .repeat-stitch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+}
+
+.repeat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(60, 60, 70, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.repeat-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.repeat-multiplier {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent-color, #4f87ff);
+}
+
+.repeat-content {
+  display: flex;
+  flex-wrap: wrap; /* Changed from nowrap to wrap */
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Current view specific styles for repeat content */
+.symbol-stitches :deep(.current-stitches) .repeat-content {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.symbol-stitches :deep(.current-stitches) .repeat-stitch-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+/* Hide commas in focused view */
+.symbol-stitches :deep(.current-stitches) .repeat-comma {
+  display: inline-block;
+  margin: 0 2px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Make the repeat pattern take the full width in the focused view */
+.symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+  flex: 0 0 100%; /* Take full row */
+  max-width: 100%;
+  width: 100%;
+  margin: 15px 0; /* Add vertical spacing */
+  justify-content: center;
+}
+
+/* Adjust the repeat card for the focused view to make it look more like the preview */
+.symbol-stitches :deep(.current-stitches) .repeat-card {
+  min-width: auto;
+  width: 75%;
+  max-width: 100%;
+  margin: 10px auto;
+}
+
+.symbol-stitches :deep(.current-stitches) .repeat-header {
+  padding: 0px 10px;
+  background: rgba(60, 60, 70, 0.25);
+}
+
+.symbol-stitches :deep(.current-stitches) .repeat-content {
+  padding: 8px 12px;
+  min-height: 38px;
+}
+
+/* Desktop styles for repeat content */
+@media (min-width: 768px) {
+  .symbol-stitches :deep(.current-stitches) .repeat-card {
+    width: 100%;
+    /* Calculate min-width based on number of stitches, with 40px per stitch plus padding */
+    min-width: calc(40px * var(--repeat-stitch-count, 1) + 80px);
+    /* Set a maximum width as a fallback */
+    max-width: min(calc(40px * var(--repeat-stitch-count, 1) + 80px), 100%);
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+    /* Ensure the wrapper properly sizes itself to the contents */
+    width: auto;
+    max-width: 100%;
+    justify-content: center;
+    align-items: center;
+    margin: 25px;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-content {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    /* Ensure all stitches fit properly */
+    padding: 8px calc(4px * var(--repeat-stitch-count, 1) / 4 + 8px);
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-stitch-item {
+    display: flex;
+    align-items: center;
+    /* Adjust spacing based on number of stitches */
+    margin-right: calc(4px * (3 / var(--repeat-stitch-count, 3)));
+    margin-bottom: 4px;
+    flex-shrink: 1;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-stitch {
+    flex-shrink: 1;
+    /* Sizing is proportional to number of stitches */
+    min-width: calc(40px * (3 / var(--repeat-stitch-count, 1)));
+    width: auto !important;
+    height: auto !important;
+    min-height: 36px;
+    padding: 4px 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    font-size: calc(0.85rem * (4 / (var(--repeat-stitch-count, 3) + 1)));
+  }
+}
+
+/* Mobile repeat pattern styles from TextStitches.vue */
+@media (max-width: 767px) {
+  .current-stitches-container {
+    padding: 3px;
+    gap: 3px;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper {
+    margin: 1px;
+    min-width: 30px;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-symbol {
+    min-width: 30px;
+    height: 34px;
+    font-size: clamp(0.6rem, 1.5vw, 0.75rem);
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+    max-width: 95%;
+    margin: 10px auto;
+    background-color: transparent;
+    border-radius: 0;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    height: auto;
+    padding: 0;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-card {
+    width: 100%;
+    min-width: auto;
+    border-radius: 6px;
+    background: rgba(60, 60, 70, 0.15);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-header {
+    padding: 4px 8px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.3px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-multiplier {
+    font-size: 0.65rem;
+    color: var(--accent-color, #4f87ff);
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
+    min-width: 32px;
+    height: 32px !important;
+    width: 32px !important;
+    min-height: 32px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    margin: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-content {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(30px, auto));
+    justify-content: center;
+    align-items: center;
+    justify-items: center;
+    gap: 0;
+    padding: 8px 0;
+    width: 100% !important;
+    max-width: 100%;
+    height: auto;
+    min-height: 44px;
+    transform: none;
+    box-sizing: border-box;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch-item {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
+    width: 30px !important;
+    height: 32px !important;
+    min-width: 30px;
+    min-height: 32px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: none;
+    border: none;
+    border-radius: 4px;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .repeat-comma {
+    display: none;
+  }
+  
+  .symbol-stitches :deep(.current-stitches) .stitch-count-inline {
+    font-size: 0.7rem;
+    margin-right: 1px;
+    font-weight: 700;
+  }
+  
+  /* Preview repeat patterns for mobile */
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-card.preview {
+    min-width: 160px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 0.75rem;
+    margin: 1px;
+    border-radius: 4px;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-content {
+    padding: 6px 4px;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch-item {
+    margin: 1px;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
+    font-size: 0.6rem;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-label {
+    font-size: 0.55rem;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-header {
+    padding: 3px 6px;
+    height: 20px;
+  }
+  
+  /* Light theme adjustments for mobile */
+  :root.light .symbol-stitches :deep(.current-stitches) .repeat-card {
+    background: rgba(240, 240, 240, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  :root.light .symbol-stitches :deep(.current-stitches) .repeat-header {
+    background: rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  :root.light .symbol-stitches :deep(.current-stitches) .repeat-label {
+    color: rgba(0, 0, 0, 0.7);
+  }
+  
+  /* Style the repeat stitches to look like the preview */
+  .symbol-stitches :deep(.current-stitches) .repeat-stitch {
+    min-width: 0;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0 8px;
+  }
+  
+  /* Specific style for repeat stitches to handle badges properly */
+  .symbol-stitches :deep(.current-stitches) .repeat-stitch, 
+  .symbol-stitches :deep(.preview-content) .repeat-stitch {
+    overflow: visible;
+    position: relative;
+  }
 }
 </style> 
