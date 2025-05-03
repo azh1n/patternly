@@ -3,15 +3,15 @@
     <div class="preview-header">
       <h4>
         Pattern Preview ({{ rows.length }} rows)
-
+        <span v-if="patternShape.type !== 'unknown'" class="pattern-shape-badge" :class="patternShape.type">
+          {{ patternShape.type.charAt(0).toUpperCase() + patternShape.type.slice(1) }}
+        </span>
       </h4>
       <button @click="$emit('add-new-row')" class="add-row-button">+ Add Row</button>
     </div>
     
     <!-- View mode toggle -->
     <PatternViewToggle v-model:viewMode="viewMode" class="view-toggle" />
-
-
     
     <!-- Text-based pattern preview -->
     <div v-if="viewMode === 'text'" class="pattern-preview">
@@ -25,66 +25,74 @@
           <div v-if="!row.stitches || (Array.isArray(row.stitches) && row.stitches.length === 0)" class="no-stitches-message">
             No stitches detected. Original text: {{ row.text }}
           </div>
-          <div v-else-if="row.stitches.repeated" class="preview-stitches">
-            <!-- Show stitches before the repeat -->
+          
+          <!-- Grid-based preview content for repeated stitch patterns -->
+          <div v-else-if="row.stitches.repeated" class="preview-content">
+            <!-- Stitches before repeat -->
             <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
               <div 
                 class="preview-stitch" 
                 :class="getStitchClass(stitch)"
                 :title="stitch"
               >
-                <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                {{ stitch }}
               </div>
             </template>
-            <div class="repeat-group">
-              <span class="repeat-bracket left-bracket">(</span>
-              <template v-for="(stitch, i) in row.stitches.repeatedStitches" :key="`rep-${i}`">
-                <div 
-                  class="preview-stitch" 
-                  :class="getStitchClass(stitch)"
-                  :title="stitch"
-                >
-                  <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                  <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+            
+            <!-- Repeat pattern with TextStitches.vue-like styling -->
+            <div class="repeat-pattern-wrapper">
+              <div class="repeat-card">
+                <div class="repeat-header">
+                  <span class="repeat-label">Repeat</span>
+                  <span class="repeat-multiplier">×{{ row.stitches.repeatCount }}</span>
                 </div>
-              </template>
-              <span class="repeat-bracket right-bracket">)</span>
-              <span class="repeat-count">x{{ row.stitches.repeatCount }}</span>
+                <div class="repeat-content">
+                  <template v-for="(stitch, rIndex) in row.stitches.repeatedStitches" :key="`repeat-stitch-${rIndex}`">
+                    <div class="repeat-stitch-item">
+                      <div class="repeat-stitch" :class="getStitchClass(stitch)">
+                        {{ stitch }}
+                      </div>
+                      <span v-if="rIndex < row.stitches.repeatedStitches.length - 1" class="repeat-comma">,</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
             </div>
-            <!-- Show stitches after the repeat -->
+            
+            <!-- Stitches after repeat -->
             <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
               <div 
                 class="preview-stitch" 
                 :class="getStitchClass(stitch)"
                 :title="stitch"
               >
-                <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                {{ stitch }}
               </div>
             </template>
           </div>
-          <div v-else class="preview-stitches">
+          
+          <!-- Grid-based preview content for regular stitch patterns -->
+          <div v-else class="preview-content">
             <template v-for="(stitch, i) in row.stitches" :key="i">
-              <!-- Check if this is a repeat pattern like "(1sc, 1inc) x6" -->
+              <!-- Handle repeat pattern like "(1sc, 1inc) x6" -->
               <template v-if="typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')">
-                <div class="repeat-group">
-                  <span class="repeat-bracket left-bracket">(</span>
-                  
-                  <!-- Extract and display the repeated stitches -->
-                  <template v-for="(repeatedStitch, j) in getRepeatedStitches(stitch)" :key="`nested-rep-${i}-${j}`">
-                    <div 
-                      class="preview-stitch" 
-                      :class="getStitchClass(repeatedStitch)"
-                      :title="repeatedStitch"
-                    >
-                      <span class="stitch-count">{{ getStitchCount(repeatedStitch) }}</span>
-                      <span class="stitch-type">{{ getStitchType(repeatedStitch) }}</span>
+                <div class="repeat-pattern-wrapper">
+                  <div class="repeat-card">
+                    <div class="repeat-header">
+                      <span class="repeat-label">Repeat</span>
+                      <span class="repeat-multiplier">×{{ getRepeatCount(stitch) }}</span>
                     </div>
-                  </template>
-                  
-                  <span class="repeat-bracket right-bracket">)</span>
-                  <span class="repeat-count">x{{ getRepeatCount(stitch) }}</span>
+                    <div class="repeat-content">
+                      <template v-for="(repeatStitch, rIndex) in getRepeatedStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
+                        <div class="repeat-stitch-item">
+                          <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                            {{ repeatStitch }}
+                          </div>
+                          <span v-if="rIndex < getRepeatedStitches(stitch).length - 1" class="repeat-comma">,</span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
                 </div>
               </template>
               <template v-else>
@@ -93,8 +101,7 @@
                   :class="getStitchClass(stitch)"
                   :title="stitch"
                 >
-                  <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
-                  <span class="stitch-type">{{ getStitchType(stitch) }}</span>
+                  {{ stitch }}
                 </div>
               </template>
             </template>
@@ -119,8 +126,6 @@ import CrochetNotationView from './crochet/CrochetNotationView.vue';
 
 // Collapsed state for expand/collapse toggle
 const collapsed = ref(false);
-
-
 
 const props = defineProps({
   rows: {
@@ -151,12 +156,12 @@ function getRowSummary(row) {
   const summary = {};
   const add = (stitch) => {
     const type = getStitchType(stitch);
-    summary[type] = (summary[type] || 0) + getStitchCount(stitch);
+    summary[type] = (summary[type] || 0) + parseInt(getStitchCount(stitch));
   };
   if (row.stitches.repeated) {
     row.stitches.beforeRepeat?.forEach(add);
     row.stitches.repeatedStitches?.forEach((stitch) => {
-      summary[getStitchType(stitch)] = (summary[getStitchType(stitch)] || 0) + getStitchCount(stitch) * (row.stitches.repeatCount || 1);
+      summary[getStitchType(stitch)] = (summary[getStitchType(stitch)] || 0) + parseInt(getStitchCount(stitch)) * (parseInt(row.stitches.repeatCount) || 1);
     });
     row.stitches.afterRepeat?.forEach(add);
   } else {
@@ -215,7 +220,7 @@ const getColorHex = (colorName) => {
     'white': '#ffffff'
   };
   
-  return colorMap[colorName.toLowerCase()] || colorName;
+  return colorMap[colorName?.toLowerCase()] || colorName;
 };
 
 // Helper function to check if a stitch is a repeat pattern
@@ -421,53 +426,6 @@ const getRepeatCount = (stitch) => {
   padding-left: 0rem;
 }
 
-.expand-toggle {
-  margin: 0.5rem 0 1rem 0;
-  padding: 0.35rem 1.2rem;
-  background: var(--accent-color, #4f87ff);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  outline: none;
-  display: inline-block;
-}
-.expand-toggle[aria-pressed="true"] {
-  background: var(--accent-hover, #3a6fd9);
-}
-:root.light .expand-toggle {
-  background: #2979ff;
-  color: white;
-}
-:root.light .expand-toggle[aria-pressed="true"] {
-  background: #1565c0;
-}
-
-.row-summary {
-  padding: 0.5rem 1rem;
-  background: rgba(76,175,80,0.10);
-  color: var(--text-primary, #b2ff59);
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-:root.light .row-summary {
-  background: rgba(76,175,80,0.07);
-  color: #2e7d32;
-}
-
-.preview-stitches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.5rem;
-  border-radius: 8px;
-}
-
 .no-stitches-message {
   padding: 0.5rem;
   color: var(--text-secondary, #aaa);
@@ -478,76 +436,208 @@ const getRepeatCount = (stitch) => {
   border: 1px dashed var(--border-color, #444);
 }
 
+/* New grid-based preview styles */
+.preview-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 50px));
+  gap: 10px;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  overflow-x: auto;
+  background: var(--card-bg, #2a2a2a);
+  border-radius: 6px;
+  justify-content: start;
+}
+
 .preview-stitch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--stitch-bg, #333);
+  font-size: 0.9rem;
   color: var(--text-primary, #fff);
-  border: 1px solid var(--border-color, #444);
-  font-size: 0.75rem;
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.stitch-count {
-  font-weight: 700;
-  font-size: 0.875rem;
-}
-
-.stitch-type {
-  font-size: 0.625rem;
-  opacity: 0.8;
-}
-
-/* Stitch styles are now defined globally in assets/styles/stitch-colors.css */
-
-/* Repeat group styling */
-.repeat-group {
-  display: flex;
-  align-items: center;
-  background-color: rgba(79, 135, 255, 0.1);
-  border-radius: 8px;
-  padding: 0 0.25rem;
-}
-
-.repeat-bracket {
-  font-size: 2.5rem;
-  font-weight: 400;
-  color: var(--accent-color, #4f87ff);
-  margin: 0;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding-bottom: 7px;
-}
-
-.left-bracket {
-  margin-right: 0.25rem;
-}
-
-.right-bracket {
-  margin-left: 0.25rem;
-  margin-right: 0.125rem;
-}
-
-.repeat-count {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--accent-color, #4f87ff);
-  padding: 0.125rem 0.25rem;
-  background: rgba(79, 135, 255, 0.15);
   border-radius: 4px;
+  transition: all 0.2s ease;
+  margin: 0;
+  width: 50px;
+  height: 35px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--stitch-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color, #444);
+}
+
+/* Style for different stitch types */
+.stitch-sc {
+  background-color: var(--sc-bg, #4caf5022);
+  border-color: var(--sc-border, #4caf5044);
+}
+
+.stitch-dc {
+  background-color: var(--dc-bg, #2196f322);
+  border-color: var(--dc-border, #2196f344);
+}
+
+.stitch-hdc {
+  background-color: var(--hdc-bg, #00bcd422);
+  border-color: var(--hdc-border, #00bcd444);
+}
+
+.stitch-tr {
+  background-color: var(--tr-bg, #9c27b022);
+  border-color: var(--tr-border, #9c27b044);
+}
+
+.stitch-inc {
+  background-color: var(--inc-bg, #4caf5033);
+  border-color: var(--inc-border, #4caf5055);
+}
+
+.stitch-dec {
+  background-color: var(--dec-bg, #f4433622);
+  border-color: var(--dec-border, #f4433644);
+}
+
+.stitch-bs {
+  background-color: var(--bs-bg, #ff980022);
+  border-color: var(--bs-border, #ff980044);
+}
+
+.stitch-ns {
+  background-color: var(--ns-bg, #90caf922);
+  border-color: var(--ns-border, #90caf944);
+}
+
+/* Add scaling for wider stitch codes */
+.preview-stitch[class*="dc"],
+.preview-stitch[class*="bs"],
+.preview-stitch[class*="inc"],
+.preview-stitch[class*="dec"] {
+  font-size: 0.85rem;
+}
+
+/* Further scale down text for 2-digit numbers */
+.preview-stitch:is([class*="10"][class*="dc"], [class*="11"][class*="dc"], [class*="20"][class*="dc"], [class*="22"][class*="dc"]) {
+  font-size: 0.8rem;
+}
+
+/* Even smaller for 3-digit numbers */
+.preview-stitch:is([class*="30"][class*="dc"]) {
+  font-size: 0.75rem;
+}
+
+/* New styles for repeat pattern matching TextStitches.vue */
+.repeat-pattern-wrapper {
+  grid-column: span 2;
+  min-width: 160px;
+  width: auto;
+}
+
+.repeat-card {
+  width: 100%;
+  background: rgba(60, 60, 70, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.repeat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(60, 60, 70, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.repeat-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.repeat-multiplier {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-color, #4f87ff);
+}
+
+.repeat-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+}
+
+.repeat-stitch-item {
+  display: flex;
+  align-items: center;
+}
+
+.repeat-stitch {
+  width: 40px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background-color: var(--stitch-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color, #444);
+}
+
+.repeat-comma {
+  margin: 0 2px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Stitch colors for repeat patterns */
+.repeat-stitch.stitch-sc {
+  background-color: var(--sc-bg, #4caf5022);
+  border-color: var(--sc-border, #4caf5044);
+}
+
+.repeat-stitch.stitch-dc {
+  background-color: var(--dc-bg, #2196f322);
+  border-color: var(--dc-border, #2196f344);
+}
+
+.repeat-stitch.stitch-hdc {
+  background-color: var(--hdc-bg, #00bcd422);
+  border-color: var(--hdc-border, #00bcd444);
+}
+
+.repeat-stitch.stitch-tr {
+  background-color: var(--tr-bg, #9c27b022);
+  border-color: var(--tr-border, #9c27b044);
+}
+
+.repeat-stitch.stitch-inc {
+  background-color: var(--inc-bg, #4caf5033);
+  border-color: var(--inc-border, #4caf5055);
+}
+
+.repeat-stitch.stitch-dec {
+  background-color: var(--dec-bg, #f4433622);
+  border-color: var(--dec-border, #f4433644);
+}
+
+.repeat-stitch.stitch-bs {
+  background-color: var(--bs-bg, #ff980022);
+  border-color: var(--bs-border, #ff980044);
+}
+
+.repeat-stitch.stitch-ns {
+  background-color: var(--ns-bg, #90caf922);
+  border-color: var(--ns-border, #90caf944);
 }
 
 /* Preview Header */
@@ -607,6 +697,86 @@ const getRepeatCount = (stitch) => {
   margin-left: 0.25rem;
 }
 
+/* Mobile styles */
+@media (max-width: 767px) {
+  .preview-header {
+    padding: 0.75rem;
+  }
+  
+  .preview-header h4 {
+    font-size: 1rem;
+  }
+  
+  .pattern-preview {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .preview-row-header {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .preview-row-content {
+    padding: 0.75rem;
+  }
+  
+  .preview-content {
+    grid-template-columns: repeat(auto-fill, minmax(42px, 42px));
+    gap: 6px;
+    padding: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: thin;
+  }
+  
+  .preview-stitch {
+    font-size: 0.85rem;
+    width: 42px;
+    height: 32px;
+  }
+  
+  /* Mobile adjustments for repeat patterns */
+  .repeat-pattern-wrapper {
+    min-width: 130px;
+    grid-column: span 2;
+  }
+  
+  .repeat-card {
+    min-width: 100%;
+  }
+  
+  .repeat-header {
+    padding: 3px 6px;
+  }
+  
+  .repeat-content {
+    padding: 6px;
+  }
+  
+  .repeat-stitch {
+    width: 36px;
+    height: 26px;
+    font-size: 0.8rem;
+  }
+  
+  /* Add momentum-based scrolling for touch devices */
+  .preview-content {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbars on mobile while preserving functionality */
+  .preview-content::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .preview-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+}
+
 /* Light theme overrides */
 :root.light .pattern-preview {
   background: #ffffff;
@@ -622,27 +792,39 @@ const getRepeatCount = (stitch) => {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-:root.light .preview-stitches {
-  background: rgba(0, 0, 0, 0.05);
-}
-
 :root.light .no-stitches-message {
   color: #666;
   background: rgba(0, 0, 0, 0.05);
   border-color: #ddd;
 }
 
-:root.light .preview-stitch {
-  border: 1px solid rgba(0, 0, 0, 0.1);
+:root.light .preview-content {
+  background: #f9f9f9;
 }
 
-:root.light .repeat-group {
-  background-color: rgba(41, 121, 255, 0.08);
+/* Light theme for repeat patterns */
+:root.light .repeat-card {
+  background: rgba(240, 240, 240, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-:root.light .repeat-bracket,
-:root.light .repeat-count {
-  color: #2979ff;
+:root.light .repeat-header {
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:root.light .repeat-label {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+:root.light .repeat-comma {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+:root.light .repeat-stitch {
+  color: #333;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: #e0e0e0;
 }
 
 :root.light .pattern-shape-badge.circular {
