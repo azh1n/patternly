@@ -68,7 +68,8 @@
                     <span class="repeat-label">Repeat</span>
                     <span class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</span>
                   </div>
-                  <div class="repeat-content">
+                  <div class="repeat-content"
+                      :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
                     <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
                         :key="`repeat-stitch-${rIndex}`"
                         class="repeat-stitch-item">
@@ -1240,19 +1241,36 @@ defineExpose({
 }
 
 .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 45px;
-  gap: 4px;
-  grid-template-columns: 20px repeat(var(--stitch-count), 45px) 30px;
+  height: auto;
+  min-height: 45px;
+  gap: 8px;
+  padding: 10px;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stitch-wrapper.preview-stitch.repeat-pattern .repeat-card.preview {
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
 }
 
 .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
   width: 45px !important;
   height: 45px !important;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stitch-wrapper.preview-stitch.repeat-pattern .repeat-left-paren,
@@ -1266,7 +1284,7 @@ defineExpose({
   font-weight: bold;
   color: var(--accent-color);
   margin-left: 0;
-  font-size: 1.1rem;
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 
@@ -1286,6 +1304,32 @@ defineExpose({
 
 .repeat-card.preview {
   min-width: 180px;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.repeat-card.preview .repeat-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  gap: 10px;
+}
+
+.repeat-card.preview .repeat-stitch-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.repeat-card.preview .repeat-stitch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
 }
 
 .repeat-header {
