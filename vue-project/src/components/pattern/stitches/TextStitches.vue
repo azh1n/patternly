@@ -1322,23 +1322,26 @@ defineExpose({
 /* Current view specific styles for repeat content */
 .text-stitches :deep(.current-stitches) .repeat-content {
   display: flex;
-  flex-direction: row; /* Change back to horizontal */
-  flex-wrap: nowrap; /* Don't wrap */
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0px;
+  gap: 4px;
   padding: 8px;
-  overflow-x: auto; /* Allow horizontal scrolling if needed */
   width: 100%;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .text-stitches :deep(.current-stitches) .repeat-stitch-item {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 /* Hide commas in focused view */
 .text-stitches :deep(.current-stitches) .repeat-comma {
-  display: none;
+  display: inline-block;
+  margin: 0 2px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* Make the repeat pattern take the full width in the focused view */
@@ -1352,9 +1355,9 @@ defineExpose({
 
 /* Adjust the repeat card for the focused view to make it look more like the preview */
 .text-stitches :deep(.current-stitches) .repeat-card {
-  min-width: 200px;
-  width: auto;
-  max-width: 90%;
+  min-width: auto;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -1364,13 +1367,50 @@ defineExpose({
 }
 
 .text-stitches :deep(.current-stitches) .repeat-content {
-  padding: 5px 12px;
+  padding: 8px 12px;
   min-height: 38px;
 }
 
 /* Ensure proper spacing between stitches in repeat content */
 .text-stitches :deep(.current-stitches) .repeat-stitch-item {
   padding: 0 3px;
+}
+
+/* Desktop styles for repeat content */
+@media (min-width: 768px) {
+  .text-stitches :deep(.current-stitches) .repeat-card {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .text-stitches :deep(.current-stitches) .repeat-content {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .text-stitches :deep(.current-stitches) .repeat-stitch-item {
+    display: flex;
+    align-items: center;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+  
+  .text-stitches :deep(.current-stitches) .repeat-stitch {
+    flex-shrink: 1;
+    min-width: 0;
+    width: auto !important;
+    height: auto !important;
+    min-height: 36px;
+    padding: 4px 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
 }
 
 /* Adjust margins for mobile */
@@ -1386,7 +1426,8 @@ defineExpose({
 
 /* Style the repeat stitches to look like the preview */
 .text-stitches :deep(.current-stitches) .repeat-stitch {
-  min-width: 40px;
+  min-width: 0;
+  width: 100% !important;
   height: 36px;
   display: flex;
   justify-content: center;
