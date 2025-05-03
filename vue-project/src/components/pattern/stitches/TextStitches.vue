@@ -991,14 +991,15 @@ defineExpose({
 @media (min-width: 768px) {
   /* Ensure preview stitches match SymbolStitches.vue in desktop view */
   .stitch-wrapper.preview-stitch .stitch-symbol {
-    width: 45px;
-    height: 45px;
+    width: 40px;
+    height: 40px;
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .stitch-symbol {
@@ -1007,6 +1008,10 @@ defineExpose({
     height: auto;
     min-height: 45px;
     padding: 0;
+    white-space: normal;
+    background-color: rgba(76, 175, 80, 0.15);
+    border-color: rgba(76, 175, 80, 0.3) !important;
+    border: 1px dashed var(--border-color);
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
@@ -1017,14 +1022,21 @@ defineExpose({
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
-    width: 45px !important;
-    height: 45px !important;
-    font-size: 0.9rem;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 0.85rem;
+    margin: 1px;
+    border-radius: 4px;
+    position: relative;
   }
   
   .text-stitches :deep(.preview-content) {
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
+    justify-content: center;
     padding: 10px;
+    overflow-x: auto;
   }
 }
 
@@ -1151,7 +1163,10 @@ defineExpose({
   
   /* Preview repeat patterns for mobile */
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-card.preview {
-    min-width: 160px;
+    min-width: 180px;
+    width: auto;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   }
   
@@ -1161,21 +1176,11 @@ defineExpose({
     font-size: 0.75rem;
     margin: 1px;
     border-radius: 4px;
-  }
-  
-  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-content {
-    padding: 6px 4px;
-    gap: 4px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch-item {
-    margin: 1px;
+    position: relative;
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
-    font-size: 0.6rem;
+    font-size: 0.9rem;
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-label {
@@ -1265,93 +1270,18 @@ defineExpose({
 .text-stitches :deep(.preview-content) {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 10px;
+  justify-content: center;
   padding: 10px;
-  max-width: 100%;
   overflow-x: auto;
-}
-
-/* Repeat pattern styling in preview */
-.stitch-wrapper.preview-stitch.repeat-pattern {
-  width: auto;
-  min-width: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.stitch-wrapper.preview-stitch.repeat-pattern .stitch-symbol {
-  width: auto;
-  min-width: 150px;
-  height: auto;
-  min-height: 45px;
-  font-size: 0.9rem;
-  padding: 0;
-  white-space: normal;
-  background-color: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3) !important;
-  border: 1px dashed var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  box-sizing: border-box;
-}
-
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: auto;
-  min-height: 45px;
-  gap: 8px;
-  padding: 10px;
-}
-
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-card.preview {
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-}
-
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
-  width: 45px !important;
-  height: 45px !important;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-left-paren,
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-right-paren {
-  font-size: 1.4rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color);
-  margin-left: 0;
-  font-size: 0.7rem;
-  white-space: nowrap;
+  margin-top: 1rem;
 }
 
 /* Modern repeat pattern styling */
 .repeat-card {
   display: flex;
   flex-direction: column;
-  min-width: 140px;
-  max-width: 350px;
+  min-width: 200px;
   width: auto;
   background: rgba(60, 60, 70, 0.15);
   border-radius: 8px;
@@ -1388,6 +1318,7 @@ defineExpose({
   justify-content: center;
   width: 45px;
   height: 45px;
+  position: relative;
 }
 
 .repeat-header {

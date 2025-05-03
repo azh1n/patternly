@@ -831,7 +831,7 @@ function getRepeatGridStyle(stitch) {
   font-weight: bold;
   color: var(--accent-color);
   margin-left: 0;
-  font-size: 1.1rem;
+  font-size: 0.6rem;
   white-space: nowrap;
 }
 
@@ -1348,6 +1348,38 @@ function getRepeatGridStyle(stitch) {
   .stitch-svg-padded {
     width: 80%;
     height: 80%;
+  }
+}
+
+/* Full row preview */
+.symbol-stitches :deep(.full-row-preview) {
+  margin-top: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #444);
+}
+
+.symbol-stitches :deep(.full-row-preview h3) {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.symbol-stitches :deep(.preview-content) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  padding: 10px;
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+@media (max-width: 767px) {
+  .symbol-stitches :deep(.preview-content) {
+    padding: 0.75rem;
+    gap: 8px;
   }
 }
 </style> 
