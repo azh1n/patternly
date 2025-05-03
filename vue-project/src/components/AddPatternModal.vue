@@ -3,15 +3,45 @@
   <div v-if="modelValue" class="pattern-modal-overlay" @click="closeModal">
     <div class="pattern-modal" @click.stop>
       <div class="modal-header">
-        <h2>Add Pattern</h2>
-        <button class="close-button" @click="closeModal">×</button>
+        <h2>Add New Pattern</h2>
+        <button class="close-button" @click="closeModal" aria-label="Close modal">×</button>
       </div>
       
       <div class="modal-body">
+        <!-- Getting Started Guide -->
+        <div v-if="!patternText.trim() && !patternName.trim()" class="getting-started">
+          <div class="getting-started-header">
+            <div class="icon-container">
+              <span class="icon">📋</span>
+            </div>
+            <h3>How to Add a Pattern</h3>
+          </div>
+          <ol class="steps-list">
+            <li>
+              <strong>Name your pattern</strong> - Give your pattern a descriptive name
+            </li>
+            <li>
+              <strong>Paste your pattern instructions</strong> - Copy from any source and paste into the instructions field
+            </li>
+            <li>
+              <strong>Review the preview</strong> - We'll automatically detect rows, colors, and stitches
+            </li>
+            <li>
+              <strong>Make adjustments if needed</strong> - You can define formats, map colors, or edit rows
+            </li>
+            <li>
+              <strong>Save your pattern</strong> - Click "Save Pattern" when you're happy with the result
+            </li>
+          </ol>
+        </div>
+
         <div class="modal-columns">
           <!-- Left Column: Input -->  
           <div class="modal-column input-column">
-            <h3 class="column-title">Pattern Input</h3>
+            <h3 class="column-title">
+              <span class="title-icon">✏️</span>
+              Pattern Input
+            </h3>
             
             <!-- Pattern Name -->
             <div class="form-group">
@@ -27,7 +57,10 @@
       
             <!-- Pattern Input -->
             <div class="form-group">
-              <label for="patternText">Pattern Instructions</label>
+              <label for="patternText">
+                Pattern Instructions
+                <span class="label-hint">Paste your pattern exactly as written</span>
+              </label>
               <textarea
                 id="patternText" 
                 v-model="patternText" 
@@ -41,7 +74,10 @@
             <div v-if="showRowConfig || showColorConfig" class="config-panel">
               <!-- Row Format Configuration -->
               <div v-if="showRowConfig" class="config-section">
-                <h4>Define Row Format</h4>
+                <div class="section-header">
+                  <span class="section-icon">🔢</span>
+                  <h4>Define Row Format</h4>
+                </div>
                 <p class="help-text">Enter the pattern used to identify rows (use # for row number)</p>
                 <div class="input-group">
                   <input 
@@ -53,8 +89,14 @@
                   <button @click="applyRowFormat" class="apply-button">Apply</button>
                 </div>
                 <div class="quick-options">
-                  <button @click="applyQuickFormat('Round #')" class="option-button">Use Round #</button>
-                  <button @click="applyQuickFormat('Row #')" class="option-button">Use Row #</button>
+                  <button @click="applyQuickFormat('Round #')" class="option-button">
+                    <span class="option-icon">⭕</span>
+                    Round #
+                  </button>
+                  <button @click="applyQuickFormat('Row #')" class="option-button">
+                    <span class="option-icon">↔️</span>
+                    Row #
+                  </button>
                 </div>
                 <div class="examples">
                   <p>Examples: "Row #", "Round #", "R#", "Rnd #"</p>
@@ -63,7 +105,10 @@
   
               <!-- Color Configuration -->
               <div v-if="showColorConfig" class="config-section">
-                <h4>Define Color Format</h4>
+                <div class="section-header">
+                  <span class="section-icon">🎨</span>
+                  <h4>Define Color Format</h4>
+                </div>
                 <p class="help-text">Enter how colors are referenced in your pattern</p>
                 <div class="input-group">
                   <input 
@@ -80,33 +125,38 @@
                 
                 <!-- Color Mapping Section -->
                 <div v-if="detectedColors.length > 0" class="color-mapping-section">
-                  <h4>Map Colors</h4>
-                  <p class="help-text">Map ambiguous colors to specific colors</p>
-                  <div v-for="(color, index) in detectedColors" :key="index" class="color-mapping-item">
-                    <div class="color-mapping-label">{{ color }}:</div>
-                    <div class="color-mapping-input">
-                      <select 
-                        v-model="colorMappings[color]" 
-                        class="color-select"
-                      >
-                        <option value="">Select a color</option>
-                        <option value="#ff5252">Red</option>
-                        <option value="#4caf50">Green</option>
-                        <option value="#2196f3">Blue</option>
-                        <option value="#ffc107">Yellow</option>
-                        <option value="#9c27b0">Purple</option>
-                        <option value="#ff9800">Orange</option>
-                        <option value="#e91e63">Pink</option>
-                        <option value="#00bcd4">Turquoise</option>
-                        <option value="#333333">Black</option>
-                        <option value="#ffffff">White</option>
-                        <option value="#795548">Brown</option>
-                        <option value="#607d8b">Gray</option>
-                      </select>
-                      <div 
-                        class="color-preview" 
-                        :style="{ backgroundColor: colorMappings[color] || '#888888' }"
-                      ></div>
+                  <div class="section-header">
+                    <span class="section-icon">🔄</span>
+                    <h4>Map Colors</h4>
+                  </div>
+                  <p class="help-text">Assign specific colors to the color references in your pattern</p>
+                  <div class="color-grid">
+                    <div v-for="(color, index) in detectedColors" :key="index" class="color-mapping-item">
+                      <div class="color-mapping-label">{{ color }}:</div>
+                      <div class="color-mapping-input">
+                        <select 
+                          v-model="colorMappings[color]" 
+                          class="color-select"
+                        >
+                          <option value="">Select a color</option>
+                          <option value="#ff5252">Red</option>
+                          <option value="#4caf50">Green</option>
+                          <option value="#2196f3">Blue</option>
+                          <option value="#ffc107">Yellow</option>
+                          <option value="#9c27b0">Purple</option>
+                          <option value="#ff9800">Orange</option>
+                          <option value="#e91e63">Pink</option>
+                          <option value="#00bcd4">Turquoise</option>
+                          <option value="#333333">Black</option>
+                          <option value="#ffffff">White</option>
+                          <option value="#795548">Brown</option>
+                          <option value="#607d8b">Gray</option>
+                        </select>
+                        <div 
+                          class="color-preview" 
+                          :style="{ backgroundColor: colorMappings[color] || '#888888' }"
+                        ></div>
+                      </div>
                     </div>
                   </div>
                   <div class="color-mapping-actions">
@@ -119,62 +169,77 @@
 
           <!-- Right Column: Preview -->  
           <div class="modal-column preview-column">
-            <h3 class="column-title">Pattern Preview</h3>
+            <h3 class="column-title">
+              <span class="title-icon">👁️</span>
+              Pattern Preview
+              <span v-if="patternText.trim() && parsedRows.length" class="pattern-stats">
+                {{ parsedRows.length }} rows detected
+              </span>
+            </h3>
   
             <!-- Detection Results -->
-            <div v-if="patternText" class="detection-results">
-              <div class="detection-item">
-                <span class="label">Row Format:</span>
-                <span class="value">{{ detectedRowFormat || 'Not detected' }}</span>
-                <button v-if="!detectedRowFormat" class="action-button" @click="showRowConfig = true">
-                  Define
-                </button>
-              </div>
+            <div v-if="patternText" class="detection-card">
+              <div class="detection-header">Pattern Analysis</div>
+              <div class="detection-body">
+                <div class="detection-item">
+                  <span class="detection-label">Row Format:</span>
+                  <span class="detection-value">
+                    <span v-if="detectedRowFormat" class="detection-success">{{ detectedRowFormat }}</span>
+                    <span v-else class="detection-warning">Not detected</span>
+                  </span>
+                  <button v-if="!detectedRowFormat" class="action-button" @click="showRowConfig = true">
+                    Define Format
+                  </button>
+                </div>
 
-              <div class="detection-item">
-                <span class="label">Colors:</span>
-                <span class="value">
-                  <template v-if="detectedColors.length">
-                    <template v-for="(color, index) in detectedColors" :key="index">
-                      <span 
-                        class="color-chip"
-                        :style="{ backgroundColor: getColorHex(getMappedColorName(color)) }"
-                      ></span>
-                      <span class="color-name">{{ getMappedColorName(color) }}</span>
-                      <span v-if="index < detectedColors.length - 1" class="color-separator">, </span>
+                <div class="detection-item">
+                  <span class="detection-label">Colors:</span>
+                  <span class="detection-value">
+                    <template v-if="detectedColors.length">
+                      <template v-for="(color, index) in detectedColors" :key="index">
+                        <span 
+                          class="color-chip"
+                          :style="{ backgroundColor: getColorHex(getMappedColorName(color)) }"
+                        ></span>
+                        <span class="color-name">{{ getMappedColorName(color) }}</span>
+                        <span v-if="index < detectedColors.length - 1" class="color-separator">, </span>
+                      </template>
                     </template>
-                  </template>
-                  <template v-else>Not detected</template>
-                </span>
-                <button 
-                  v-if="!detectedColors.length" 
-                  class="action-button" 
-                  @click="showColorConfig = true"
-                >
-                  Define
-                </button>
-                <button 
-                  v-if="detectedColors.length" 
-                  class="action-button" 
-                  @click="openColorMapping"
-                >
-                  Map Colors
-                </button>
+                    <span v-else class="detection-warning">Not detected</span>
+                  </span>
+                  <button 
+                    v-if="!detectedColors.length" 
+                    class="action-button" 
+                    @click="showColorConfig = true"
+                  >
+                    Define Colors
+                  </button>
+                  <button 
+                    v-if="detectedColors.length" 
+                    class="action-button" 
+                    @click="openColorMapping"
+                  >
+                    Map Colors
+                  </button>
+                </div>
               </div>
             </div>
             
             <!-- Fallback for when rows couldn't be parsed -->
             <div v-if="patternText.trim() && !parsedRows.length" class="parsed-rows">
-              <div class="no-rows-message">
-                <div class="icon-warning">⚠️</div>
+              <div class="no-rows-alert">
+                <div class="alert-icon">⚠️</div>
                 <h4>No Rows Detected</h4>
-                <p>The pattern couldn't be parsed. Try defining the row format manually.</p>
-                <button class="action-button" @click="showRowConfig = true">Define Row Format</button>
+                <p>We couldn't parse your pattern automatically. Try defining the row format manually.</p>
+                <button class="action-button primary-action" @click="showRowConfig = true">Define Row Format</button>
               </div>
-              <div class="help-text">No rows were detected in your pattern. Please check if your pattern follows the standard format (Row 1: ... or Round 1: ...), or manually define a row format below.</div>
-              <div class="config-panel">
+              <div class="help-text">This often happens with non-standard patterns. Please check if your pattern follows the usual format (Row 1: ... or Round 1: ...), or define your own row format below.</div>
+              <div class="quick-config-panel">
                 <div class="config-section">
-                  <h4>Define Row Format</h4>
+                  <div class="section-header">
+                    <span class="section-icon">🔢</span>
+                    <h4>Define Row Format</h4>
+                  </div>
                   <p class="help-text">Enter the pattern used to identify rows (use # for row number)</p>
                   <div class="input-group">
                     <input 
@@ -186,11 +251,14 @@
                     <button @click="applyRowFormat" class="apply-button">Apply</button>
                   </div>
                   <div class="quick-options">
-                    <button @click="applyQuickFormat('Round #')" class="option-button">Use Round #</button>
-                    <button @click="applyQuickFormat('Row #')" class="option-button">Use Row #</button>
-                  </div>
-                  <div class="examples">
-                    <p>Examples: "Row #", "Round #", "R#", "Rnd #"</p>
+                    <button @click="applyQuickFormat('Round #')" class="option-button">
+                      <span class="option-icon">⭕</span>
+                      Round #
+                    </button>
+                    <button @click="applyQuickFormat('Row #')" class="option-button">
+                      <span class="option-icon">↔️</span>
+                      Row #
+                    </button>
                   </div>
                 </div>
               </div>
@@ -214,14 +282,16 @@
               @add-new-row="addNewRow" 
               @edit-row="editRow"
             />
-            
-            <!-- Pattern Notation View -->
           </div>
         </div>
         
         <!-- Error Messages -->
         <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
+          <div class="error-icon">❌</div>
+          <div class="error-content">
+            <div class="error-title">Error</div>
+            <div class="error-text">{{ errorMessage }}</div>
+          </div>
         </div>
   
         <!-- Action Buttons -->
@@ -231,9 +301,13 @@
             class="save-button"
             :disabled="!canSave"
           >
+            <span class="button-icon">💾</span>
             {{ isLoading ? 'Saving...' : 'Save Pattern' }}
           </button>
-          <button @click="closeModal" class="cancel-button">Cancel</button>
+          <button @click="closeModal" class="cancel-button">
+            <span class="button-icon">✕</span>
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -1495,6 +1569,10 @@ const handleRowSave = (updatedRow) => {
     padding-top: 1.5rem;
     margin-top: 1rem;
   }
+  
+  .getting-started {
+    padding: 1.25rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1504,6 +1582,25 @@ const handleRowSave = (updatedRow) => {
     left: 0;
     right: 0;
     bottom: 0;
+  }
+  
+  .pattern-modal {
+    border-radius: 0;
+    max-height: 100vh;
+  }
+  
+  .detection-item {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .detection-label {
+    min-width: auto;
+    width: 100px;
+  }
+  
+  .color-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1515,6 +1612,7 @@ const handleRowSave = (updatedRow) => {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1525,12 +1623,69 @@ const handleRowSave = (updatedRow) => {
 /* Modal Container */
 .pattern-modal {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1100px;
   max-height: 90vh;
   overflow-y: auto;
   background: var(--card-bg, #2a2a2a);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Getting Started Guide */
+.getting-started {
+  background: var(--card-bg-light, rgba(255, 255, 255, 0.05));
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.getting-started-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--accent-color, #4f87ff);
+  border-radius: 50%;
+  margin-right: 1rem;
+}
+
+.icon {
+  font-size: 1.3rem;
+}
+
+.steps-list {
+  padding-left: 1.5rem;
+  margin: 0;
+}
+
+.steps-list li {
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #ddd);
+}
+
+.steps-list li strong {
+  color: var(--text-primary, #fff);
 }
 
 /* Modal Header */
@@ -1538,8 +1693,12 @@ const handleRowSave = (updatedRow) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
+  padding: 1.5rem 2rem;
   border-bottom: 1px solid var(--border-color, #444);
+  background: var(--card-bg, #2a2a2a);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .modal-header h2 {
@@ -1557,21 +1716,29 @@ const handleRowSave = (updatedRow) => {
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-button:hover {
   color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Modal Body */
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.5rem 2rem 2rem;
 }
 
 /* Modal Columns */
 .modal-columns {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
   margin-bottom: 1.5rem;
 }
 
@@ -1586,48 +1753,34 @@ const handleRowSave = (updatedRow) => {
 .preview-column {
   flex-basis: 60%;
   border-left: 1px solid var(--border-color, #444);
-  padding-left: 1.5rem;
+  padding-left: 2rem;
 }
 
 .column-title {
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   font-size: 1.25rem;
   color: var(--text-primary, #fff);
   font-weight: 600;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color, #444);
+  display: flex;
+  align-items: center;
 }
 
-.storage-format-text {
-  color: var(--text-primary, #ffffff);
+.title-icon {
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
 }
 
-.notation-view-container {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.pattern-shape-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  margin-left: 0.5rem;
+.pattern-stats {
+  margin-left: auto;
+  font-size: 0.875rem;
   font-weight: normal;
-  vertical-align: middle;
-}
-
-.pattern-shape-badge.circular {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: var(--accent-color, #4CAF50);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.pattern-shape-badge.rectangular {
-  background-color: rgba(33, 150, 243, 0.2);
-  color: #2196F3;
-  border: 1px solid rgba(33, 150, 243, 0.3);
+  color: var(--text-secondary, #aaa);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
 }
 
 /* Form Elements */
@@ -1640,111 +1793,94 @@ const handleRowSave = (updatedRow) => {
   margin-bottom: 0.5rem;
   color: var(--text-primary, #fff);
   font-weight: 500;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #aaa);
+  font-weight: normal;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.85rem 1rem;
   border: 1px solid var(--border-color, #444);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--input-bg, #333);
   color: var(--text-primary, #fff);
   font-size: 1rem;
+  transition: all 0.2s;
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--accent-color, #4f87ff);
+  box-shadow: 0 0 0 2px rgba(79, 135, 255, 0.2);
 }
 
 .form-textarea {
   width: 100%;
-  min-height: 120px;
-  padding: 0.75rem;
+  min-height: 150px;
+  padding: 1rem;
   border: 1px solid var(--border-color, #444);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--input-bg, #333);
   color: var(--text-primary, #fff);
   font-size: 1rem;
   resize: vertical;
+  line-height: 1.5;
+  transition: all 0.2s;
 }
 
 .form-textarea:focus {
   outline: none;
   border-color: var(--accent-color, #4f87ff);
+  box-shadow: 0 0 0 2px rgba(79, 135, 255, 0.2);
 }
 
-/* Analysis Section */
-.analysis-section {
-  margin-top: 1.5rem;
-  border: 1px solid var(--border-color, #444);
-  border-radius: 8px;
+/* Detection Card */
+.detection-card {
+  background: var(--card-bg-light, rgba(255, 255, 255, 0.05));
+  border-radius: 12px;
   overflow: hidden;
-}
-
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0;
-  padding: 1rem;
-  background: var(--section-header-bg, #333);
-  color: var(--text-primary, #fff);
-  font-size: 1.25rem;
-  font-weight: 600;
-  cursor: default;
-}
-
-.toggle-button {
-  background: none;
-  border: none;
-  color: var(--accent-color, #4f87ff);
-  font-size: 1.25rem;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.toggle-button.small {
-  font-size: 1rem;
-  width: 20px;
-  height: 20px;
-}
-
-/* Analysis Content */
-.analysis-content {
-  padding: 1rem;
-}
-
-/* Detection Results */
-.detection-results {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
   margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.detection-header {
+  padding: 0.85rem 1.25rem;
+  background: var(--card-bg, rgba(0, 0, 0, 0.2));
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.detection-body {
+  padding: 1rem 0;
 }
 
 .detection-item {
   display: flex;
   align-items: center;
-  padding: 0.75rem;
-  background: var(--card-bg, #2a2a2a);
-  border-radius: 6px;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.25rem;
+  gap: 1rem;
 }
 
-.detection-item .label {
+.detection-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+}
+
+.detection-label {
   color: var(--text-secondary, #aaa);
   font-weight: 500;
   min-width: 100px;
 }
 
-.detection-item .value {
+.detection-value {
   flex: 1;
   color: var(--text-primary, #fff);
   font-weight: 500;
@@ -1755,17 +1891,24 @@ const handleRowSave = (updatedRow) => {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding-left: 0.5rem;
+}
+
+.detection-success {
+  color: var(--success-color, #4caf50);
+}
+
+.detection-warning {
+  color: var(--warning-text, #FFC107);
 }
 
 .color-chip {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   margin-right: 4px;
   border: 1px solid var(--border-color, #444);
-  box-shadow: 0 0 0 1px white;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
   vertical-align: middle;
   flex-shrink: 0;
 }
@@ -1778,68 +1921,92 @@ const handleRowSave = (updatedRow) => {
 .color-separator {
   display: inline-block;
   margin: 0 2px;
+  color: var(--text-secondary, #aaa);
 }
 
 .action-button {
-  padding: 0.25rem 0.75rem;
+  padding: 0.5rem 0.85rem;
   background: var(--accent-color, #4f87ff);
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.875rem;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .action-button:hover {
   background: var(--accent-hover, #3b6fdf);
+  transform: translateY(-1px);
+}
+
+.action-button.primary-action {
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
 }
 
 /* Configuration Panel */
-.config-panel {
+.config-panel, .quick-config-panel {
   margin: 1.5rem 0;
-  padding: 1rem;
-  background: var(--card-bg-light, #333);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #444);
+  padding: 1.25rem;
+  background: var(--card-bg-light, rgba(255, 255, 255, 0.05));
+  border-radius: 12px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
 }
 
 .config-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .config-section:last-child {
   margin-bottom: 0;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-icon {
+  margin-right: 0.75rem;
+  font-size: 1.2rem;
+}
+
 .config-section h4 {
-  margin: 0 0 0.75rem;
+  margin: 0;
   color: var(--text-primary, #fff);
   font-size: 1.125rem;
 }
 
 .help-text {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1rem;
   color: var(--text-secondary, #aaa);
   font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .input-group {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .apply-button {
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1.25rem;
   background: var(--accent-color, #4f87ff);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .apply-button:hover {
   background: var(--accent-hover, #3b6fdf);
+  transform: translateY(-1px);
 }
 
 .examples {
@@ -1851,118 +2018,159 @@ const handleRowSave = (updatedRow) => {
 
 .quick-options {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .option-button {
-  padding: 0.5rem 0.75rem;
-  background: var(--button-bg, #444);
+  padding: 0.65rem 1rem;
+  background: var(--button-bg, rgba(255, 255, 255, 0.1));
   color: var(--text-primary, #fff);
-  border: 1px solid var(--border-color, #555);
-  border-radius: 4px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
 }
 
 .option-button:hover {
-  background: var(--button-hover-bg, #555);
+  background: var(--button-hover-bg, rgba(255, 255, 255, 0.15));
   border-color: var(--accent-color, #4f87ff);
+  transform: translateY(-1px);
 }
 
-:root.light .option-button {
-  background: #e8e8e8;
-  color: #333;
-  border: 1px solid #d0d0d0;
+.option-icon {
+  margin-right: 0.5rem;
+  font-size: 1rem;
 }
 
-:root.light .option-button:hover {
-  background: #d8d8d8;
-  border-color: #2979ff;
-}
-
-/* Parsed Rows */
-.parsed-rows {
+/* Color Mapping Styles */
+.color-mapping-section {
   margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
 }
 
-.parsed-rows h4 {
-  margin: 0 0 1rem;
-  color: var(--text-primary, #fff);
-  font-size: 1.125rem;
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
 }
 
-.rows-list {
+.color-mapping-item {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-.parsed-row {
-  border: 1px solid var(--border-color, #444);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.row-header {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem;
-  background: var(--item-bg, #333);
-  cursor: pointer;
-}
-
-.row-number {
-  font-weight: 500;
-  color: var(--accent-color, #4f87ff);
-  margin-right: 0.75rem;
-}
-
-.row-color {
-  color: var(--text-secondary, #aaa);
-  margin-right: auto;
-}
-
-.row-details {
-  padding: 0.75rem;
-  background: var(--card-bg-light, #2d2d2d);
-  border-top: 1px solid var(--border-color, #444);
-}
-
-.row-text {
-  margin: 0 0 0.75rem;
-  color: var(--text-primary, #fff);
-  font-size: 0.875rem;
-}
-
-.stitch-list {
-  display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.stitch-text {
-  display: inline-block;
-  padding: 0.25rem 0;
-  margin-right: 0.5rem;
+.color-mapping-label {
+  font-weight: 500;
   color: var(--text-primary, #fff);
-  font-size: 0.875rem;
 }
 
-:root.light .stitch-text {
-  color: #333;
-  background: transparent;
+.color-mapping-input {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.color-select {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-color, #444);
+  border-radius: 6px;
+  background: var(--input-bg, #333);
+  color: var(--text-primary, #fff);
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ccc'%3E%3Cpath d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+
+.color-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #444);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+}
+
+.color-mapping-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* No rows alert */
+.no-rows-alert {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: var(--card-bg-light, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--warning-border, rgba(255, 193, 7, 0.5));
+  border-radius: 12px;
+  margin: 1rem 0 1.5rem;
+}
+
+.alert-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--warning-text, #FFC107);
+}
+
+.no-rows-alert h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--warning-text, #FFC107);
+  font-size: 1.25rem;
+}
+
+.no-rows-alert p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary, #ddd);
+  max-width: 400px;
+  line-height: 1.5;
 }
 
 /* Error Message */
 .error-message {
   margin: 1.5rem 0;
-  padding: 0.75rem 1rem;
+  padding: 1.25rem;
   background: var(--error-bg, rgba(220, 53, 69, 0.1));
   color: var(--error-color, #dc3545);
   border: 1px solid var(--error-border, rgba(220, 53, 69, 0.25));
-  border-radius: 6px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.error-icon {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+}
+
+.error-content {
+  flex: 1;
+}
+
+.error-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.error-text {
+  color: var(--error-color-muted, rgba(220, 53, 69, 0.85));
 }
 
 /* Action Buttons */
@@ -1970,7 +2178,7 @@ const handleRowSave = (updatedRow) => {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color, #444);
 }
@@ -1978,9 +2186,18 @@ const handleRowSave = (updatedRow) => {
 .save-button,
 .cancel-button {
   padding: 0.75rem 1.5rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.button-icon {
+  font-size: 1.1rem;
 }
 
 .save-button {
@@ -1991,6 +2208,7 @@ const handleRowSave = (updatedRow) => {
 
 .save-button:hover:not(:disabled) {
   background-color: var(--success-hover, #218838);
+  transform: translateY(-2px);
 }
 
 .save-button:disabled {
@@ -1999,97 +2217,24 @@ const handleRowSave = (updatedRow) => {
 }
 
 .cancel-button {
-  background: var(--button-bg, #2a2a2a);
+  background: var(--button-bg, rgba(255, 255, 255, 0.1));
   color: var(--button-text, #ffffff);
-  border: 1px solid var(--button-border, #333333);
+  border: 1px solid var(--button-border, rgba(255, 255, 255, 0.15));
 }
 
 .cancel-button:hover {
-  background: var(--button-hover-bg, #333333);
-}
-
-/* Color Mapping Styles */
-.color-mapping-section {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #444);
-}
-
-.color-mapping-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.color-mapping-label {
-  width: 80px;
-  font-weight: 500;
-  color: var(--text-primary, #fff);
-}
-
-.color-mapping-input {
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.color-select {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color, #444);
-  border-radius: 4px;
-  background: var(--input-bg, #333);
-  color: var(--text-primary, #fff);
-}
-
-.color-preview {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  margin-left: 0.5rem;
-  border: 1px solid var(--border-color, #444);
-  /* Add white outline for dark colors like black */
-  box-shadow: 0 0 0 1px white;
-}
-
-.color-mapping-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
-}
-
-/* CSS Variables for theming */
-:root {
-  --button-secondary-bg: #444;
-  --button-secondary-text: #fff;
-  --button-secondary-border: #555;
-  --button-secondary-hover: #555;
+  background: var(--button-hover-bg, rgba(255, 255, 255, 0.15));
+  transform: translateY(-2px);
 }
 
 /* Light Theme Overrides */
 :root.light .pattern-modal {
   background: #ffffff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-:root.light {
-  --button-secondary-bg-light: #e0e0e0;
-  --button-secondary-text-light: #333;
-  --button-secondary-border-light: #d0d0d0;
-  --button-secondary-hover-light: #d0d0d0;
-}
-
-:root.light .color-mapping-label {
-  color: #333;
-}
-
-:root.light .color-select {
-  background: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  color: #333;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
 }
 
 :root.light .modal-header {
+  background: #ffffff;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -2103,157 +2248,213 @@ const handleRowSave = (updatedRow) => {
 
 :root.light .close-button:hover {
   color: #333;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root.light .getting-started {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .steps-list li {
+  color: #666;
+}
+
+:root.light .steps-list li strong {
+  color: #333;
+}
+
+:root.light .column-title {
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+:root.light .pattern-stats {
+  color: #666;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 :root.light .form-group label {
   color: #333;
 }
 
-:root.light .form-input,
-:root.light .form-textarea {
-  border: 1px solid #e0e0e0;
-  background: #f9f9f9;
-  color: #333;
-}
-
-:root.light .section-title {
-  background: #f5f5f5;
-  color: #333;
-}
-
-:root.light .detection-item {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-}
-
-:root.light .detection-item .label {
+:root.light .label-hint {
   color: #666;
 }
 
-:root.light .detection-item .value {
+:root.light .form-input,
+:root.light .form-textarea {
+  border: 1px solid #d0d0d0;
+  background: #f9f9f9;
   color: #333;
 }
 
-:root.light .config-panel {
-  background: #f9f9f9;
+:root.light .form-input:focus,
+:root.light .form-textarea:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+:root.light .detection-card {
+  background: #f8f9fa;
   border: 1px solid #e0e0e0;
+}
+
+:root.light .detection-header {
+  background: #f1f3f5;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+}
+
+:root.light .detection-item:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+
+:root.light .detection-label {
+  color: #666;
+}
+
+:root.light .detection-value {
+  color: #333;
+}
+
+:root.light .detection-success {
+  color: #2e7d32;
+}
+
+:root.light .detection-warning {
+  color: #ff8f00;
+}
+
+:root.light .color-chip {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+:root.light .color-separator {
+  color: #888;
+}
+
+:root.light .config-panel,
+:root.light .quick-config-panel {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+}
+
+:root.light .config-section h4 {
+  color: #333;
 }
 
 :root.light .help-text {
   color: #666;
 }
 
-:root.light .row-header {
-  background: #f5f5f5;
+:root.light .option-button {
+  background: #f1f3f5;
+  color: #333;
+  border: 1px solid #e0e0e0;
 }
 
-:root.light .row-details {
-  background: #f9f9f9;
+:root.light .option-button:hover {
+  background: #e9ecef;
+  border-color: #2196f3;
+}
+
+:root.light .color-mapping-section {
   border-top: 1px solid #e0e0e0;
 }
 
-:root.light .row-text {
+:root.light .color-mapping-label {
   color: #333;
 }
 
-:root.light .stitch-text {
-  background: #eee;
+:root.light .color-select {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
   color: #333;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666'%3E%3Cpath d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+:root.light .color-preview {
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+:root.light .no-rows-alert {
+  background: #fffbeb;
+  border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+:root.light .no-rows-alert p {
+  color: #555;
 }
 
 :root.light .action-buttons {
   border-top: 1px solid #e0e0e0;
 }
 
-/* Light theme override for cancel button */
 :root.light .cancel-button {
-  background: #f2f2f2;
+  background: #f1f3f5;
   color: #333;
-  border: 1px solid #d0d0d0;
+  border: 1px solid #e0e0e0;
 }
 
 :root.light .cancel-button:hover {
-  background: #e0e0e0;
+  background: #e9ecef;
 }
 
-:root.light .stitch {
-  background: #f5f5f5;
-  color: #333;
-  border: 1px solid #e0e0e0;
+:root.light .error-message {
+  background: rgba(220, 53, 69, 0.05);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.15);
 }
 
-:root.light .pattern-shape-badge.circular {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
-  border: 1px solid rgba(76, 175, 80, 0.2);
+:root.light .error-text {
+  color: rgba(220, 53, 69, 0.85);
 }
 
-:root.light .pattern-shape-badge.rectangular {
-  background-color: rgba(33, 150, 243, 0.1);
-  color: #2196F3;
-  border: 1px solid rgba(33, 150, 243, 0.2);
-}
-
-/* No rows message styles */
-.no-rows-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  background: var(--card-bg-light, #2d2d2d);
-  border: 1px solid var(--warning-border, #8B6E00);
-  border-radius: 8px;
-  margin: 1rem 0;
-}
-
-.no-rows-message .icon-warning {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: var(--warning-text, #FFC107);
-}
-
-.no-rows-message h4 {
-  margin: 0 0 0.5rem 0;
-  color: var(--warning-text, #FFC107);
-}
-
-.no-rows-message p {
-  margin: 0 0 1rem 0;
-  color: var(--text-secondary, #aaa);
-}
-
-.no-rows-message .action-button {
-  margin-top: 0.5rem;
-}
-
-/* Light theme override */
-:root.light .storage-format-preview {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-}
-
-:root.light .storage-format-text {
-  color: #333;
-}
-
-/* Stitch preview styles */
-.stitch-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.stitch {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
+/* Mobile responsiveness enhancements */
+@media (max-width: 480px) {
+  .modal-body {
+    padding: 1rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .form-input, 
+  .form-textarea {
+    font-size: 0.95rem;
+  }
+  
+  .input-group {
+    flex-direction: column;
+  }
+  
+  .apply-button, 
+  .action-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .quick-options {
+    flex-direction: column;
+  }
+  
+  .option-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .action-buttons {
+    flex-direction: column-reverse;
+  }
+  
+  .save-button, 
+  .cancel-button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style> 
