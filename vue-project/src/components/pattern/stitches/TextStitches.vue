@@ -1100,47 +1100,43 @@ defineExpose({
   }
   
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-content {
-    transform: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(30px, auto));
+    justify-content: center;
+    align-items: center;
+    justify-items: center;
+    gap: 0;
+    padding: 8px 0;
     width: 100% !important;
     max-width: 100%;
     height: auto;
     min-height: 44px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    padding: 8px 4px;
-    gap: 0px !important;
-    row-gap: 4px !important;
+    transform: none;
+    box-sizing: border-box;
   }
   
-  .text-stitches :deep(.current-stitches) .repeat-stitch-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 32px;
-    padding: 0;
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch-item {
     margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
   }
   
-  .text-stitches :deep(.current-stitches) .repeat-stitch {
-    width: 32px !important;
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
+    width: 30px !important;
     height: 32px !important;
+    min-width: 30px;
+    min-height: 32px;
     font-size: 0.75rem;
     font-weight: 600;
     box-shadow: none;
     border: none;
     border-radius: 4px;
-    margin: 2px;
+    margin: 0;
     padding: 0;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-stitch-item {
-    margin: 1px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-comma {
@@ -1204,6 +1200,16 @@ defineExpose({
   
   :root.light .text-stitches :deep(.current-stitches) .repeat-label {
     color: rgba(0, 0, 0, 0.7);
+  }
+  
+  /* Remove conflicting styles that were added later */
+  .text-stitches :deep(.current-stitches) .repeat-stitch-item:nth-child(3n)::after {
+    content: none;
+  }
+  
+  .text-stitches :deep(.current-stitches) .repeat-content {
+    width: 100%;
+    padding: 8px 0;
   }
 }
 
