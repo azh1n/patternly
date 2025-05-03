@@ -31,7 +31,6 @@
                         <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
                           <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                         </div>
-                        <span v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</span>
                       </div>
                     </div>
                   </div>
@@ -486,6 +485,25 @@ defineExpose({
   justify-content: center;
   align-items: center;
   margin: 0;
+}
+
+/* Special handling for repeat patterns to ensure they take a full row */
+.text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+  flex: 0 0 100%;
+  max-width: 100%;
+  width: 100%;
+  margin: 15px 0;
+  justify-content: center;
+}
+
+/* Current view specific styles */
+.text-stitches :deep(.current-stitches) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  padding: 10px 5px;
 }
 
 /* Stitch symbol styling */
@@ -1277,7 +1295,7 @@ defineExpose({
 }
 
 .repeat-label {
-  font-size: 0.75rem;
+  font-size: 0.5rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
@@ -1285,14 +1303,14 @@ defineExpose({
 }
 
 .repeat-multiplier {
-  font-size: 0.85rem;
+  font-size: 0.5rem;
   font-weight: 700;
   color: var(--accent-color, #4f87ff);
 }
 
 .repeat-content {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap; /* Changed from nowrap to wrap */
   align-items: center;
   gap: 4px;
   padding: 8px;
@@ -1301,159 +1319,83 @@ defineExpose({
   -ms-overflow-style: none; /* IE and Edge */
 }
 
-.repeat-content::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+/* Current view specific styles for repeat content */
+.text-stitches :deep(.current-stitches) .repeat-content {
+  display: flex;
+  flex-direction: row; /* Change back to horizontal */
+  flex-wrap: nowrap; /* Don't wrap */
+  align-items: center;
+  gap: 0px;
+  padding: 8px;
+  overflow-x: auto; /* Allow horizontal scrolling if needed */
+  width: 100%;
+  justify-content: flex-start;
 }
 
-.repeat-stitch-item {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
+.text-stitches :deep(.current-stitches) .repeat-stitch-item {
+  width: 100%;
+  margin-bottom: 4px;
 }
 
-.repeat-stitch {
-  display: flex;
-  align-items: center;
+/* Hide commas in focused view */
+.text-stitches :deep(.current-stitches) .repeat-comma {
+  display: none;
+}
+
+/* Make the repeat pattern take the full width in the focused view */
+.text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+  flex: 0 0 100%; /* Take full row */
+  max-width: 100%;
+  width: 100%;
+  margin: 15px 0; /* Add vertical spacing */
   justify-content: center;
-  min-width: 40px;
-  height: 36px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 0 6px;
-  flex-shrink: 0;
 }
 
-.repeat-comma {
-  margin: 0 4px;
-  opacity: 0.7;
-  font-size: 1rem;
-  flex-shrink: 0;
+/* Adjust the repeat card for the focused view to make it look more like the preview */
+.text-stitches :deep(.current-stitches) .repeat-card {
+  min-width: 200px;
+  width: auto;
+  max-width: 90%;
+  margin: 0 auto;
 }
 
-/* Current stitch highlight */
-.stitch-wrapper.preview-stitch.current-stitch .repeat-card {
-  box-shadow: 0 0 0 2px var(--accent-color, #4f87ff);
+.text-stitches :deep(.current-stitches) .repeat-header {
+  padding: 0px 10px;
+  background: rgba(60, 60, 70, 0.25);
 }
 
-.stitch-wrapper.preview-stitch.completed-stitch .repeat-card {
-  opacity: 0.7;
-  background-color: var(--completed-bg, #555) !important;
+.text-stitches :deep(.current-stitches) .repeat-content {
+  padding: 8px 12px;
+  min-height: 38px;
 }
 
-/* Light mode overrides */
-:root.light .repeat-card {
-  background: rgba(240, 240, 245, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+/* Ensure proper spacing between stitches in repeat content */
+.text-stitches :deep(.current-stitches) .repeat-stitch-item {
+  padding: 0 3px;
 }
 
-:root.light .repeat-header {
-  background: rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-:root.light .repeat-label {
-  color: rgba(0, 0, 0, 0.6);
-}
-
-:root.light .repeat-stitch {
-  background-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* Preview specific styles */
-.stitch-wrapper.preview-stitch .repeat-card {
-  min-width: 180px;
-}
-
-.stitch-wrapper.preview-stitch .repeat-stitch {
-  min-width: 42px;
-  height: 38px;
-  font-size: 0.9rem;
-}
-
-/* Desktop enhancements */
-@media (min-width: 768px) {
-  .repeat-card {
-    min-width: 180px;
-  }
-  
-  .repeat-card.preview {
-    min-width: 220px;
-  }
-  
-  .repeat-header {
-    padding: 6px 10px;
-  }
-  
-  .repeat-content {
-    padding: 10px;
-  }
-  
-  .repeat-stitch {
-    min-width: 45px;
-    height: 40px;
-    font-size: 0.9rem;
-  }
-  
-  .repeat-multiplier {
-    font-size: 1rem;
-  }
-}
-
-/* Preserve stitch coloring - moved from previous implementation */
-.repeat-stitch.stitch-sc { background-color: rgba(76, 175, 80, 0.25); color: #e8f5e9; }
-.repeat-stitch.stitch-dc { background-color: rgba(33, 150, 243, 0.25); color: #e3f2fd; }
-.repeat-stitch.stitch-hdc { background-color: rgba(103, 58, 183, 0.25); color: #ede7f6; }
-.repeat-stitch.stitch-tr { background-color: rgba(255, 152, 0, 0.25); color: #fff8e1; }
-.repeat-stitch.stitch-dtr { background-color: rgba(255, 87, 34, 0.25); color: #fbe9e7; }
-.repeat-stitch.stitch-ch { background-color: rgba(76, 175, 80, 0.25); color: #e8f5e9; }
-.repeat-stitch.stitch-sl { background-color: rgba(158, 158, 158, 0.25); color: #f5f5f5; }
-.repeat-stitch.stitch-inc { background-color: rgba(63, 81, 181, 0.25); color: #e8eaf6; }
-.repeat-stitch.stitch-dec { background-color: rgba(156, 39, 176, 0.25); color: #f3e5f5; }
-.repeat-stitch.stitch-bs { background-color: rgba(0, 188, 212, 0.25); color: #e0f7fa; }
-.repeat-stitch.stitch-ns { background-color: rgba(96, 125, 139, 0.25); color: #eceff1; }
-
-/* Light theme stitch colors */
-:root.light .repeat-stitch.stitch-sc { background-color: rgba(76, 175, 80, 0.2); color: #1b5e20; }
-:root.light .repeat-stitch.stitch-dc { background-color: rgba(33, 150, 243, 0.2); color: #0d47a1; }
-:root.light .repeat-stitch.stitch-hdc { background-color: rgba(103, 58, 183, 0.2); color: #4a148c; }
-:root.light .repeat-stitch.stitch-tr { background-color: rgba(255, 152, 0, 0.2); color: #e65100; }
-:root.light .repeat-stitch.stitch-dtr { background-color: rgba(255, 87, 34, 0.2); color: #bf360c; }
-:root.light .repeat-stitch.stitch-ch { background-color: rgba(76, 175, 80, 0.2); color: #1b5e20; }
-:root.light .repeat-stitch.stitch-sl { background-color: rgba(158, 158, 158, 0.2); color: #212121; }
-:root.light .repeat-stitch.stitch-inc { background-color: rgba(63, 81, 181, 0.2); color: #1a237e; }
-:root.light .repeat-stitch.stitch-dec { background-color: rgba(156, 39, 176, 0.2); color: #4a148c; }
-:root.light .repeat-stitch.stitch-bs { background-color: rgba(0, 188, 212, 0.2); color: #006064; }
-:root.light .repeat-stitch.stitch-ns { background-color: rgba(96, 125, 139, 0.2); color: #263238; }
-
-/* Fix for mobile */
+/* Adjust margins for mobile */
 @media (max-width: 767px) {
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    max-width: 100%;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-card {
-    min-width: 140px;
-    max-width: 280px;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-stitch {
-    min-width: 36px;
-    height: 32px;
-    font-size: 0.8rem;
-  }
-  
-  .text-stitches :deep(.current-stitches) .repeat-header {
-    padding: 4px 6px;
+    margin: 8px 0;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-content {
     padding: 6px;
   }
+}
+
+/* Style the repeat stitches to look like the preview */
+.text-stitches :deep(.current-stitches) .repeat-stitch {
+  min-width: 40px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0 8px;
 }
 </style> 
 
