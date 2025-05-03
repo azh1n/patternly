@@ -28,83 +28,104 @@
           
           <!-- Grid-based preview content for repeated stitch patterns -->
           <div v-else-if="row.stitches.repeated" class="preview-content">
-            <!-- Stitches before repeat -->
-            <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
-              <div 
-                class="preview-stitch" 
-                :class="getStitchClass(stitch)"
-                :title="stitch"
-              >
-                {{ stitch }}
+            <!-- Use flexbox container for better layout control -->
+            <div class="preview-flex-container">
+              <!-- Stitches before repeat -->
+              <div class="stitch-group">
+                <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
+                  <div 
+                    class="preview-stitch" 
+                    :class="getStitchClass(stitch)"
+                    :title="stitch"
+                  >
+                    {{ stitch }}
+                  </div>
+                </template>
               </div>
-            </template>
-            
-            <!-- Repeat pattern with TextStitches.vue-like styling -->
-            <div class="repeat-pattern-wrapper">
-              <div class="repeat-card">
-                <div class="repeat-header">
-                  <span class="repeat-label">Repeat</span>
-                  <span class="repeat-multiplier">×{{ row.stitches.repeatCount }}</span>
-                </div>
-                <div class="repeat-content">
-                  <template v-for="(stitch, rIndex) in row.stitches.repeatedStitches" :key="`repeat-stitch-${rIndex}`">
-                    <div class="repeat-stitch-item">
-                      <div class="repeat-stitch" :class="getStitchClass(stitch)">
-                        {{ stitch }}
+              
+              <!-- Repeat pattern wrapper with line break for full-width -->
+              <div v-if="shouldUseFullWidth(row.stitches.repeatedStitches)" class="line-break"></div>
+              
+              <!-- Repeat pattern with TextStitches.vue-like styling -->
+              <div class="repeat-pattern-wrapper" :class="{ 'full-width': shouldUseFullWidth(row.stitches.repeatedStitches) }">
+                <div class="repeat-card">
+                  <div class="repeat-header">
+                    <span class="repeat-label">Repeat</span>
+                    <span class="repeat-multiplier">×{{ row.stitches.repeatCount }}</span>
+                  </div>
+                  <div class="repeat-content">
+                    <template v-for="(stitch, rIndex) in row.stitches.repeatedStitches" :key="`repeat-stitch-${rIndex}`">
+                      <div class="repeat-stitch-item">
+                        <div class="repeat-stitch" :class="getStitchClass(stitch)">
+                          {{ stitch }}
+                        </div>
+                        <span v-if="rIndex < row.stitches.repeatedStitches.length - 1" class="repeat-comma">,</span>
                       </div>
-                      <span v-if="rIndex < row.stitches.repeatedStitches.length - 1" class="repeat-comma">,</span>
-                    </div>
-                  </template>
+                    </template>
+                  </div>
                 </div>
+              </div>
+              
+              <!-- Line break after repeat if full width -->
+              <div v-if="shouldUseFullWidth(row.stitches.repeatedStitches) && row.stitches.afterRepeat?.length" class="line-break"></div>
+              
+              <!-- Stitches after repeat -->
+              <div class="stitch-group">
+                <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
+                  <div 
+                    class="preview-stitch" 
+                    :class="getStitchClass(stitch)"
+                    :title="stitch"
+                  >
+                    {{ stitch }}
+                  </div>
+                </template>
               </div>
             </div>
-            
-            <!-- Stitches after repeat -->
-            <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
-              <div 
-                class="preview-stitch" 
-                :class="getStitchClass(stitch)"
-                :title="stitch"
-              >
-                {{ stitch }}
-              </div>
-            </template>
           </div>
           
           <!-- Grid-based preview content for regular stitch patterns -->
           <div v-else class="preview-content">
-            <template v-for="(stitch, i) in row.stitches" :key="i">
-              <!-- Handle repeat pattern like "(1sc, 1inc) x6" -->
-              <template v-if="typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')">
-                <div class="repeat-pattern-wrapper">
-                  <div class="repeat-card">
-                    <div class="repeat-header">
-                      <span class="repeat-label">Repeat</span>
-                      <span class="repeat-multiplier">×{{ getRepeatCount(stitch) }}</span>
-                    </div>
-                    <div class="repeat-content">
-                      <template v-for="(repeatStitch, rIndex) in getRepeatedStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
-                        <div class="repeat-stitch-item">
-                          <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
-                            {{ repeatStitch }}
+            <div class="preview-flex-container">
+              <template v-for="(stitch, i) in row.stitches" :key="i">
+                <!-- Handle repeat pattern like "(1sc, 1inc) x6" -->
+                <template v-if="typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')">
+                  <!-- Line break before repeat if needed -->
+                  <div v-if="shouldUseFullWidth(getRepeatedStitches(stitch))" class="line-break"></div>
+                  
+                  <div class="repeat-pattern-wrapper" :class="{ 'full-width': shouldUseFullWidth(getRepeatedStitches(stitch)) }">
+                    <div class="repeat-card">
+                      <div class="repeat-header">
+                        <span class="repeat-label">Repeat</span>
+                        <span class="repeat-multiplier">×{{ getRepeatCount(stitch) }}</span>
+                      </div>
+                      <div class="repeat-content">
+                        <template v-for="(repeatStitch, rIndex) in getRepeatedStitches(stitch)" :key="`repeat-stitch-${rIndex}`">
+                          <div class="repeat-stitch-item">
+                            <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                              {{ repeatStitch }}
+                            </div>
+                            <span v-if="rIndex < getRepeatedStitches(stitch).length - 1" class="repeat-comma">,</span>
                           </div>
-                          <span v-if="rIndex < getRepeatedStitches(stitch).length - 1" class="repeat-comma">,</span>
-                        </div>
-                      </template>
+                        </template>
+                      </div>
                     </div>
                   </div>
-                </div>
+                  
+                  <!-- Line break after repeat if needed -->
+                  <div v-if="shouldUseFullWidth(getRepeatedStitches(stitch))" class="line-break"></div>
+                </template>
+                <template v-else>
+                  <div 
+                    class="preview-stitch" 
+                    :class="getStitchClass(stitch)"
+                    :title="stitch"
+                  >
+                    {{ stitch }}
+                  </div>
+                </template>
               </template>
-              <template v-else>
-                <div 
-                  class="preview-stitch" 
-                  :class="getStitchClass(stitch)"
-                  :title="stitch"
-                >
-                  {{ stitch }}
-                </div>
-              </template>
-            </template>
+            </div>
           </div>
         </div>
       </div>
@@ -249,6 +270,26 @@ const getRepeatCount = (stitch) => {
   if (!match) return 1;
   
   return parseInt(match[2], 10);
+};
+
+// Helper function to determine if a repeat pattern should use the full-width class
+const shouldUseFullWidth = (stitches) => {
+  if (!stitches || !Array.isArray(stitches)) return false;
+  
+  // Check stitch count - more stitches need more space
+  if (stitches.length > 4) return true;
+  
+  // Check total characters in stitches - longer stitch names need more space
+  const totalChars = stitches.reduce((total, stitch) => total + stitch.toString().length, 0);
+  if (totalChars > 12) return true;
+  
+  // Check if any stitch is complex (has more than 3 characters for the type)
+  const hasComplexStitches = stitches.some(stitch => {
+    const type = getStitchType(stitch);
+    return type.length > 3;
+  });
+  
+  return hasComplexStitches;
 };
 </script>
 
@@ -438,16 +479,122 @@ const getRepeatCount = (stitch) => {
 
 /* New grid-based preview styles */
 .preview-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(50px, 50px));
-  gap: 10px;
-  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   padding: 0.5rem;
   background: var(--card-bg, #2a2a2a);
   border-radius: 6px;
-  justify-content: start;
-  overflow-x: visible;
-  grid-auto-flow: row;
+  border: 1px solid var(--border-color, #444);
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Flex container for stitches */
+.preview-flex-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Stitch group for content before/after repeats */
+.stitch-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Force line breaks with this element */
+.line-break {
+  flex-basis: 100%;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Regular repeat pattern wrapper */
+.repeat-pattern-wrapper {
+  display: inline-flex;
+  min-width: 140px;
+  width: auto;
+  max-width: fit-content;
+}
+
+/* Full-width modifier for repeat patterns */
+.repeat-pattern-wrapper.full-width {
+  width: 100%;
+  margin: 5px 0;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .preview-header {
+    padding: 0.75rem;
+  }
+  
+  .preview-header h4 {
+    font-size: 1rem;
+  }
+  
+  .pattern-preview {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .preview-row-header {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .preview-row-content {
+    padding: 0.75rem;
+  }
+  
+  .preview-content {
+    padding: 0.5rem;
+    gap: 6px;
+  }
+  
+  .preview-flex-container {
+    gap: 6px;
+  }
+  
+  .stitch-group {
+    gap: 6px;
+  }
+  
+  .preview-stitch {
+    font-size: 0.85rem;
+    width: 40px;
+    height: 40px;
+  }
+  
+  /* Mobile adjustments for repeat patterns */
+  .repeat-pattern-wrapper {
+    width: 100%;
+    margin: 5px 0;
+    min-width: unset;
+  }
+  
+  .repeat-card {
+    min-width: 100%;
+  }
+  
+  .repeat-header {
+    padding: 3px 6px;
+  }
+  
+  .repeat-content {
+    padding: 6px;
+  }
+  
+  .repeat-stitch {
+    width: 36px;
+    height: 26px;
+    font-size: 0.8rem;
+  }
 }
 
 .preview-stitch {
@@ -457,8 +604,8 @@ const getRepeatCount = (stitch) => {
   border-radius: 4px;
   transition: all 0.2s ease;
   margin: 0;
-  width: 50px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -529,246 +676,6 @@ const getRepeatCount = (stitch) => {
   font-size: 0.75rem;
 }
 
-/* New styles for repeat pattern matching TextStitches.vue */
-.repeat-pattern-wrapper {
-  /* Always span the full grid width for repeat patterns to prevent horizontal scrolling */
-  grid-column: 1 / -1 !important;
-  width: 100%;
-}
-
-.repeat-card {
-  width: 100%;
-  background: rgba(60, 60, 70, 0.15);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.repeat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
-  background: rgba(60, 60, 70, 0.25);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.repeat-label {
-  font-size: 0.55rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.repeat-multiplier {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--accent-color, #4f87ff);
-}
-
-.repeat-content {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px;
-}
-
-.repeat-stitch-item {
-  display: flex;
-  align-items: center;
-}
-
-.repeat-stitch {
-  width: 40px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  background-color: var(--stitch-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-color, #444);
-}
-
-.repeat-comma {
-  margin: 0 2px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* Stitch colors for repeat patterns */
-.repeat-stitch.stitch-sc {
-  background-color: var(--sc-bg, #4caf5022);
-  border-color: var(--sc-border, #4caf5044);
-}
-
-.repeat-stitch.stitch-dc {
-  background-color: var(--dc-bg, #2196f322);
-  border-color: var(--dc-border, #2196f344);
-}
-
-.repeat-stitch.stitch-hdc {
-  background-color: var(--hdc-bg, #00bcd422);
-  border-color: var(--hdc-border, #00bcd444);
-}
-
-.repeat-stitch.stitch-tr {
-  background-color: var(--tr-bg, #9c27b022);
-  border-color: var(--tr-border, #9c27b044);
-}
-
-.repeat-stitch.stitch-inc {
-  background-color: var(--inc-bg, #4caf5033);
-  border-color: var(--inc-border, #4caf5055);
-}
-
-.repeat-stitch.stitch-dec {
-  background-color: var(--dec-bg, #f4433622);
-  border-color: var(--dec-border, #f4433644);
-}
-
-.repeat-stitch.stitch-bs {
-  background-color: var(--bs-bg, #ff980022);
-  border-color: var(--bs-border, #ff980044);
-}
-
-.repeat-stitch.stitch-ns {
-  background-color: var(--ns-bg, #90caf922);
-  border-color: var(--ns-border, #90caf944);
-}
-
-/* Preview Header */
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.preview-header h4 {
-  margin: 0;
-}
-
-.add-row-button {
-  padding: 0.25rem 0.75rem;
-  background: var(--accent-color, #4f87ff);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-}
-
-.add-row-button:hover {
-  background: var(--accent-hover, #3a6fd9);
-}
-
-/* Pattern shape badge styles */
-.pattern-shape-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  margin-left: 0.5rem;
-  font-weight: normal;
-  vertical-align: middle;
-}
-
-.pattern-shape-badge.circular {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: var(--accent-color, #4CAF50);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.pattern-shape-badge.rectangular {
-  background-color: rgba(33, 150, 243, 0.2);
-  color: #2196F3;
-  border: 1px solid rgba(33, 150, 243, 0.3);
-}
-
-.pattern-shape-badge .confidence {
-  font-size: 0.7rem;
-  opacity: 0.8;
-  margin-left: 0.25rem;
-}
-
-/* Mobile styles */
-@media (max-width: 767px) {
-  .preview-header {
-    padding: 0.75rem;
-  }
-  
-  .preview-header h4 {
-    font-size: 1rem;
-  }
-  
-  .pattern-preview {
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-  
-  .preview-row-header {
-    padding: 0.6rem 0.75rem;
-  }
-  
-  .preview-row-content {
-    padding: 0.75rem;
-  }
-  
-  .preview-content {
-    grid-template-columns: repeat(auto-fill, minmax(42px, 42px));
-    gap: 6px;
-    padding: 0.5rem;
-    overflow-x: visible;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-  
-  .preview-stitch {
-    font-size: 0.85rem;
-    width: 42px;
-    height: 32px;
-  }
-  
-  .repeat-pattern-wrapper {
-    min-width: unset;
-  }
-  
-  .repeat-card {
-    min-width: 100%;
-  }
-  
-  .repeat-header {
-    padding: 3px 6px;
-  }
-  
-  .repeat-content {
-    padding: 6px;
-  }
-  
-  .repeat-stitch {
-    width: 36px;
-    height: 26px;
-    font-size: 0.8rem;
-  }
-  
-  .preview-content::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-  
-  .preview-content::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
-  }
-}
-
 /* Light theme overrides */
 :root.light .pattern-preview {
   background: #ffffff;
@@ -828,5 +735,237 @@ const getRepeatCount = (stitch) => {
   background-color: rgba(33, 150, 243, 0.1);
   color: #2196F3;
   border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+/* Stitch colors for repeat patterns */
+.repeat-stitch.stitch-sc {
+  background-color: var(--sc-bg, #4caf5022);
+  border-color: var(--sc-border, #4caf5044);
+}
+
+.repeat-stitch.stitch-dc {
+  background-color: var(--dc-bg, #2196f322);
+  border-color: var(--dc-border, #2196f344);
+}
+
+.repeat-stitch.stitch-hdc {
+  background-color: var(--hdc-bg, #00bcd422);
+  border-color: var(--hdc-border, #00bcd444);
+}
+
+.repeat-stitch.stitch-tr {
+  background-color: var(--tr-bg, #9c27b022);
+  border-color: var(--tr-border, #9c27b044);
+}
+
+.repeat-stitch.stitch-inc {
+  background-color: var(--inc-bg, #4caf5033);
+  border-color: var(--inc-border, #4caf5055);
+}
+
+.repeat-stitch.stitch-dec {
+  background-color: var(--dec-bg, #f4433622);
+  border-color: var(--dec-border, #f4433644);
+}
+
+.repeat-stitch.stitch-bs {
+  background-color: var(--bs-bg, #ff980022);
+  border-color: var(--bs-border, #ff980044);
+}
+
+.repeat-stitch.stitch-ns {
+  background-color: var(--ns-bg, #90caf922);
+  border-color: var(--ns-border, #90caf944);
+}
+
+/* Pattern shape badge styles */
+.pattern-shape-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+.pattern-shape-badge.circular {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--accent-color, #4CAF50);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.pattern-shape-badge.rectangular {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.pattern-shape-badge .confidence {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-left: 0.25rem;
+}
+
+/* Preview Header */
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.preview-header h4 {
+  margin: 0;
+}
+
+.add-row-button {
+  padding: 0.25rem 0.75rem;
+  background: var(--accent-color, #4f87ff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.add-row-button:hover {
+  background: var(--accent-hover, #3a6fd9);
+}
+
+/* Add back the repeat pattern styling */
+.repeat-card {
+  width: 100%;
+  background: rgba(60, 60, 70, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.repeat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(60, 60, 70, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  height: 22px;
+}
+
+.repeat-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.repeat-multiplier {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-color, #4f87ff);
+}
+
+.repeat-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  width: 100%;
+}
+
+.repeat-stitch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: 600;
+  height: 32px;
+  width: 32px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+  background-color: var(--stitch-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color, #444);
+}
+
+.repeat-stitch-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.repeat-comma {
+  margin: 0 2px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Stitch colors for repeat patterns */
+.repeat-stitch.stitch-sc {
+  background-color: var(--sc-bg, #4caf5022);
+  border-color: var(--sc-border, #4caf5044);
+}
+
+.repeat-stitch.stitch-dc {
+  background-color: var(--dc-bg, #2196f322);
+  border-color: var(--dc-border, #2196f344);
+}
+
+.repeat-stitch.stitch-hdc {
+  background-color: var(--hdc-bg, #00bcd422);
+  border-color: var(--hdc-border, #00bcd444);
+}
+
+.repeat-stitch.stitch-tr {
+  background-color: var(--tr-bg, #9c27b022);
+  border-color: var(--tr-border, #9c27b044);
+}
+
+.repeat-stitch.stitch-inc {
+  background-color: var(--inc-bg, #4caf5033);
+  border-color: var(--inc-border, #4caf5055);
+}
+
+.repeat-stitch.stitch-dec {
+  background-color: var(--dec-bg, #f4433622);
+  border-color: var(--dec-border, #f4433644);
+}
+
+.repeat-stitch.stitch-bs {
+  background-color: var(--bs-bg, #ff980022);
+  border-color: var(--bs-border, #ff980044);
+}
+
+.repeat-stitch.stitch-ns {
+  background-color: var(--ns-bg, #90caf922);
+  border-color: var(--ns-border, #90caf944);
+}
+
+/* Light theme for repeat patterns */
+:root.light .repeat-card {
+  background: rgba(240, 240, 240, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:root.light .repeat-header {
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:root.light .repeat-label {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+:root.light .repeat-comma {
+  color: rgba(0, 0, 0, 0.6);
 }
 </style>
