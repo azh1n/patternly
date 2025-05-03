@@ -36,7 +36,7 @@
                             <img 
                               :src="getSymbolPath(repeatStitch)" 
                               :alt="repeatStitch" 
-                              class="stitch-svg medium"
+                              class="stitch-svg medium stitch-svg-padded"
                             />
                           </template>
                           <template v-else>
@@ -55,7 +55,7 @@
                     <img 
                       :src="getSymbolPath(stitch)" 
                       :alt="stitch" 
-                      class="stitch-svg"
+                      class="stitch-svg stitch-svg-padded"
                     />
                   </template>
                   <template v-else>
@@ -102,7 +102,7 @@
                           <img 
                             :src="getSymbolPath(repeatStitch)" 
                             :alt="repeatStitch" 
-                            class="stitch-svg small"
+                            class="stitch-svg small stitch-svg-padded"
                           />
                         </template>
                         <template v-else>
@@ -122,7 +122,7 @@
                   <img 
                     :src="getSymbolPath(stitch)" 
                     :alt="stitch" 
-                    class="stitch-svg"
+                    class="stitch-svg stitch-svg-padded"
                   />
                 </template>
                 <template v-else>
@@ -1329,6 +1329,25 @@ function getRepeatGridStyle(stitch) {
     min-width: 12px;
     height: 12px;
     font-size: 0.45rem;
+  }
+}
+
+/* SVG padding styles */
+.stitch-svg-padded {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+}
+
+.stitch-svg.small.stitch-svg-padded {
+  width: 80%;
+  height: 80%;
+}
+
+@media (max-width: 767px) {
+  .stitch-svg-padded {
+    width: 80%;
+    height: 80%;
   }
 }
 </style> 
