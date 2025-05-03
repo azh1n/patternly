@@ -1025,7 +1025,7 @@ function getRepeatGridStyle(stitch) {
 }
 
 .repeat-multiplier {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--accent-color, #4f87ff);
 }
@@ -1155,9 +1155,8 @@ function getRepeatGridStyle(stitch) {
   }
   
   .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    width: 100%;
-    max-width: 100%;
-    margin: 10px auto;
+    max-width: 80%;
+    margin: 18px auto;
     background-color: transparent;
     border-radius: 0;
   }
@@ -1171,9 +1170,8 @@ function getRepeatGridStyle(stitch) {
   }
   
   .symbol-stitches :deep(.current-stitches) .repeat-card {
-    width: 95%;
-    min-width: 200px;
-    margin: 0 auto;
+    width: 100%;
+    min-width: auto;
     border-radius: 6px;
     background: rgba(60, 60, 70, 0.15);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
@@ -1200,12 +1198,12 @@ function getRepeatGridStyle(stitch) {
   
   .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-content {
     display: grid;
-    grid-template-columns: repeat(auto-fit, 36px);
+    grid-template-columns: repeat(3, minmax(30px, auto));
     justify-content: center;
     align-items: center;
     justify-items: center;
-    gap: 4px;
-    padding: 8px;
+    gap: 0;
+    padding: 8px 0;
     width: 100% !important;
     max-width: 100%;
     min-height: 44px;
@@ -1225,17 +1223,17 @@ function getRepeatGridStyle(stitch) {
   .symbol-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch,
   .symbol-stitches :deep(.current-stitches) .repeat-stitch {
     /* Consistent sizing for mobile */
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px;
-    min-height: 36px;
+    width: 30px !important;
+    height: 32px !important;
+    min-width: 30px;
+    min-height: 32px;
     font-size: 0.75rem;
     font-weight: 600;
     box-shadow: none;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: none;
     border-radius: 4px;
     margin: 0;
-    padding: 2px;
+    padding: 0;
     box-sizing: border-box;
     position: relative;
   }
@@ -1248,6 +1246,15 @@ function getRepeatGridStyle(stitch) {
     font-size: 0.7rem;
     margin-right: 1px;
     font-weight: 700;
+  }
+  
+  /* Additional grid layout for mobile repeat content */
+  .symbol-stitches :deep(.current-stitches) .repeat-content {
+    width: 100%;
+    padding: 6px 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(30px, auto));
+    gap: 0;
   }
   
   /* Preview repeat patterns for mobile */
@@ -1276,7 +1283,7 @@ function getRepeatGridStyle(stitch) {
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
-    font-size: 0.6rem;
+    font-size: 0.65rem;
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-label {
