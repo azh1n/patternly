@@ -691,11 +691,9 @@ defineExpose({
 }
 
 .repeat-multiplier {
-  font-weight: bold;
-  color: var(--accent-color);
-  margin-left: 0; /* Remove the margin to bring multiplier closer to parenthesis */
-  font-size: 0.9rem;
-  white-space: nowrap;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent-color, #4f87ff);
 }
 
 /* Stitch type colors inside repeat patterns */
@@ -1033,125 +1031,179 @@ defineExpose({
 /* Mobile styles for repeat patterns */
 @media (max-width: 767px) {
   .current-stitches-container {
-    padding: 2px;
-    gap: 2px;
+    padding: 3px;
+    gap: 3px;
   }
   
   .text-stitches :deep(.current-stitches) .stitch-wrapper {
     margin: 1px;
-    min-width: 25px;
+    min-width: 30px;
   }
   
   .text-stitches :deep(.current-stitches) .stitch-symbol {
-    min-width: 25px;
+    min-width: 30px;
     height: 34px;
     font-size: clamp(0.6rem, 1.5vw, 0.75rem);
   }
   
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
-    max-width: 100%;
-    margin-inline: 0;
+    max-width: 95%;
+    margin: 10px auto;
     background-color: transparent;
     border-radius: 0;
   }
   
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .stitch-symbol {
-    background-color: rgba(76, 175, 80, 0.15);
-    border-color: rgba(76, 175, 80, 0.3);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    width: 85%;
+    background-color: transparent;
+    border: none;
+    width: 100%;
     height: auto;
     padding: 0;
   }
   
-  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
-    min-width: 25px;
-    height: 40px !important;
-    width: 40px !important;
-    min-height: 25px;
-    font-size: 0.65rem;
+  .text-stitches :deep(.current-stitches) .repeat-card {
+    width: 100%;
+    min-width: auto;
+    border-radius: 6px;
+    background: rgba(60, 60, 70, 0.15);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   }
   
-  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-pattern-content {
+  .text-stitches :deep(.current-stitches) .repeat-header {
+    padding: 4px 8px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .text-stitches :deep(.current-stitches) .repeat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.3px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .text-stitches :deep(.current-stitches) .repeat-multiplier {
+    font-size: 0.65rem;
+    color: var(--accent-color, #4f87ff);
+  }
+  
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-stitch {
+    min-width: 32px;
+    height: 32px !important;
+    width: 32px !important;
+    min-height: 32px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    margin: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large .repeat-content {
     transform: none;
     width: 100% !important;
     max-width: 100%;
     height: auto;
     min-height: 44px;
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    margin: 0;
-    gap: 0 !important;
-    grid-template-columns: 12px repeat(var(--stitch-count), auto) 20px !important;
+    padding: 8px 4px;
+    gap: 0px !important;
+    row-gap: 4px !important;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 40px;
+    height: 32px;
     padding: 0;
     margin: 0;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch {
-    width: 40px !important;
-    height: 40px !important;
-    font-size: 0.9rem;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.75rem;
     font-weight: 600;
     box-shadow: none;
     border: none;
-    border-radius: 3px;
-    margin: 0;
+    border-radius: 4px;
+    margin: 2px;
     padding: 0;
+  }
+  
+  .text-stitches :deep(.current-stitches) .repeat-stitch-item {
+    margin: 1px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-comma {
     display: none;
   }
   
-  .text-stitches :deep(.current-stitches) .repeat-paren-container {
-    display: flex;
-    align-items: center;
+  .text-stitches :deep(.current-stitches) .stitch-count-inline {
+    font-size: 0.7rem;
+    margin-right: 1px;
+    font-weight: 700;
+  }
+  
+  /* Preview repeat patterns for mobile */
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-card.preview {
+    min-width: 160px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 0.75rem;
+    margin: 1px;
+    border-radius: 4px;
+  }
+  
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-content {
+    padding: 6px 4px;
+    gap: 4px;
+    flex-wrap: wrap;
     justify-content: center;
-    height: 40px;
-    padding: 0;
-    margin: 0;
   }
   
-  .text-stitches :deep(.current-stitches) .repeat-paren-container.left {
-    margin-right: 0;
-    padding-right: 0;
-    justify-content: flex-end;
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch-item {
+    margin: 1px;
   }
   
-  .text-stitches :deep(.current-stitches) .repeat-paren-container.right {
-    margin-left: 0;
-    padding-left: 0;
-    justify-content: flex-start;
-    display: flex;
-    align-items: center;
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-multiplier {
+    font-size: 0.6rem;
   }
   
-  .text-stitches :deep(.current-stitches) .repeat-left-paren,
-  .text-stitches :deep(.current-stitches) .repeat-right-paren {
-    font-size: 1rem;
-    font-weight: 500;
-    opacity: 0.8;
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-label {
+    font-size: 0.55rem;
   }
   
-  .text-stitches :deep(.current-stitches) .repeat-multiplier {
-    font-weight: bold;
-    color: var(--accent-color, #4f87ff);
-    margin-left: 0;
-    font-size: 0.8rem;
-    white-space: nowrap;
+  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-header {
+    padding: 3px 6px;
+    height: 20px;
   }
   
-  /* Full preview repeat pattern mobile styles */
-  .stitch-wrapper.preview-stitch.repeat-pattern .repeat-pattern-content {
-    padding-inline: 0px !important;
+  /* Light theme adjustments for mobile */
+  :root.light .text-stitches :deep(.current-stitches) .repeat-card {
+    background: rgba(240, 240, 240, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  :root.light .text-stitches :deep(.current-stitches) .repeat-header {
+    background: rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  :root.light .text-stitches :deep(.current-stitches) .repeat-label {
+    color: rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -1342,7 +1394,7 @@ defineExpose({
 }
 
 .repeat-label {
-  font-size: 0.5rem;
+  font-size: 0.55rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
@@ -1350,7 +1402,7 @@ defineExpose({
 }
 
 .repeat-multiplier {
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   font-weight: 700;
   color: var(--accent-color, #4f87ff);
 }
@@ -1420,7 +1472,7 @@ defineExpose({
 
 /* Ensure proper spacing between stitches in repeat content */
 .text-stitches :deep(.current-stitches) .repeat-stitch-item {
-  padding: 0 3px;
+  padding: 0;
 }
 
 /* Desktop styles for repeat content */
