@@ -1085,7 +1085,7 @@ function getRepeatGridStyle(stitch) {
     max-width: 100%;
     justify-content: center;
     align-items: center;
-    margin: 15px 0;
+    margin: 25px 0;
   }
   
   .symbol-stitches :deep(.current-stitches) .repeat-content {
@@ -1095,8 +1095,7 @@ function getRepeatGridStyle(stitch) {
     width: 100%;
     justify-content: center;
     align-items: center;
-    padding: 10px;
-    gap: 8px;
+    gap: 0px;
   }
   
   .symbol-stitches :deep(.current-stitches) .repeat-stitch-item {
