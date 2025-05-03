@@ -16,6 +16,8 @@
               :key="`focused-stitch-${i}`" 
               class="stitch-wrapper"
               :class="{ 'repeat-pattern-large': isRepeatPattern(stitch) }"
+              :style="isRepeatPattern(stitch) ? 
+                {'--repeat-stitch-count': getRepeatStitches(stitch).length} : {}"
             >
               <div class="stitch-symbol" :class="getStitchClass(stitch)">
                 <template v-if="isRepeatPattern(stitch)">
@@ -24,7 +26,8 @@
                       <span class="repeat-label">Repeat</span>
                       <span class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</span>
                     </div>
-                    <div class="repeat-content">
+                    <div class="repeat-content" 
+                        :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
                       <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
                           :key="`repeat-stitch-${rIndex}`"
                           class="repeat-stitch-item">
@@ -1380,7 +1383,19 @@ defineExpose({
 @media (min-width: 768px) {
   .text-stitches :deep(.current-stitches) .repeat-card {
     width: 100%;
+    /* Calculate min-width based on number of stitches, with 40px per stitch plus padding */
+    min-width: calc(40px * var(--repeat-stitch-count, 1) + 80px);
+    /* Set a maximum width as a fallback */
+    max-width: min(calc(40px * var(--repeat-stitch-count, 1) + 80px), 100%);
+  }
+  
+  .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
+    /* Ensure the wrapper properly sizes itself to the contents */
+    width: auto;
     max-width: 100%;
+    justify-content: center;
+    align-items: center;
+    margin: 25px;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-content {
@@ -1389,18 +1404,23 @@ defineExpose({
     width: 100%;
     justify-content: center;
     align-items: center;
+    /* Ensure all stitches fit properly */
+    padding: 8px calc(4px * var(--repeat-stitch-count, 1) / 4 + 8px);
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch-item {
     display: flex;
     align-items: center;
-    margin-right: 4px;
+    /* Adjust spacing based on number of stitches */
+    margin-right: calc(4px * (3 / var(--repeat-stitch-count, 3)));
     margin-bottom: 4px;
+    flex-shrink: 1;
   }
   
   .text-stitches :deep(.current-stitches) .repeat-stitch {
     flex-shrink: 1;
-    min-width: 0;
+    /* Sizing is proportional to number of stitches */
+    min-width: calc(40px * (3 / var(--repeat-stitch-count, 1)));
     width: auto !important;
     height: auto !important;
     min-height: 36px;
@@ -1409,7 +1429,7 @@ defineExpose({
     justify-content: center;
     align-items: center;
     border-radius: 4px;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * (4 / (var(--repeat-stitch-count, 3) + 1)));
   }
 }
 
@@ -1427,8 +1447,8 @@ defineExpose({
 /* Style the repeat stitches to look like the preview */
 .text-stitches :deep(.current-stitches) .repeat-stitch {
   min-width: 0;
-  width: 100% !important;
-  height: 36px;
+  width: 40px !important;
+  height: 40px !important;
   display: flex;
   justify-content: center;
   align-items: center;
