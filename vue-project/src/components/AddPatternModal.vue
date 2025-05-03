@@ -231,7 +231,6 @@
                 <div class="alert-icon">⚠️</div>
                 <h4>No Rows Detected</h4>
                 <p>We couldn't parse your pattern automatically. Try defining the row format manually.</p>
-                <button class="action-button primary-action" @click="showRowConfig = true">Define Row Format</button>
               </div>
               <div class="help-text">This often happens with non-standard patterns. Please check if your pattern follows the usual format (Row 1: ... or Round 1: ...), or define your own row format below.</div>
               <div class="quick-config-panel">
