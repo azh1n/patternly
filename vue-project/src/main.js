@@ -70,7 +70,8 @@ import {
   faDownload,
   faExclamationCircle,
   faExclamationTriangle,
-  faDatabase
+  faDatabase,
+  faEdit
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -137,7 +138,8 @@ library.add(
   faDownload,
   faExclamationCircle,
   faExclamationTriangle,
-  faDatabase
+  faDatabase,
+  faEdit
 )
 
 const app = createApp(App)

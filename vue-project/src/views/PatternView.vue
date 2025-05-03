@@ -191,6 +191,12 @@
                 {{ showChartView ? 'Hide Chart View' : 'Show Chart View' }}
               </button>
               
+              <!-- Add edit pattern button -->
+              <button class="feature-button" @click="showEditPatternModal = true">
+                <font-awesome-icon icon="edit" />
+                Edit Pattern
+              </button>
+              
               <!-- Add visualization mode toggle buttons -->
               <div class="toggle-container">
                 <button 
@@ -236,6 +242,13 @@
       </div>
     </div>
   </div>
+  
+  <!-- Pattern Edit Modal -->
+  <PatternEditModal
+    v-model="showEditPatternModal"
+    :pattern="pattern"
+    @pattern-updated="handlePatternUpdated"
+  />
 </template>
 
 <script setup>
@@ -250,6 +263,7 @@ import TextStitches from '../components/pattern/stitches/TextStitches.vue'
 // Import user settings to check experimental features status
 import { useUserSettings } from '@/services/userSettings'
 import SideNavigation from '@/components/SideNavigation.vue'
+import PatternEditModal from '@/components/pattern/PatternEditModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -272,6 +286,7 @@ const isZooming = ref(false)  // Flag to track zoom events
 const showRawPattern = ref(false)  // State for showing raw pattern
 const showChartView = ref(false)   // State for showing chart view
 const visualizationMode = ref('text')  // State for visualization mode
+const showEditPatternModal = ref(false) // State for edit pattern modal
 
 // Notes feature state
 const currentRowNotes = ref('')  // Current row notes content
@@ -1021,6 +1036,20 @@ const getStitchClass = (code) => {
 defineExpose({
   stitchesPerView
 });
+
+// Handle pattern updated event
+const handlePatternUpdated = (updatedPattern) => {
+  // Update the local pattern data
+  if (updatedPattern) {
+    pattern.value = {
+      ...pattern.value,
+      ...updatedPattern
+    }
+  } else {
+    // If no pattern data provided, reload from server
+    loadPattern()
+  }
+}
 </script>
 
 <style scoped>
@@ -2118,26 +2147,26 @@ defineExpose({
   
   /* Experimental features section */
   .experimental-features {
-    padding: 1rem 0.75rem;
+    padding: 1rem;
+  }
+  
+  .feature-section {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
   
   .feature-button {
-    padding: 0.6rem 0.75rem;
-    font-size: 0.85rem;
-    border-radius: 8px;
+    width: 100%;
+    padding: 0.75rem;
+    justify-content: center;
   }
   
   .toggle-container {
-    display: flex;
-    width: 100%;
-    gap: 0.5rem;
     margin-top: 0.5rem;
   }
   
-  .toggle-container .feature-button {
-    flex: 1;
-    text-align: center;
-    justify-content: center;
+  .raw-pattern {
+    font-size: 0.8rem;
   }
 }
 
@@ -2207,5 +2236,137 @@ defineExpose({
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.experimental-features {
+  padding: 1rem 1.5rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.experimental-features h3 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+}
+
+.feature-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.feature-button {
+  padding: 0.75rem 1rem;
+  background-color: var(--button-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.feature-button:hover {
+  background-color: var(--button-hover-bg);
+  border-color: var(--accent-color);
+}
+
+.feature-button.active-toggle {
+  background-color: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.toggle-container {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toggle-container .feature-button {
+  flex: 1;
+  justify-content: center;
+}
+
+.chart-view-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+}
+
+.chart-view-error {
+  padding: 1rem;
+  border-radius: 6px;
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.retry-button {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #f44336;
+  color: white;
+  cursor: pointer;
+}
+
+.raw-pattern {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+}
+
+.raw-pattern h4 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.raw-pattern pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Mobile styles for experimental features */
+@media (max-width: 767px) {
+  .experimental-features {
+    padding: 1rem;
+  }
+  
+  .feature-section {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .feature-button {
+    width: 100%;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+  
+  .toggle-container {
+    margin-top: 0.5rem;
+  }
+  
+  .raw-pattern {
+    font-size: 0.8rem;
+  }
 }
 </style> 
