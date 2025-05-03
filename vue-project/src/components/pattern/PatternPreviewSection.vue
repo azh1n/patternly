@@ -443,10 +443,11 @@ const getRepeatCount = (stitch) => {
   gap: 10px;
   margin-top: 0.5rem;
   padding: 0.5rem;
-  overflow-x: auto;
   background: var(--card-bg, #2a2a2a);
   border-radius: 6px;
   justify-content: start;
+  overflow-x: visible;
+  grid-auto-flow: row;
 }
 
 .preview-stitch {
@@ -530,9 +531,9 @@ const getRepeatCount = (stitch) => {
 
 /* New styles for repeat pattern matching TextStitches.vue */
 .repeat-pattern-wrapper {
-  grid-column: span 2;
-  min-width: 160px;
-  width: auto;
+  /* Always span the full grid width for repeat patterns to prevent horizontal scrolling */
+  grid-column: 1 / -1 !important;
+  width: 100%;
 }
 
 .repeat-card {
@@ -724,8 +725,8 @@ const getRepeatCount = (stitch) => {
     grid-template-columns: repeat(auto-fill, minmax(42px, 42px));
     gap: 6px;
     padding: 0.5rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    overflow-x: visible;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
   }
   
@@ -735,10 +736,8 @@ const getRepeatCount = (stitch) => {
     height: 32px;
   }
   
-  /* Mobile adjustments for repeat patterns */
   .repeat-pattern-wrapper {
-    min-width: 130px;
-    grid-column: span 2;
+    min-width: unset;
   }
   
   .repeat-card {
@@ -759,13 +758,6 @@ const getRepeatCount = (stitch) => {
     font-size: 0.8rem;
   }
   
-  /* Add momentum-based scrolling for touch devices */
-  .preview-content {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-  
-  /* Hide scrollbars on mobile while preserving functionality */
   .preview-content::-webkit-scrollbar {
     width: 4px;
     height: 4px;
@@ -802,7 +794,6 @@ const getRepeatCount = (stitch) => {
   background: #f9f9f9;
 }
 
-/* Light theme for repeat patterns */
 :root.light .repeat-card {
   background: rgba(240, 240, 240, 0.6);
   border: 1px solid rgba(0, 0, 0, 0.05);
