@@ -40,9 +40,9 @@
                             />
                           </template>
                           <template v-else>
-                            <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                            <span v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                           </template>
-                          <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge">
+                          <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge stitch-badge">
                             {{ getStitchCount(repeatStitch) }}
                           </div>
                         </div>
@@ -106,9 +106,9 @@
                           />
                         </template>
                         <template v-else>
-                          <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
+                          <span v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                         </template>
-                        <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge">
+                        <div v-if="getStitchCount(repeatStitch) > 1" class="stitch-count-badge repeat-badge stitch-badge">
                           {{ getStitchCount(repeatStitch) }}
                         </div>
                       </div>
@@ -462,7 +462,15 @@ function getRepeatStitches(stitch) {
   if (!isRepeatPattern(stitch)) return [];
   
   const content = formatRepeatPattern(stitch);
-  return content.split(',').map(s => s.trim());
+  return content.split(',').map(s => {
+    const trimmed = s.trim();
+    // Replace "1stitchType" with just "stitchType" (removing the "1" prefix)
+    const match = trimmed.match(/^1([a-zA-Z]+)$/);
+    if (match) {
+      return match[1]; // Return just the stitch type without the "1" prefix
+    }
+    return trimmed;
+  });
 }
 
 // Common stitches for the key
@@ -642,9 +650,7 @@ function getRepeatGridStyle(stitch) {
   width: 40px;
   height: 40px;
   border-radius: 4px;
-  background: var(--stitch-bg, #333);
   color: var(--text-primary, #fff);
-  border: 1px solid var(--border-color, #444);
   font-size: 0.875rem;
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -806,9 +812,12 @@ function getRepeatGridStyle(stitch) {
 }
 
 .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
-  width: 45px !important;
-  height: 45px !important;
-  font-size: 0.9rem;
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 0.85rem;
+  margin: 1px;
+  border-radius: 4px;
+  position: relative;
 }
 
 .stitch-wrapper.preview-stitch.repeat-pattern .repeat-left-paren,
@@ -840,9 +849,12 @@ function getRepeatGridStyle(stitch) {
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-stitch {
-    width: 40px !important;
-    height: 40px !important;
-    font-size: 0.85rem;
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 0.75rem;
+    margin: 1px;
+    border-radius: 4px;
+    position: relative;
   }
   
   .stitch-wrapper.preview-stitch.repeat-pattern .repeat-left-paren,
@@ -992,6 +1004,7 @@ function getRepeatGridStyle(stitch) {
   justify-content: center;
   width: 45px;
   height: 45px;
+  position: relative;
 }
 
 .repeat-header {
@@ -1118,6 +1131,8 @@ function getRepeatGridStyle(stitch) {
     border-radius: 4px;
     font-size: 0.85rem;
     flex-shrink: 0;
+    position: relative;
+    font-weight: 600;
   }
 }
 
@@ -1222,6 +1237,7 @@ function getRepeatGridStyle(stitch) {
     margin: 0;
     padding: 2px;
     box-sizing: border-box;
+    position: relative;
   }
   
   .symbol-stitches :deep(.current-stitches) .repeat-comma {
@@ -1292,6 +1308,27 @@ function getRepeatGridStyle(stitch) {
   .symbol-stitches :deep(.preview-content) .repeat-stitch {
     overflow: visible;
     position: relative;
+  }
+}
+
+.stitch-count-badge.stitch-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  font-size: 0.5rem;
+  padding: 0 2px;
+  z-index: 10;
+}
+
+@media (max-width: 767px) {
+  .stitch-count-badge.stitch-badge {
+    top: -3px;
+    right: -3px;
+    min-width: 12px;
+    height: 12px;
+    font-size: 0.45rem;
   }
 }
 </style> 
