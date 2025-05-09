@@ -353,7 +353,10 @@ const loadPattern = async () => {
       }
       
       // Set up initial state after pattern loads
-      currentRowIndex.value = 0
+      nextTick(() => {
+        // Find the first uncompleted row and navigate to it
+        findFirstUncompletedRow()
+      })
       loadRowNotes()
     } else {
       console.error('Pattern not found')
@@ -1048,6 +1051,25 @@ const handlePatternUpdated = (updatedPattern) => {
   } else {
     // If no pattern data provided, reload from server
     loadPattern()
+  }
+}
+
+// Find the first uncompleted row and navigate to it
+const findFirstUncompletedRow = () => {
+  if (!pattern.value || !parsedRows.value || parsedRows.value.length === 0) return
+  
+  const completedRows = pattern.value.completedRows || {}
+  
+  // Find the first uncompleted row's index
+  const firstUncompletedIndex = parsedRows.value.findIndex(row => {
+    return !completedRows[`row${row.rowNum}`]
+  })
+  
+  // If all rows are completed, stay at row 0, otherwise navigate to the first uncompleted row
+  if (firstUncompletedIndex !== -1) {
+    currentRowIndex.value = firstUncompletedIndex
+  } else {
+    currentRowIndex.value = 0
   }
 }
 </script>
