@@ -95,15 +95,79 @@ const route = useRoute()
 const { experimentalFeatures, toggleExperimentalFeatures } = useUserSettings()
 const isExpanded = ref(props.defaultExpanded)
 
+// Touch handling variables
+const touchStartY = ref(0)
+const touchEndY = ref(0)
+const touchStartX = ref(0)
+const touchEndX = ref(0)
+const touchStartTime = ref(0)
+const isScrolling = ref(false)
+
 // Set initial expanded state based on screen size
 onMounted(() => {
   checkScreenSize()
   window.addEventListener('resize', checkScreenSize)
+  
+  // Add touch event listeners to detect scrolling
+  document.addEventListener('touchstart', handleTouchStart, { passive: true })
+  document.addEventListener('touchmove', handleTouchMove, { passive: true })
+  document.addEventListener('touchend', handleTouchEnd, { passive: true })
+  document.addEventListener('scroll', handleScroll, { passive: true })
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkScreenSize)
+  
+  // Remove touch event listeners
+  document.removeEventListener('touchstart', handleTouchStart)
+  document.removeEventListener('touchmove', handleTouchMove)
+  document.removeEventListener('touchend', handleTouchEnd)
+  document.removeEventListener('scroll', handleScroll)
 })
+
+// Handle touch events to detect scrolling vs tapping
+const handleTouchStart = (e) => {
+  touchStartY.value = e.touches[0].clientY
+  touchStartX.value = e.touches[0].clientX
+  touchStartTime.value = Date.now()
+  isScrolling.value = false
+}
+
+const handleTouchMove = (e) => {
+  // Calculate vertical movement
+  touchEndY.value = e.touches[0].clientY
+  touchEndX.value = e.touches[0].clientX
+  
+  // Detect if user is scrolling (more vertical than horizontal movement)
+  const deltaY = Math.abs(touchEndY.value - touchStartY.value)
+  const deltaX = Math.abs(touchEndX.value - touchStartX.value)
+  
+  // If vertical scrolling is detected, set the flag
+  if (deltaY > 10 && deltaY > deltaX) {
+    isScrolling.value = true
+  }
+}
+
+const handleTouchEnd = () => {
+  // We don't need to do anything specific on touch end,
+  // the isScrolling flag will be used in the menu toggle logic
+  
+  // Reset the scrolling flag after a delay
+  setTimeout(() => {
+    isScrolling.value = false
+  }, 300)
+}
+
+const handleScroll = () => {
+  // Set scrolling flag when the page is scrolled
+  isScrolling.value = true
+  
+  // Reset the scrolling flag after a delay
+  clearTimeout(window.scrollTimeout)
+  window.scrollTimeout = setTimeout(() => {
+    isScrolling.value = false
+  }, 300)
+}
 
 // Check screen size and adjust navigation accordingly
 const checkScreenSize = () => {
@@ -143,6 +207,11 @@ const navigateTo = (path) => {
 
 // Toggle sidebar expanded state
 const toggleNavigation = () => {
+  // Don't toggle navigation if user is scrolling
+  if (isScrolling.value) {
+    return
+  }
+  
   isExpanded.value = !isExpanded.value
   emit('update:expanded', isExpanded.value)
 }
@@ -186,6 +255,7 @@ defineExpose({
   width: 60px;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-sidebar.expanded {

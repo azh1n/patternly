@@ -279,6 +279,7 @@ const stitchesPerView = ref(5)  // Number of stitches to display at once
 const currentRowIndex = ref(0)  // Current row index in the pattern
 const isSwiping = ref(false)  // Touch swipe state
 const startX = ref(0)  // Touch start position
+const startY = ref(0)  // Touch start position (vertical)
 const currentX = ref(0)  // Current touch position
 const windowWidth = ref(window.innerWidth)  // Current window width
 const lastZoomTime = ref(0)  // Last zoom time for detecting zoom events
@@ -287,6 +288,7 @@ const showRawPattern = ref(false)  // State for showing raw pattern
 const showChartView = ref(false)   // State for showing chart view
 const visualizationMode = ref('text')  // State for visualization mode
 const showEditPatternModal = ref(false) // State for edit pattern modal
+const isScrolling = ref(false) // Track if user is scrolling
 
 // Notes feature state
 const currentRowNotes = ref('')  // Current row notes content
@@ -308,6 +310,11 @@ const sideNav = ref(null)
 
 // Update the toggleSidebar function to use the ref
 const toggleSidebar = () => {
+  // Don't toggle if user is scrolling
+  if (isScrolling.value) {
+    return
+  }
+  
   if (sideNav.value) {
     // Call the navigation component's method directly
     sideNav.value.toggleNavigation()
@@ -874,6 +881,7 @@ const markAsUnsaved = () => {
 const handleTouchStart = (e) => {
   isSwiping.value = true
   startX.value = e.touches[0].clientX
+  startY.value = e.touches[0].clientY
   currentX.value = startX.value
 }
 
@@ -973,7 +981,40 @@ onMounted(() => {
     }
   };
   
+  // Add scroll detection handler
+  const handleDocumentTouchStart = (e) => {
+    startX.value = e.touches[0].clientX;
+    startY.value = e.touches[0].clientY;
+    isScrolling.value = false;
+  };
+  
+  const handleDocumentTouchMove = (e) => {
+    const currentY = e.touches[0].clientY;
+    const currentX = e.touches[0].clientX;
+    
+    // Check if movement is primarily vertical (scrolling)
+    const deltaY = Math.abs(currentY - startY.value);
+    const deltaX = Math.abs(currentX - startX.value);
+    
+    if (deltaY > 10 && deltaY > deltaX) {
+      isScrolling.value = true;
+    }
+  };
+  
+  const handleDocumentScroll = () => {
+    isScrolling.value = true;
+    
+    // Reset the scrolling flag after a delay
+    clearTimeout(window.scrollTimeout);
+    window.scrollTimeout = setTimeout(() => {
+      isScrolling.value = false;
+    }, 300);
+  };
+  
   window.addEventListener('resize', handleResize);
+  document.addEventListener('touchstart', handleDocumentTouchStart, { passive: true });
+  document.addEventListener('touchmove', handleDocumentTouchMove, { passive: true });
+  document.addEventListener('scroll', handleDocumentScroll, { passive: true });
   
   const patternCard = document.querySelector('.pattern-card')
   if (patternCard) {
@@ -991,6 +1032,9 @@ onMounted(() => {
   // Clean up event listeners
   return () => {
     window.removeEventListener('resize', handleResize)
+    document.removeEventListener('touchstart', handleDocumentTouchStart);
+    document.removeEventListener('touchmove', handleDocumentTouchMove);
+    document.removeEventListener('scroll', handleDocumentScroll);
     if (patternCard) {
       patternCard.removeEventListener('touchstart', handleTouchStart)
       patternCard.removeEventListener('touchmove', handleTouchMove)
