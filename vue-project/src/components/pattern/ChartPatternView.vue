@@ -183,6 +183,9 @@ const firstRowRightToLeft = ref(true);
 const zoomLevel = ref(1);
 const chartContainer = ref(null);
 
+// Always expand repeated stitches in chart view
+const displayRepeatedStitchesSeparately = ref(true);
+
 // For tracking the selected stitch
 const selectedRowIndex = ref(null);
 const selectedStitchIndex = ref(null);
@@ -277,18 +280,20 @@ const parseFormattedPattern = (content) => {
       const stitchesText = stitchesMatch ? stitchesMatch[1].trim() : '';
       
       // Parse the stitches into individual codes
-      const codes = stitchesText.split(',').map(s => s.trim());
+      const rawCodes = stitchesText.split(',').map(s => s.trim());
       
+      // Create a new row with the parsed data
       return {
         rowNum,
         color,
         pattern: stitchesText,
-        codes
+        codes: rawCodes
       };
     });
     
     return parsedRows.reverse(); // Reverse for bottom-to-top display
   } catch (error) {
+    console.error('Error parsing formatted pattern:', error);
     return [];
   }
 };
@@ -456,31 +461,84 @@ const expandRowStitches = (row) => {
     // Try to parse from pattern string if available
     if (row.pattern) {
       const stitches = row.pattern.split(',').map(s => s.trim());
-      return expandStitchCodes(stitches);
+      return processRowStitches(stitches, true); // Always expand repeats in chart view
     }
     
     return [];
   }
   
-  return expandStitchCodes(row.codes);
+  // Always fully expand all stitches, including repeats
+  const result = processRowStitches(row.codes, true); // Force true to always expand repeats
+  
+  // Additional check to ensure that if any repeat notation still exists in the result,
+  // we expand it according to the TextStitches approach
+  for (let i = 0; i < result.length; i++) {
+    const stitch = result[i];
+    if (typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')) {
+      // Remove this stitch
+      result.splice(i, 1);
+      
+      // Get the parts
+      const repeatMatch = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+      if (repeatMatch) {
+        const repeatedContent = repeatMatch[1];
+        const repeatCount = parseInt(repeatMatch[2], 10);
+        
+        // Split repeats and fully expand
+        const expandedStitches = [];
+        const stitches = repeatedContent.split(',').map(s => s.trim());
+        
+        for (let j = 0; j < repeatCount; j++) {
+          for (const s of stitches) {
+            const match = s.match(/^(\d+)([a-zA-Z]+)/);
+            if (match) {
+              const count = parseInt(match[1]);
+              const type = match[2];
+              for (let k = 0; k < count; k++) {
+                expandedStitches.push(`1${type}`);
+              }
+            } else if (s.match(/^[a-zA-Z]+$/)) {
+              expandedStitches.push(`1${s}`);
+            } else {
+              expandedStitches.push(s);
+            }
+          }
+        }
+        
+        // Insert the expanded stitches at this position
+        result.splice(i, 0, ...expandedStitches);
+        
+        // Adjust index to account for the newly added stitches
+        i += expandedStitches.length - 1;
+      }
+    }
+  }
+  
+  return result;
 };
 
-// Function to expand an array of stitch codes into individual stitches
-const expandStitchCodes = (codes) => {
+// Process stitches based on display mode - matching TextStitches/SymbolStitches
+function processRowStitches(codes, expandRepeated) {
   if (!codes || !Array.isArray(codes)) return [];
   
-  const expandedStitches = [];
-  
-  for (const code of codes) {
-    if (!code) continue;
+  if (!expandRepeated) {
+    // Just return the codes as is when not expanding
+    return codes;
+  } else {
+    // Expand repeated stitches (e.g., "3sc" becomes ["sc", "sc", "sc"])
+    const expandedStitches = [];
     
-    // Convert to string if it's not already
-    const codeStr = String(code).trim();
-    
-    // Check if it's a repeat pattern like "(1sc, 1inc) x6"
-    if (codeStr.includes('(') && codeStr.includes(')') && codeStr.includes('x')) {
-      try {
-        const repeatMatch = codeStr.match(/\(([^)]+)\)\s*x(\d+)/);
+    for (let i = 0; i < codes.length; i++) {
+      const stitch = codes[i];
+      if (!stitch) continue;
+      
+      // Convert to string and trim
+      const stitchStr = String(stitch).trim();
+      
+      // Handle repeat patterns like "(1sc, 1inc) x6"
+      if (stitchStr.includes('(') && stitchStr.includes(')') && stitchStr.includes('x')) {
+        // Extract the repeat pattern components
+        const repeatMatch = stitchStr.match(/\(([^)]+)\)\s*x(\d+)/);
         if (repeatMatch) {
           const repeatedContent = repeatMatch[1];
           const repeatCount = parseInt(repeatMatch[2], 10);
@@ -488,45 +546,117 @@ const expandStitchCodes = (codes) => {
           // Split the repeated content by commas
           const stitches = repeatedContent.split(',').map(s => s.trim());
           
-          // Repeat the stitches
-          for (let i = 0; i < repeatCount; i++) {
-            for (const stitch of stitches) {
-              expandedStitches.push(normalizeStitchCode(stitch));
+          // Repeat the pattern
+          for (let j = 0; j < repeatCount; j++) {
+            for (let k = 0; k < stitches.length; k++) {
+              const s = stitches[k];
+              const match = s.match(/^(\d+)([a-zA-Z]+)/);
+              if (match) {
+                // Has a count prefix like "3sc"
+                const count = parseInt(match[1]);
+                const type = match[2];
+                
+                // Expand each count into individual stitches
+                for (let l = 0; l < count; l++) {
+                  expandedStitches.push(`1${type}`);
+                }
+              } else if (s.match(/^[a-zA-Z]+$/)) {
+                // Single stitch without count like "sc"
+                expandedStitches.push(`1${s}`);
+              } else {
+                // Unknown format, add as is
+                expandedStitches.push(s);
+              }
             }
           }
+        } else {
+          // Failed to parse repeat pattern, add as is
+          expandedStitches.push(stitchStr);
         }
-      } catch (error) {
-        expandedStitches.push(codeStr);
-      }
-    } else {
-      // Handle normal stitch codes with counts (e.g., "3sc", "22dc")
-      try {
-        const countMatch = codeStr.match(/^(\d+)([a-z]+)$/i);
-        if (countMatch) {
-          const count = parseInt(countMatch[1], 10);
-          const type = countMatch[2];
+      } 
+      // Handle the case where part of a repeat pattern might be split across items
+      else if (stitchStr.includes('(') && !stitchStr.includes(')')) {
+        // This could be the start of a repeat pattern split across multiple items
+        // Collect all parts of the pattern
+        let fullPattern = stitchStr;
+        let j = i + 1;
+        
+        // Look ahead until we have a complete pattern or run out of items
+        while (j < codes.length) {
+          const nextPart = String(codes[j]).trim();
+          fullPattern += ', ' + nextPart;
+          j++;
           
-          // Add the stitch the specified number of times
-          for (let i = 0; i < count; i++) {
+          // Check if we have a complete pattern now
+          if (nextPart.includes(')') && fullPattern.includes('x')) {
+            break;
+          }
+        }
+        
+        // If we assembled a complete pattern, parse it
+        if (fullPattern.includes('(') && fullPattern.includes(')') && fullPattern.includes('x')) {
+          const repeatMatch = fullPattern.match(/\(([^)]+)\)\s*x(\d+)/);
+          if (repeatMatch) {
+            const repeatedContent = repeatMatch[1];
+            const repeatCount = parseInt(repeatMatch[2], 10);
+            
+            // Split the repeated content by commas
+            const stitches = repeatedContent.split(',').map(s => s.trim());
+            
+            // Repeat the pattern
+            for (let j = 0; j < repeatCount; j++) {
+              for (let k = 0; k < stitches.length; k++) {
+                const s = stitches[k];
+                const match = s.match(/^(\d+)([a-zA-Z]+)/);
+                if (match) {
+                  const count = parseInt(match[1]);
+                  const type = match[2];
+                  
+                  for (let l = 0; l < count; l++) {
+                    expandedStitches.push(`1${type}`);
+                  }
+                } else if (s.match(/^[a-zA-Z]+$/)) {
+                  expandedStitches.push(`1${s}`);
+                } else {
+                  expandedStitches.push(s);
+                }
+              }
+            }
+            
+            // Skip over the items we consumed
+            i = j - 1;
+          } else {
+            // Failed to parse assembled pattern, add original stitch
+            expandedStitches.push(stitchStr);
+          }
+        } else {
+          // Not a complete pattern after all, add original stitch
+          expandedStitches.push(stitchStr);
+        }
+      } else {
+        // Normal stitch code handling
+        const match = stitchStr.match(/^(\d+)([a-zA-Z]+)/);
+        if (match) {
+          const count = parseInt(match[1]);
+          const type = match[2];
+          
+          // Expand count into individual stitches
+          for (let j = 0; j < count; j++) {
             expandedStitches.push(`1${type}`);
           }
-        } 
-        // Check if it's just a stitch type without a count (e.g., "sc", "dc")
-        else if (codeStr.match(/^[a-z]+$/i)) {
-          expandedStitches.push(`1${codeStr}`);
-        } 
-        // Handle any other format
-        else {
-          expandedStitches.push(codeStr);
+        } else if (stitchStr.match(/^[a-zA-Z]+$/)) {
+          // If it's just a stitch type without a count (e.g., "sc")
+          expandedStitches.push(`1${stitchStr}`);
+        } else {
+          // If no match, just add the stitch as is
+          expandedStitches.push(stitchStr);
         }
-      } catch (error) {
-        expandedStitches.push(codeStr);
       }
     }
+    
+    return expandedStitches;
   }
-  
-  return expandedStitches;
-};
+}
 
 // Normalize stitch code to format "1sc", "1dc", etc.
 const normalizeStitchCode = (code) => {
@@ -622,6 +752,12 @@ onMounted(() => {
         isDebugMode.value = true;
       });
     }
+  }
+  
+  // Verify that displayRepeatedStitchesSeparately is always true in chart view
+  // This ensures that repeat patterns like "(1sc, 1inc) x6" are fully expanded
+  if (!displayRepeatedStitchesSeparately.value) {
+    displayRepeatedStitchesSeparately.value = true;
   }
 });
 </script>
