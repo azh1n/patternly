@@ -1058,6 +1058,25 @@ defineExpose({
     font-size: clamp(0.6rem, 1.5vw, 0.75rem);
   }
   
+  /* Specific adjustments for the focused view navigation */
+  .text-stitches :deep(.stitch-navigation) {
+    padding: 0.4rem;
+    gap: 0.4rem;
+  }
+  
+  .text-stitches :deep(.nav-button) {
+    min-width: 30px;
+    height: 30px;
+  }
+  
+  .text-stitches :deep(.stitch-content) {
+    min-height: 55px;
+  }
+  
+  .text-stitches :deep(.current-stitches) {
+    margin-bottom: 0.25rem;
+  }
+  
   .text-stitches :deep(.current-stitches) .stitch-wrapper.repeat-pattern-large {
     max-width: 95%;
     margin: 10px auto;
@@ -1489,6 +1508,16 @@ defineExpose({
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0 8px;
+}
+
+/* Mobile styles for the expand toggle button */
+@media (max-width: 767px) {
+  .expand-toggle {
+    margin: 0.25rem auto 0.5rem auto;
+    padding: 0.25rem 1rem;
+    font-size: 0.8rem;
+    height: 28px;
+  }
 }
 </style> 
 

@@ -440,11 +440,13 @@ defineExpose({
 /* Mobile styles */
 @media (max-width: 767px) {
   .stitch-navigation {
-    padding: 0.75rem;
+    padding: 0.5rem;
+    gap: 0.5rem;
   }
 
   .current-stitches {
-    gap: 1rem;
+    gap: 0.75rem;
+    min-height: 40px;
   }
 
   .preview-content {
@@ -453,10 +455,14 @@ defineExpose({
   
   /* Improving touch targets for mobile */
   .nav-button {
-    margin: 0 0.25rem;
+    margin: 0;
+    padding: 0.35rem 0.6rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 4px;
   }
   
   .arrow-icon {
@@ -465,6 +471,16 @@ defineExpose({
     justify-content: center;
     width: 100%;
     height: 100%;
+    font-size: 1rem;
+  }
+  
+  .stitch-content {
+    min-height: 60px;
+  }
+  
+  .stitch-progress {
+    font-size: 0.8rem;
+    margin-top: -2px;
   }
 }
 </style> 
