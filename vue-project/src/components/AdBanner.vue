@@ -1,11 +1,14 @@
 <template>
-  <div class="ad-banner" :class="{ 'ad-loaded': isLoaded, 'ad-error': hasError }">
+  <div class="ad-banner" :class="{ 
+    'ad-loaded': isLoaded, 
+    'ad-error': hasError
+  }">
     <!-- Google AdSense Ad Unit -->
     <ins class="adsbygoogle"
          style="display:inline-block"
          data-ad-client="ca-pub-8237432847073620"
          data-ad-slot="7158018837"
-         data-ad-format="horizontal"
+         data-ad-format="auto"
          data-full-width-responsive="false"></ins>
   </div>
 </template>
@@ -65,23 +68,28 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Basic styling for all devices */
 .ad-banner {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  width: 100%;
+  height: 50px !important; /* Force exact height with !important */
+  max-height: 50px !important; /* Force max height with !important */
+  background-color: var(--main-bg, #151515);
   z-index: 1000;
-  background-color: var(--main-bg, white);
-  padding: 4px;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
-  min-height: 50px;
-  text-align: center;
   display: flex;
   justify-content: center;
   align-items: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition: opacity 0.3s ease;
+  padding: 0 !important; /* Remove all padding */
+  margin: 0 !important; /* Remove all margin */
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.1);
+  overflow: hidden !important;
+  line-height: 0 !important; /* Minimize line height */
 }
 
 .ad-banner.ad-loaded {
@@ -94,25 +102,28 @@ onUnmounted(() => {
 }
 
 .adsbygoogle {
-  width: 320px;
-  height: 50px;
-  margin: 0 auto;
+  width: 234px; /* Smallest standard banner width */
+  height: 50px !important; /* Force exact height with !important */
+  max-height: 50px !important; /* Force max height with !important */
+  margin: 0 auto !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
-/* Add padding to the bottom of the page to prevent content from being hidden behind the ad */
+/* Define the ad banner height for other components */
 :root {
-  --ad-banner-height: 50px;
+  --ad-banner-height: 50px !important; /* Force exact height with !important */
 }
 
-/* Ensure the banner doesn't interfere with content on mobile */
-@media (max-width: 768px) {
+/* Responsive adjustments */
+@media (max-width: 767px) {
   .ad-banner {
-    padding: 2px;
-    min-height: 50px;
+    height: 50px !important;
+    max-height: 50px !important;
   }
   
   :root {
-    --ad-banner-height: 50px;
+    --ad-banner-height: 50px !important;
   }
 }
 </style> 

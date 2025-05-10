@@ -59,6 +59,11 @@
           <span class="nav-label" v-if="isExpanded">About</span>
         </a>
         
+        <a href="/donate" class="nav-item" @click.prevent="navigateTo('/donate')">
+          <font-awesome-icon icon="donate" class="nav-icon" />
+          <span class="nav-label" v-if="isExpanded">Donate</span>
+        </a>
+        
         <div class="experimental-toggle" v-if="isExpanded">
           <label class="toggle-label">
             <span>Experimental Features</span>
@@ -256,6 +261,7 @@ defineExpose({
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--ad-banner-height, 50px); /* Add padding to prevent ad banner overlay */
 }
 
 .nav-sidebar.expanded {
@@ -350,6 +356,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--border-color);
+  margin-bottom: 15px; /* Add margin to ensure donate button is visible */
 }
 
 .nav-divider {

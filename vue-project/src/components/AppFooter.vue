@@ -28,6 +28,7 @@
             <router-link to="/about" class="footer-link">About</router-link>
             <router-link to="/tools" class="footer-link">Tools</router-link>
             <router-link to="/" class="footer-link">Dashboard</router-link>
+            <router-link to="/donate" class="footer-link">Donate</router-link>
           </nav>
         </div>
         

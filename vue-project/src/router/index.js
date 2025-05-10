@@ -17,6 +17,7 @@ import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
 import TermsOfServiceView from '../views/TermsOfServiceView.vue'
 import CopyrightPolicyView from '../views/CopyrightPolicyView.vue'
 import RefundPolicyView from '../views/RefundPolicyView.vue'
+import DonateView from '../views/DonateView.vue'
 
 // Initialize user settings to check for experimental features
 const { experimentalFeatures, initSettings } = useUserSettings()
@@ -78,6 +79,12 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: AboutView,
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/donate',
+      name: 'donate',
+      component: DonateView,
       meta: { requiresAuth: false }
     },
     {
