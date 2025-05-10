@@ -1,13 +1,16 @@
 <template>
-  <router-view></router-view>
-  <AdBanner />
-  <AppFooter v-if="!appLoading" />
+  <div class="app-container">
+    <router-view></router-view>
+    <AdBanner />
+    <AppFooter v-if="!appLoading" />
+  </div>
 </template>
 
 <style>
 :root {
   --header-height: 60px;
   --max-content-width: 1200px;
+  --ad-banner-height: 50px;
 }
 
 * {
@@ -41,6 +44,10 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.app-container {
+  padding-bottom: var(--ad-banner-height);
+}
+
 /* Always keep login page light */
 body.login-page {
   background-color: white !important;
@@ -57,6 +64,12 @@ body:not(.login-page) {
 
 body:not(.login-page) #app {
   background-color: var(--main-bg);
+}
+
+@media (max-width: 768px) {
+  :root {
+    --ad-banner-height: 50px;
+  }
 }
 </style>
 
