@@ -89,7 +89,7 @@ import { useUserSettings } from '@/services/userSettings'
 const props = defineProps({
   defaultExpanded: {
     type: Boolean,
-    default: true
+    default: false
   }
 })
 
