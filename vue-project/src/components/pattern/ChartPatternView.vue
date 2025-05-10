@@ -36,6 +36,50 @@
       </div>
     </div>
     
+    <!-- Add the focused stitches view above the chart -->
+    <div class="focused-view">
+      <StitchVisualization
+        :totalStitches="currentRow ? expandRowStitches(currentRow).length : 0"
+        :initialStitchesPerView="stitchesPerView"
+        :maxStitchesPerView="10"
+        @update:currentStitchIndex="updateCurrentStitchIndex"
+        @update:stitchesPerView="updateStitchesPerView"
+        :showRowPreview="false"
+      >
+        <!-- Current stitches slot -->
+        <template #current-stitches>
+          <template v-if="currentRow && currentStitchesView.length > 0">
+            <div class="current-stitches-container" :style="{ '--stitches-per-view': stitchesPerView }">
+              <div v-for="(stitch, i) in currentStitchesView" 
+                :key="`focused-stitch-${i}`" 
+                class="stitch-wrapper"
+                :class="{ 'current-stitch': i === currentFocusIndex }"
+                @click="selectFocusedStitch(i)"
+              >
+                <div class="stitch-symbol" :class="getStitchClass(stitch)">
+                  <template v-if="checkSymbolExists(stitch)">
+                    <img 
+                      :src="getSymbolPath(stitch)" 
+                      :alt="stitch" 
+                      class="stitch-svg stitch-svg-padded"
+                    />
+                  </template>
+                  <template v-else>
+                    {{ getStitchType(stitch) }}
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <div class="no-stitches">
+              No active row to display
+            </div>
+          </template>
+        </template>
+      </StitchVisualization>
+    </div>
+    
     <div class="chart-container" ref="chartContainer">
       <div 
         v-if="processedRows.length > 0"
@@ -128,19 +172,6 @@
       </div>
     </div>
     
-    <div class="stitch-info" v-if="selectedRowIndex !== null && selectedStitchIndex !== null">
-      <div class="stitch-details">
-        <h4>Selected Stitch:</h4>
-        <p>Row {{ selectedRow?.rowNum || '?' }}, Stitch {{ selectedStitchIndex + 1 }}</p>
-        <p>Type: {{ selectedStitch ? getStitchType(selectedStitch) : '?' }}</p>
-        <p>Count: {{ selectedStitch ? getStitchCount(selectedStitch) : '?' }}</p>
-      </div>
-      <button @click="clearSelection" class="clear-button">
-        <font-awesome-icon icon="times" />
-        Clear Selection
-      </button>
-    </div>
-    
     <div class="stitch-key">
       <h4>Stitch Key</h4>
       <div class="key-items">
@@ -169,6 +200,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { hasStitchSymbol, getStitchSymbolPath } from '@/assets/crochet-symbols/stitch-mapping.js';
+import StitchVisualization from './stitches/StitchVisualization.vue';
 
 const props = defineProps({
   pattern: {
@@ -182,6 +214,11 @@ const alternateRows = ref(true);
 const firstRowRightToLeft = ref(true);
 const zoomLevel = ref(1);
 const chartContainer = ref(null);
+
+// Focused view configuration
+const stitchesPerView = ref(5);
+const focusStartIndex = ref(0);
+const currentFocusIndex = ref(0);
 
 // Always expand repeated stitches in chart view
 const displayRepeatedStitchesSeparately = ref(true);
@@ -401,6 +438,22 @@ const toggleRowComplete = async (row) => {
     await updateDoc(doc(db, 'patterns', patternId), {
       completedRows: completionData
     });
+    
+    // If marking as complete, focus on first stitch of the next row if available
+    if (completionData[`row${row.rowNum}`]) {
+      const currentRowIndex = processedRows.value.findIndex(r => r.rowNum === row.rowNum);
+      const nextRowIndex = currentRowIndex - 1; // since rows are displayed in reverse order
+      
+      if (nextRowIndex >= 0 && nextRowIndex < processedRows.value.length) {
+        // Select first or last stitch based on row direction
+        const isNextRowRightToLeft = isRowRightToLeft(nextRowIndex);
+        const nextRow = processedRows.value[nextRowIndex];
+        const expandedStitches = expandRowStitches(nextRow);
+        const stitchIndex = isNextRowRightToLeft ? expandedStitches.length - 1 : 0;
+        
+        selectStitch(nextRowIndex, stitchIndex);
+      }
+    }
   } catch (error) {
     console.error('Error updating row completion:', error);
   }
@@ -410,6 +463,14 @@ const toggleRowComplete = async (row) => {
 const selectStitch = (rowIndex, stitchIndex) => {
   selectedRowIndex.value = rowIndex;
   selectedStitchIndex.value = stitchIndex;
+  
+  // Update focused view to include this stitch
+  adjustFocusForSelectedStitch();
+  
+  // Scroll to the selected stitch after DOM update
+  nextTick(() => {
+    scrollToSelectedStitch();
+  });
 };
 
 const clearSelection = () => {
@@ -730,7 +791,91 @@ const getStitchClass = (stitch) => {
   return stitchClasses[type] || '';
 };
 
-// Initialize event listeners
+// Add a new function to handle scrolling to the selected stitch
+const scrollToSelectedStitch = () => {
+  if (selectedRowIndex.value === null || selectedStitchIndex.value === null) return;
+  
+  // Find the selected stitch element
+  const stitchSelector = `.chart-row:nth-child(${selectedRowIndex.value + 1}) .chart-stitch:nth-child(${selectedStitchIndex.value + 1})`;
+  const stitchElement = chartContainer.value?.querySelector(stitchSelector);
+  
+  if (stitchElement && chartContainer.value) {
+    // Calculate the element's position relative to the container
+    const containerRect = chartContainer.value.getBoundingClientRect();
+    const stitchRect = stitchElement.getBoundingClientRect();
+    
+    // Calculate the scroll position to center the element
+    const scrollLeft = stitchElement.offsetLeft - (containerRect.width / 2) + (stitchRect.width / 2);
+    const scrollTop = stitchElement.offsetTop - (containerRect.height / 2) + (stitchRect.height / 2);
+    
+    // Scroll with smooth behavior
+    chartContainer.value.scrollTo({
+      left: scrollLeft * zoomLevel.value,
+      top: scrollTop * zoomLevel.value,
+      behavior: 'smooth'
+    });
+  }
+};
+
+// Add this watch to update scroll position when zoom changes
+watch(zoomLevel, () => {
+  // If a stitch is selected, maintain its visibility after zoom change
+  if (selectedRowIndex.value !== null && selectedStitchIndex.value !== null) {
+    nextTick(() => {
+      scrollToSelectedStitch();
+    });
+  }
+});
+
+// Add computed property for current row based on pattern data
+const currentRow = computed(() => {
+  if (!props.pattern) return null;
+  
+  // Get the first incomplete row from the pattern
+  const sortedRows = [...processedRows.value].sort((a, b) => 
+    parseInt(a.rowNum) - parseInt(b.rowNum)
+  );
+  
+  // Find the first row that's not marked as complete
+  const firstIncompleteRow = sortedRows.find(row => !isRowComplete(row));
+  
+  // If all rows are complete, return the last row
+  if (!firstIncompleteRow && sortedRows.length > 0) {
+    return sortedRows[sortedRows.length - 1];
+  }
+  
+  return firstIncompleteRow || null;
+});
+
+// Computed property for the current stitches to show in the focused view
+const currentStitchesView = computed(() => {
+  if (!currentRow.value) return [];
+  
+  const expandedStitches = expandRowStitches(currentRow.value);
+  if (expandedStitches.length === 0) return [];
+  
+  // Get slice of stitches to show in focused view
+  return expandedStitches.slice(
+    focusStartIndex.value, 
+    Math.min(focusStartIndex.value + stitchesPerView.value, expandedStitches.length)
+  );
+});
+
+// Get the row index of the current row
+const currentRowIndex = computed(() => {
+  if (!currentRow.value) return null;
+  return processedRows.value.findIndex(row => row.rowNum === currentRow.value.rowNum);
+});
+
+// Update the selectFocusedStitch function to work with the current row
+const selectFocusedStitch = (focusIndex) => {
+  currentFocusIndex.value = focusIndex;
+  if (currentRowIndex.value !== null) {
+    selectStitch(currentRowIndex.value, focusStartIndex.value + focusIndex);
+  }
+};
+
+// Modify onMounted to select the current row and stitch automatically
 onMounted(() => {
   // Prevent zooming with Ctrl+wheel on the whole chart container
   if (chartContainer.value) {
@@ -759,7 +904,63 @@ onMounted(() => {
   if (!displayRepeatedStitchesSeparately.value) {
     displayRepeatedStitchesSeparately.value = true;
   }
+  
+  // Initialize the focused view with the current row
+  nextTick(() => {
+    if (currentRowIndex.value !== null) {
+      // Get the appropriate stitch based on row direction
+      const rowIndex = currentRowIndex.value;
+      const isRowRightToLeftValue = isRowRightToLeft(rowIndex);
+      const expandedStitches = expandRowStitches(currentRow.value);
+      
+      if (expandedStitches.length > 0) {
+        // Select first or last stitch based on direction
+        const stitchIndex = isRowRightToLeftValue ? 0 : expandedStitches.length - 1;
+        
+        // Initialize with this stitch
+        selectStitch(rowIndex, stitchIndex);
+      }
+    }
+  });
 });
+
+// Watch for changes to the current row and update the focus
+watch(currentRow, (newRow, oldRow) => {
+  if (newRow && (!oldRow || newRow.rowNum !== oldRow.rowNum)) {
+    // Reset focus when the current row changes
+    focusStartIndex.value = 0;
+    currentFocusIndex.value = 0;
+    
+    // Select the appropriate stitch in the new row
+    nextTick(() => {
+      if (currentRowIndex.value !== null) {
+        const rowIndex = currentRowIndex.value;
+        const isRowRightToLeftValue = isRowRightToLeft(rowIndex);
+        const expandedStitches = expandRowStitches(newRow);
+        
+        if (expandedStitches.length > 0) {
+          // Select first or last stitch based on direction
+          const stitchIndex = isRowRightToLeftValue ? 0 : expandedStitches.length - 1;
+          
+          // Update selection
+          selectStitch(rowIndex, stitchIndex);
+        }
+      }
+    });
+  }
+});
+
+// Update handlers for the StitchVisualization component
+const updateCurrentStitchIndex = (index) => {
+  focusStartIndex.value = index;
+  if (selectedRowIndex.value !== null) {
+    selectStitch(selectedRowIndex.value, index);
+  }
+};
+
+const updateStitchesPerView = (count) => {
+  stitchesPerView.value = count;
+};
 </script>
 
 <style scoped>
@@ -1299,5 +1500,150 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+/* Add styles for focused view */
+.focused-view {
+  margin-bottom: 1.5rem;
+}
+
+/* Current stitches container */
+.current-stitches-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 25px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 15px;
+  overflow-x: hidden;
+}
+
+/* Stitch wrapper */
+.stitch-wrapper {
+  display: inline-block;
+  margin: 2px;
+  transition: all 0.2s ease;
+}
+
+/* Stitch card in focused view */
+.focused-view :deep(.current-stitches) .stitch-wrapper {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+
+.focused-view :deep(.current-stitches) .stitch-symbol {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+/* Stitch symbol styling */
+.stitch-symbol {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+/* Preview stitch styling */
+.stitch-wrapper.preview-stitch {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.stitch-wrapper.preview-stitch.current-stitch {
+  transform: translateY(-3px);
+}
+
+.stitch-wrapper.preview-stitch.current-stitch .stitch-symbol {
+  border: 2px solid var(--accent-color, #4f87ff);
+  box-shadow: 0 0 8px rgba(79, 135, 255, 0.4);
+}
+
+.stitch-wrapper.preview-stitch.completed-stitch .stitch-symbol {
+  opacity: 0.7;
+  background-color: var(--completed-bg, #555) !important;
+  border-color: var(--completed-border, #444) !important;
+}
+
+.stitch-wrapper.preview-stitch.selected-stitch .stitch-symbol {
+  border: 2px solid var(--accent-color, #42b883);
+  box-shadow: 0 0 8px rgba(66, 184, 131, 0.4);
+  z-index: 10;
+}
+
+/* No stitches message */
+.no-stitches {
+  font-style: italic;
+  color: var(--text-secondary, #aaa);
+  padding: 0.5rem;
+  text-align: center;
+  width: 100%;
+}
+
+/* SVG styles */
+.stitch-svg {
+  max-width: 70%;
+  max-height: 70%;
+  filter: var(--symbol-filter, invert(1));
+}
+
+.stitch-svg-padded {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+}
+
+/* Dark/light mode for SVGs */
+:root.light .stitch-svg {
+  filter: brightness(0);
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .focused-view :deep(.current-stitches-container) {
+    padding: 3px;
+    gap: 3px;
+  }
+  
+  .focused-view :deep(.current-stitches) .stitch-wrapper {
+    margin: 1px;
+    min-width: 30px;
+  }
+  
+  .focused-view :deep(.current-stitches) .stitch-symbol {
+    min-width: 30px;
+    height: 34px;
+    font-size: clamp(0.6rem, 1.5vw, 0.75rem);
+  }
+  
+  .focused-view :deep(.stitch-content) {
+    min-height: 55px;
+  }
+  
+  .focused-view :deep(.current-stitches) {
+    margin-bottom: 0.25rem;
+  }
+  
+  .stitch-svg-padded {
+    width: 80%;
+    height: 80%;
+  }
 }
 </style> 
