@@ -117,7 +117,7 @@
 
           <!-- Pattern card with stitch navigation -->
           <div class="pattern-card">
-            <div class="stitch-navigation" :class="{ 'component-mode': visualizationMode === 'text' || visualizationMode === 'symbols' }">
+            <div class="stitch-navigation" :class="{ 'component-mode': visualizationMode === 'text' || visualizationMode === 'symbols' || visualizationMode === 'chart' }">
               <!-- Text visualization mode -->
               <TextStitches
                 v-if="visualizationMode === 'text'"
@@ -134,6 +134,13 @@
                 :initialStitchesPerView="stitchesPerView"
                 :maxStitchesPerView="totalStitches"
                 class="visualization-component symbols-visualization"
+              />
+              
+              <!-- Chart visualization mode -->
+              <ChartPatternView
+                v-else-if="visualizationMode === 'chart'"
+                :pattern="pattern"
+                class="visualization-component chart-visualization"
               />
             </div>
           </div>
@@ -215,6 +222,14 @@
                   <font-awesome-icon icon="shapes" />
                   Symbols
                 </button>
+                <button 
+                  class="feature-button" 
+                  :class="{ 'active-toggle': visualizationMode === 'chart' }"
+                  @click="visualizationMode = 'chart'"
+                >
+                  <font-awesome-icon icon="th" />
+                  Chart View
+                </button>
               </div>
             </div>
             
@@ -257,6 +272,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import PatternChartView from '../components/pattern/PatternChartView.vue'
+import ChartPatternView from '../components/pattern/ChartPatternView.vue'
 // Import components for visualization modes
 import SymbolStitches from '../components/pattern/stitches/SymbolStitches.vue'
 import TextStitches from '../components/pattern/stitches/TextStitches.vue'
@@ -2434,5 +2450,32 @@ const findFirstUncompletedRow = () => {
   .raw-pattern {
     font-size: 0.8rem;
   }
+}
+
+/* Chart view specific styles */
+.chart-visualization {
+  width: 100%;
+  margin: 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.stitch-navigation.component-mode .chart-visualization {
+  min-height: 400px;
+}
+
+/* Responsive handling for chart view */
+@media (max-width: 767px) {
+  .stitch-navigation.component-mode .chart-visualization {
+    min-height: 350px;
+  }
+}
+
+/* No stitches message styling */
+.no-stitches {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 </style> 
