@@ -39,17 +39,15 @@
             <h3>Make a donation</h3>
             <p>Click the button below to support Patternly via Ko-fi:</p>
             
-            <!-- Ko-fi button - replace YOUR_KOFI_USERNAME with your actual Ko-fi username -->
-            <div class="kofi-button">
-              <a href="https://ko-fi.com/azh1n" target="_blank" rel="noopener noreferrer">
-                <img 
-                  height="36" 
-                  style="border:0px;height:36px;" 
-                  src="https://storage.ko-fi.com/cdn/kofi5.png?v=3" 
-                  border="0" 
-                  alt="Donate to Patternly at ko-fi.com" 
-                />
-              </a>
+            <!-- Ko-fi button options -->
+            <div class="kofi-buttons">
+              <!-- Custom button with text and logo -->
+              <div class="kofi-button custom-button">
+                <a href="https://ko-fi.com/azh1n" target="_blank" rel="noopener noreferrer" class="custom-kofi-btn">
+                  <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi donations" class="kofi-img"/>
+                  <span class="kofi-text">Support Patternly</span>
+                </a>
+              </div>
             </div>
             
             <p class="donate-info">
@@ -193,8 +191,39 @@ h1 {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.kofi-button {
+.kofi-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   margin: 1.5rem 0;
+}
+
+.custom-kofi-btn {
+  display: inline-flex;
+  align-items: center;
+  background-color: #29abe0;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 12px;
+  text-decoration: none;
+  transition: background-color 0.3s;
+}
+
+.custom-kofi-btn:hover {
+  background-color: #2095c4;
+}
+
+.kofi-img {
+  height: 28px;
+  width: auto;
+  margin-right: 8px;
+}
+
+.kofi-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .donate-info {
