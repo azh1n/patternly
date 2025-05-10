@@ -293,9 +293,9 @@ defineExpose({
 .stitch-control {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.8rem;
   color: var(--text-primary, #fff);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .number-control {
@@ -332,7 +332,7 @@ defineExpose({
 
 /* Navigation buttons */
 .nav-button {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
   background: var(--button-bg, #333);
   color: var(--button-text, #fff);
   border: 1px solid var(--border-color, #444);
@@ -362,11 +362,11 @@ defineExpose({
   justify-content: space-between;
   gap: 1rem;
   width: 100%;
-  padding: 1rem;
+  padding: 0.75rem;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .stitch-content {
@@ -382,7 +382,7 @@ defineExpose({
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.2rem;
   margin-bottom: 0.5rem;
   min-height: 45px;
   padding-top: 0;
@@ -396,8 +396,8 @@ defineExpose({
 
 /* Full row preview */
 .full-row-preview {
-  margin-top: 0.5rem;
-  padding-top: 1.5rem;
+  margin-top: 0.4rem;
+  padding-top: 1.2rem;
   border-top: 1px solid var(--border-color);
 }
 
