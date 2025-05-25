@@ -14,11 +14,28 @@
 
       <main class="main-content">
         <div v-if="!selectedPattern" class="home-view">
-          
           <!-- Add the Firebase Test component when no pattern is selected -->
           <FirebaseTest class="firebase-test-wrapper" />
           
+          <!-- Use ContentPlaceholder when loading -->
+          <ContentPlaceholder v-if="isLoading" 
+            title="Loading Your Patterns" 
+            description="Please wait while we retrieve your saved patterns..." />
+            
+          <!-- Use ContentPlaceholder when no patterns are available -->
+          <ContentPlaceholder v-else-if="savedTexts.length === 0" 
+            title="No Patterns Found" 
+            description="You don't have any patterns yet. Click the 'Add Pattern' button to create your first pattern.">
+            <div class="no-patterns-actions">
+              <button class="add-pattern-btn" @click="showAddPattern = true">
+                <font-awesome-icon icon="plus" /> Add Pattern
+              </button>
+            </div>
+          </ContentPlaceholder>
+          
+          <!-- Show pattern grid when we have data -->
           <PatternGrid
+            v-else
             :patterns="savedTexts"
             :is-loading="isLoading"
             @select-pattern="selectPattern"
@@ -56,6 +73,7 @@ import PatternGrid from '@/components/PatternGrid.vue'
 import AddPatternModal from '@/components/AddPatternModal.vue'
 import SideNavigation from '@/components/SideNavigation.vue'
 import FirebaseTest from '@/components/FirebaseTest.vue'
+import ContentPlaceholder from '@/components/ContentPlaceholder.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -369,5 +387,29 @@ watch(() => user.value?.uid, async (newUserId) => {
   .mobile-header {
     display: flex;
   }
+}
+
+.no-patterns-actions {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.add-pattern-btn {
+  background-color: var(--primary-color, #4CAF50);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.add-pattern-btn:hover {
+  background-color: var(--primary-color-dark, #388E3C);
 }
 </style> 

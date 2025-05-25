@@ -1,5 +1,5 @@
 <template>
-  <div class="ad-container" :class="{ 'ad-ready': adReady }">
+  <div v-if="shouldShowAds" class="ad-container" :class="{ 'ad-ready': adReady }">
     <div class="ad-banner" :class="{ 
       'ad-loaded': isLoaded, 
       'ad-error': hasError
@@ -17,6 +17,7 @@
 
 <script setup>
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
+import { useAdControl } from '../composables/useAdControl'
 
 const isLoaded = ref(false)
 const hasError = ref(false)
@@ -24,6 +25,9 @@ const adReady = ref(false)
 let adTimeoutId = null
 let resizeObserver = null
 let constraintInterval = null
+
+// Use the ad control composable
+const { shouldShowAds } = useAdControl()
 
 onMounted(() => {
   // First, apply constraints to ensure banner starts hidden
@@ -54,6 +58,11 @@ onMounted(() => {
   // Initialize the ad with a delay to ensure constraints are applied first
   setTimeout(() => {
     try {
+      // Don't proceed if we shouldn't show ads
+      if (!shouldShowAds.value) {
+        return
+      }
+      
       // Make ad visible
       const adElement = document.querySelector('.adsbygoogle')
       if (adElement) {
@@ -84,7 +93,7 @@ onMounted(() => {
 
   // Set a timeout to check if ad loaded
   adTimeoutId = setTimeout(() => {
-    if (!isLoaded.value) {
+    if (!isLoaded.value && shouldShowAds.value) {
       console.warn('Ad did not load within expected timeframe')
       hasError.value = true
       stopConstraintInterval()
