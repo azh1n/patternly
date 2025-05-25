@@ -471,7 +471,7 @@ const formattedPatternForDB = computed(() => {
       stitchesInfo = stitchesInfo.replace(/…/g, '...');
       
       return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
-    }).join('\n');
+    }).join(',\n'); // Changed to use both comma and newline
     
     return formattedRows;
   } catch (error) {

@@ -971,11 +971,11 @@ const saveRowCount = async () => {
 }
 
 // Watch for changes in row count and update the database
-watch(totalRows, (newCount) => {
-  if (newCount > 0) {
-    saveRowCount()
+watch(parsedRows, async (newRows) => {
+  if (newRows.length > 0) {
+    await saveRowCount()
   }
-})
+}, { immediate: true })
 
 // Set up window resize listener and touch events for mobile swipe
 onMounted(() => {
