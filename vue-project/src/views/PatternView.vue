@@ -280,6 +280,7 @@ import TextStitches from '../components/pattern/stitches/TextStitches.vue'
 import { useUserSettings } from '@/services/userSettings'
 import SideNavigation from '@/components/SideNavigation.vue'
 import PatternEditModal from '@/components/pattern/PatternEditModal.vue'
+import { useConfetti } from '@/composables/useConfetti';
 
 const route = useRoute()
 const router = useRouter()
@@ -784,6 +785,9 @@ const nextRow = async () => {
         await updateDoc(doc(db, 'patterns', textId), {
           completedRows: completionData
         })
+
+        // Shoot confetti when marking as complete
+        shootConfetti()
       } catch (error) {
         console.error('Error updating row completion:', error)
       }
@@ -822,6 +826,11 @@ const toggleRowComplete = async () => {
     await updateDoc(doc(db, 'patterns', textId), {
       completedRows: completionData
     })
+
+    // Shoot confetti if marking as complete
+    if (completionData[`row${currentRow.value.rowNum}`]) {
+      shootConfetti()
+    }
   } catch (error) {
     console.error('Error updating row completion:', error)
   }
@@ -1132,6 +1141,9 @@ const findFirstUncompletedRow = () => {
     currentRowIndex.value = 0
   }
 }
+
+// Add this near other composable calls
+const { shootConfetti } = useConfetti();
 </script>
 
 <style scoped>

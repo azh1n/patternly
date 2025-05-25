@@ -201,6 +201,7 @@ import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { hasStitchSymbol, getStitchSymbolPath } from '@/assets/crochet-symbols/stitch-mapping.js';
 import StitchVisualization from './stitches/StitchVisualization.vue';
+import { useConfetti } from '@/composables/useConfetti';
 
 const props = defineProps({
   pattern: {
@@ -243,6 +244,9 @@ const commonStitches = {
 // Debugging flag
 const isDebugMode = ref(true);
 const showDebugInfo = ref(false); // Hidden by default
+
+// Add this near other composable calls
+const { shootConfetti } = useConfetti();
 
 // Process pattern rows for display
 const processedRows = computed(() => {
@@ -438,6 +442,11 @@ const toggleRowComplete = async (row) => {
     await updateDoc(doc(db, 'patterns', patternId), {
       completedRows: completionData
     });
+    
+    // Shoot confetti if marking as complete
+    if (completionData[`row${row.rowNum}`]) {
+      shootConfetti();
+    }
     
     // If marking as complete, focus on first stitch of the next row if available
     if (completionData[`row${row.rowNum}`]) {
