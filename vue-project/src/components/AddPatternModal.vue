@@ -470,8 +470,9 @@ const formattedPatternForDB = computed(() => {
       // Remove any problematic characters like ellipses that might cause issues
       stitchesInfo = stitchesInfo.replace(/…/g, '...');
       
-      return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo}`;
-    }).join(',\n'); // Changed to use both comma and newline
+      // Ensure the row ends with a comma
+      return `Row: ${row.number}, Color: ${colorInfo}, Stitches: ${stitchesInfo},`;
+    }).join('\n'); // Just use newline since we're adding commas to each row
     
     return formattedRows;
   } catch (error) {

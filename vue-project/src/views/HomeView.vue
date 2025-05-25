@@ -166,8 +166,10 @@ async function addPattern(patternData) {
 
   try {
     const patternsRef = collection(db, 'patterns')
+    // Ensure content preserves newlines by using a template literal
     const docRef = await addDoc(patternsRef, {
       ...patternData,
+      content: patternData.content, // This will preserve the newlines
       userId: user.value.uid,
       timestamp: serverTimestamp()
     })
@@ -216,7 +218,9 @@ const handlePatternAdded = async (newPattern) => {
     // Use the working addPattern function that's already tested
     const patternId = await addPattern({
       name: newPattern.name,
-      content: newPattern.content
+      content: newPattern.content, // This will preserve the newlines from formattedPatternForDB
+      userId: user.value.uid,
+      timestamp: new Date()
     });
     
     if (patternId) {
