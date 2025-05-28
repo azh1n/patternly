@@ -17,9 +17,10 @@
       />
       <div class="upload-prompt">
         <font-awesome-icon :icon="['fas', 'cloud-arrow-up']" size="3x" />
-        <p>Drag & drop files here or click to browse</p>
+        <p class="desktop-text">Drag & drop files here or click to browse</p>
+        <p class="mobile-text">Tap to select a file</p>
         <p class="file-types">
-          Supported formats: PNG, JPG
+          Supported formats: PNG, JPG, PDF, DOCX
           <template v-if="experimentalFeatures">, PDF, DOCX</template>
         </p>
       </div>
@@ -254,6 +255,21 @@ const getMimeTypeFromExtension = (filename) => {
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+}
+
+.mobile-text {
+  display: none;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .desktop-text {
+    display: none;
+  }
+  
+  .mobile-text {
+    display: block;
+  }
 }
 
 .file-types {
