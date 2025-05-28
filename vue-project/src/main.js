@@ -75,7 +75,8 @@ import {
   faDonate,
   faSearchPlus,
   faSearchMinus,
-  faCloudArrowUp
+  faCloudArrowUp,
+  faFile
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -147,7 +148,8 @@ library.add(
   faDonate,
   faSearchPlus,
   faSearchMinus,
-  faCloudArrowUp
+  faCloudArrowUp,
+  faFile
 )
 
 const app = createApp(App)

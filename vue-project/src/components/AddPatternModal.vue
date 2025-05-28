@@ -11,10 +11,10 @@
         <!-- File Upload Section - Only show if experimental features are enabled -->
         <template v-if="experimentalFeatures">
           <div class="upload-section">
-            <FileUploader 
-              @file-uploaded="handleFileUpload"
+            <FileUploadContainer 
+              @file-selected="handleFileUpload"
               @error="handleUploadError"
-              :show-experimental="true"
+              accept=".png,.jpg,.jpeg,.pdf,.docx"
             />
           </div>
           
@@ -339,6 +339,7 @@
 <script setup>
 import { ref, computed, watch, reactive, onMounted } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
+import FileUploadContainer from './FileUploadContainer.vue'
 import FileUploader from './FileUploader.vue'
 import CrochetNotationView from './pattern/crochet/CrochetNotationView.vue'
 import { detectPatternShape } from '@/utils/patternShapeDetector'
