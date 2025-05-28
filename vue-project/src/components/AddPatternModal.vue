@@ -347,6 +347,7 @@ import { auth } from '@/firebase'
 import RowEditModal from './pattern/RowEditModal.vue'
 import UnparsedContentSection from './pattern/UnparsedContentSection.vue'
 import PatternPreviewSection from './pattern/PatternPreviewSection.vue'
+import { useUserSettings } from '@/services/userSettings'
 
 // Props and emits
 const props = defineProps({
@@ -362,8 +363,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'pattern-added'])
 
-// Store
+// Store and settings
 const patternStore = usePatternStore()
+const { experimentalFeatures } = useUserSettings()
 
 // Form state
 const patternText = ref('')
