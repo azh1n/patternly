@@ -1877,9 +1877,10 @@ const handleRowSave = (updatedRow) => {
   margin-bottom: 1.5rem;
   padding: 1.5rem;
   border-radius: 8px;
-  background-color: var(--background-color, #fff);
-  border: 1px dashed var(--border-color, #ddd);
+  background-color: var(--card-bg, #2a2a2a);
+  border: 1px dashed var(--border-color, #444);
   transition: all 0.3s ease;
+  color: var(--text-primary, #fff);
 }
 
 .divider {

@@ -215,23 +215,34 @@ const getMimeTypeFromExtension = (filename) => {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
+  --uploader-bg: var(--card-bg, #ffffff);
+  --uploader-border: var(--border-color, #e0e0e0);
+  --uploader-text: var(--text-primary, #333333);
+  --uploader-text-muted: var(--text-secondary, #666666);
+  --uploader-error: #dc3545;
+  --uploader-preview-bg: var(--card-bg, #ffffff);
+  --uploader-dropzone-bg: var(--card-bg, #ffffff);
+  --uploader-dropzone-hover: color-mix(in srgb, var(--primary-color, #4a6cf7) 10%, var(--card-bg, #ffffff));
+  --uploader-image-bg: var(--input-bg, #f5f5f5);
+  --uploader-document-bg: var(--card-bg, #ffffff);
+  --uploader-document-text: var(--text-primary, #333333);
 }
 
 .drop-zone {
-  border: 2px dashed var(--border-color);
+  border: 2px dashed var(--uploader-border);
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  background-color: var(--background-color);
-  color: var(--text-color);
+  background-color: var(--uploader-dropzone-bg);
+  color: var(--uploader-text);
 }
 
 .drop-zone:hover,
 .drop-zone.is-dragover {
   border-color: var(--primary-color);
-  background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  background-color: var(--uploader-dropzone-hover);
 }
 
 .file-input {
@@ -247,22 +258,22 @@ const getMimeTypeFromExtension = (filename) => {
 
 .file-types {
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: var(--uploader-text-muted);
   margin-top: 0.5rem;
 }
 
 .preview-container {
   margin-top: 1.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--uploader-border);
   border-radius: 8px;
   padding: 1rem;
-  background-color: var(--background-color);
+  background-color: var(--uploader-preview-bg);
 }
 
 .preview-container h4 {
   margin-top: 0;
   margin-bottom: 1rem;
-  color: var(--text-color);
+  color: var(--uploader-text);
 }
 
 .image-preview {
@@ -272,7 +283,7 @@ const getMimeTypeFromExtension = (filename) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f5f5f5;
+  background-color: var(--uploader-image-bg);
   border-radius: 4px;
 }
 
@@ -285,40 +296,64 @@ const getMimeTypeFromExtension = (filename) => {
 .document-preview {
   width: 100%;
   height: 500px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--uploader-border);
   border-radius: 4px;
   overflow: auto;
-  background-color: white;
+  background-color: var(--uploader-document-bg);
+  color: var(--uploader-document-text);
 }
 
 .pdf-preview {
   width: 100%;
   height: 100%;
   border: none;
+  background-color: var(--uploader-document-bg);
+  color: var(--uploader-document-text);
 }
 
 .docx-preview {
   padding: 1rem;
+  background-color: var(--uploader-document-bg);
+  color: var(--uploader-document-text);
 }
 
 .error-message {
   margin-top: 1rem;
-  color: var(--error-color);
+  color: var(--uploader-error);
   font-size: 0.875rem;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .document-preview {
-    background-color: #2d2d2d;
-  }
-  
-  .docx-preview {
-    color: #e0e0e0;
-  }
-  
-  .docx-wrapper {
-    background-color: #2d2d2d !important;
-  }
+/* Dark mode is handled by the theme service */
+:root {
+  --uploader-error: #dc3545;
+}
+
+:root.dark {
+  --uploader-error: #ff6b6b;
+}
+
+/* Document preview theming */
+.document-preview {
+  background-color: var(--card-bg, #ffffff) !important;
+  color: var(--text-primary, #333333) !important;
+}
+
+.document-preview * {
+  color: var(--text-primary, #333333) !important;
+}
+
+.document-preview table {
+  border-color: var(--border-color, #e0e0e0) !important;
+}
+
+.document-preview th,
+.document-preview td {
+  border-color: var(--border-color, #e0e0e0) !important;
+  background-color: var(--card-bg, #ffffff) !important;
+}
+
+/* Ensure PDF background matches theme */
+.pdf-preview {
+  background-color: var(--card-bg, #ffffff) !important;
 }
 </style>
