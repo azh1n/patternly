@@ -8,6 +8,21 @@
       </div>
       
       <div class="modal-body">
+        <!-- File Upload Section - Only show if experimental features are enabled -->
+        <template v-if="experimentalFeatures">
+          <div class="upload-section">
+            <FileUploader 
+              @file-uploaded="handleFileUpload"
+              @error="handleUploadError"
+              :show-experimental="true"
+            />
+          </div>
+          
+          <div class="divider">
+            <span>OR</span>
+          </div>
+        </template>
+        
         <!-- Getting Started Guide -->
         <div v-if="!patternText.trim() && !patternName.trim()" class="getting-started">
           <div class="getting-started-header">
@@ -322,8 +337,9 @@
 </template>
   
 <script setup>
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch, reactive, onMounted } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
+import FileUploader from './FileUploader.vue'
 import CrochetNotationView from './pattern/crochet/CrochetNotationView.vue'
 import { detectPatternShape } from '@/utils/patternShapeDetector'
 import { usePatternStore } from '@/stores/pattern'
@@ -350,8 +366,40 @@ const emit = defineEmits(['update:modelValue', 'pattern-added'])
 const patternStore = usePatternStore()
 
 // Form state
-const patternName = ref('')
 const patternText = ref('')
+const patternName = ref('')
+const uploadedImage = ref(null)
+
+// Handle file upload
+const handleFileUpload = async (fileData) => {
+  try {
+    // Store the uploaded file for processing
+    uploadedImage.value = fileData
+    
+    // If it's an image, we'll need to process it with OCR or other methods
+    if (fileData.type.startsWith('image/')) {
+      // TODO: Process image with OCR or other methods
+      console.log('Processing image:', fileData)
+      // For now, we'll just show a message
+      errorMessage.value = 'Image processing coming soon! For now, please paste your pattern text below.'
+    } 
+    // If it's a PDF or DOCX, we can extract text
+    else if (fileData.type === 'application/pdf' || 
+             fileData.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      // TODO: Extract text from PDF/DOCX
+      console.log('Processing document:', fileData)
+      errorMessage.value = 'Document processing coming soon! For now, please paste your pattern text below.'
+    }
+  } catch (error) {
+    console.error('Error processing uploaded file:', error)
+    errorMessage.value = 'Error processing uploaded file. Please try again or paste your pattern text below.'
+  }
+}
+
+// Handle upload errors
+const handleUploadError = (error) => {
+  errorMessage.value = error || 'Error uploading file. Please try again.'
+}
 const errorMessage = ref('')
 
 // UI state
@@ -1820,6 +1868,40 @@ const handleRowSave = (updatedRow) => {
   outline: none;
   border-color: var(--accent-color, #4f87ff);
   box-shadow: 0 0 0 2px rgba(79, 135, 255, 0.2);
+}
+
+/* File Upload Section */
+.upload-section {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: var(--background-color, #fff);
+  border: 1px dashed var(--border-color, #ddd);
+  transition: all 0.3s ease;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: var(--text-muted, #666);
+  font-size: 0.9rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color, #ddd);
+  margin: 0 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .upload-section {
+    padding: 1rem;
+  }
 }
 
 .form-textarea {
