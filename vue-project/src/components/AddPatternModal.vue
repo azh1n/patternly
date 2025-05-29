@@ -390,7 +390,6 @@ const handleFileUpload = async (fileData) => {
     else if (fileData.type === 'application/pdf' || 
              fileData.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       // TODO: Extract text from PDF/DOCX
-      console.log('Processing document:', fileData)
       errorMessage.value = 'Document processing coming soon! For now, please paste your pattern text below.'
     }
   } catch (error) {

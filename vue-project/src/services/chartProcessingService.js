@@ -13,7 +13,7 @@ export function useChartProcessing() {
   
   // Process knitting chart image
   const processChart = async (imageElement) => {
-    console.log('[ChartProcessing] Starting processChart');
+    // Process the chart
     
     // Reset state
     isProcessing.value = true;
@@ -42,11 +42,7 @@ export function useChartProcessing() {
         throw new Error('Invalid image element provided');
       }
       
-      console.log('[ChartProcessing] Processing image:', {
-        complete: imageElement.complete,
-        width: imageElement.naturalWidth,
-        height: imageElement.naturalHeight
-      });
+      // Validate image is loaded
       
       // Wait for image to load if needed
       if (!imageElement.complete) {
@@ -63,13 +59,13 @@ export function useChartProcessing() {
       
       // Load OpenCV - simple approach
       if (!window.cv) {
-        console.log('[ChartProcessing] Loading OpenCV script...');
+        // Load OpenCV if needed
         await loadOpenCVScript();
       }
       
       // Make sure OpenCV is fully initialized
       if (!window.cv || !window.cv.Mat) {
-        console.log('[ChartProcessing] Waiting for OpenCV to initialize...');
+        // Wait for OpenCV initialization
         await waitForOpenCVInitialization();
       }
       
@@ -79,7 +75,7 @@ export function useChartProcessing() {
       }
       
       const cv = window.cv;
-      console.log('[ChartProcessing] OpenCV loaded successfully');
+      // OpenCV loaded
       
       progress.value = 20;
       progressMessage.value = 'Preparing image...';
@@ -95,7 +91,7 @@ export function useChartProcessing() {
       const width = imageElement.naturalWidth || imageElement.width;
       const height = imageElement.naturalHeight || imageElement.height;
       
-      console.log(`[ChartProcessing] Original image dimensions: ${width}x${height}`);
+      // Get original dimensions
       
       if (!width || !height || width <= 0 || height <= 0) {
         throw new Error(`Invalid image dimensions: ${width}x${height}`);
@@ -105,9 +101,9 @@ export function useChartProcessing() {
       const canvasWidth = width;
       const canvasHeight = height;
       
-      console.log(`[ChartProcessing] Using exact original dimensions: ${canvasWidth}x${canvasHeight}`);
+  
       
-      console.log(`[ChartProcessing] Canvas dimensions: ${canvasWidth}x${canvasHeight}`);
+  
       
       // Set canvas size
       canvas.width = canvasWidth;
@@ -115,7 +111,7 @@ export function useChartProcessing() {
       
       // Draw image to canvas - ensure we use the full canvas
       progressMessage.value = 'Processing image...';
-      console.log(`[ChartProcessing] Drawing image to canvas...`);
+  
       
       // Clear canvas first
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -125,15 +121,13 @@ export function useChartProcessing() {
       progress.value = 30;
       
       // Convert to OpenCV format
-      console.log('[ChartProcessing] Converting to OpenCV format...');
+  
       
       try {
         // Use cv.imread directly - simpler and more reliable
-        console.time('imread');
         src = cv.imread(canvas);
-        console.timeEnd('imread');
         
-        console.log(`[ChartProcessing] OpenCV image loaded: ${src.cols}x${src.rows}, channels: ${src.channels()}, type: ${src.type()}`);
+  
         
         if (!src || src.empty()) {
           throw new Error('Failed to load image into OpenCV');
@@ -144,21 +138,21 @@ export function useChartProcessing() {
         progress.value = 50;
         
         // Just use the source image directly
-        console.log('[ChartProcessing] Skipping grayscale conversion, using original image');
+
         dst = src.clone(); // Create a copy to maintain the same structure
       } catch (e) {
-        console.error('[ChartProcessing] Error during OpenCV processing:', e);
+        // Handle OpenCV processing errors
         throw e;
       }
       
       // Convert back to canvas
-      console.log('[ChartProcessing] Converting back to canvas...');
+  
       progressMessage.value = 'Finalizing image...';
       cv.imshow(canvas, dst);
       progress.value = 80;
       
       // Convert to blob
-      console.log('[ChartProcessing] Creating blob...');
+  
       progressMessage.value = 'Creating result image...';
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(blob => {
@@ -169,7 +163,7 @@ export function useChartProcessing() {
       
       progress.value = 100;
       progressMessage.value = 'Complete';
-      console.log('[ChartProcessing] Processing complete');
+  
       return { success: true, blob };
       
     } catch (err) {

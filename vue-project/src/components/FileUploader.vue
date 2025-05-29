@@ -109,7 +109,6 @@ const loadPdfJs = () => {
       const lib = window['pdfjs-dist/build/pdf'];
       // Use the same CDN for the worker
       lib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
-      console.log('PDF.js loaded successfully');
       window.pdfjsLib = lib; // Cache for future use
       resolve(lib);
     };
@@ -132,7 +131,6 @@ onMounted(async () => {
     if (lib) {
       pdfjsLib.value = lib;
       isPdfJsLoaded.value = true;
-      console.log('PDF.js initialized in component');
     } else {
       console.error('Failed to load PDF.js');
     }
@@ -274,7 +272,7 @@ const processFile = async (file) => {
         
         // Step 1: Create object URL for the PDF
         progressMessage.value = 'Preparing PDF...';
-        console.log('[FileUploader] Creating object URL for PDF...');
+        // Create object URL for PDF
         pdfUrl = URL.createObjectURL(file);
         
         if (!pdfUrl) {
@@ -283,7 +281,7 @@ const processFile = async (file) => {
         
         // Step 2: Load the PDF document
         progressMessage.value = 'Loading PDF document...';
-        console.log('[FileUploader] Loading PDF document...');
+        // Load PDF document
         loadingTask = pdfjsLib.value.getDocument({
           url: pdfUrl,
           cMapUrl: 'https://unpkg.com/pdfjs-dist@3.0.279/cmaps/',
@@ -291,7 +289,7 @@ const processFile = async (file) => {
         });
         
         const pdf = await loadingTask.promise;
-        console.log(`[FileUploader] PDF loaded: ${pdf.numPages} pages`);
+        // PDF loaded successfully
         
         if (pdf.numPages === 0) {
           throw new Error('PDF contains no pages');
@@ -299,15 +297,15 @@ const processFile = async (file) => {
         
         // Step 3: Get the first page
         progressMessage.value = 'Rendering PDF page...';
-        console.log('[FileUploader] Getting first page...');
+        // Get first page
         const page = await pdf.getPage(1);
         
         // Step 4: Set up viewport and canvas
-        console.log('[FileUploader] Setting up viewport and canvas...');
+        // Set up viewport and canvas
         
         // Get the original page dimensions
         const origViewport = page.getViewport({ scale: 1.0 });
-        console.log(`[FileUploader] Original PDF dimensions: ${origViewport.width}x${origViewport.height}`);
+
         
         // Use a higher scale for better quality
         const scale = 2.0;
@@ -316,7 +314,7 @@ const processFile = async (file) => {
           rotation: 0
         });
         
-        console.log(`[FileUploader] Scaled viewport dimensions: ${viewport.width}x${viewport.height}`);
+
         
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
@@ -329,11 +327,11 @@ const processFile = async (file) => {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         
-        console.log(`[FileUploader] Canvas dimensions set to: ${canvas.width}x${canvas.height}`);
+
         
         // Step 5: Render PDF page to canvas
         progressMessage.value = 'Converting PDF to image...';
-        console.log('[FileUploader] Rendering PDF page to canvas...');
+        // Render PDF page to canvas
         
         // Fill with white background first
         context.fillStyle = '#ffffff';
@@ -341,23 +339,21 @@ const processFile = async (file) => {
         
         // Render the PDF page
         try {
-          console.time('renderPDF');
           await page.render({
             canvasContext: context,
             viewport: viewport,
             intent: 'print', // Better quality rendering
             background: 'transparent'
           }).promise;
-          console.timeEnd('renderPDF');
-          console.log('[FileUploader] PDF rendered successfully');
+          // PDF rendered successfully
         } catch (renderError) {
-          console.error('[FileUploader] Error rendering PDF:', renderError);
+          // Error rendering PDF
           throw new Error(`Failed to render PDF: ${renderError.message}`);
         }
         
         // Step 6: Convert canvas to blob for processing
         progressMessage.value = 'Preparing image for processing...';
-        console.log('[FileUploader] Converting canvas to blob...');
+        // Convert canvas to blob
         
         const blob = await new Promise((resolve, reject) => {
           try {
@@ -367,34 +363,29 @@ const processFile = async (file) => {
                   reject(new Error('Failed to create blob from canvas'));
                   return;
                 }
-                console.log(`[FileUploader] Created blob of size: ${blob.size} bytes`);
+                // Blob created successfully
                 resolve(blob);
               },
               'image/png',
               0.95 // High quality
             );
           } catch (blobError) {
-            console.error('[FileUploader] Error creating blob:', blobError);
+            // Error creating blob
             reject(new Error('Failed to convert canvas to blob'));
           }
         });
         
         // Step 7: Create an image element for processing
-        console.log('[FileUploader] Creating image element...');
+        // Create image element
         const img = new Image();
         img.crossOrigin = 'anonymous';
         
         // Step 8: Wait for the image to load
         progressMessage.value = 'Loading image for processing...';
-        console.log('[FileUploader] Loading image from blob...');
+        // Load image from blob
         
         // Debug: Save canvas data directly to see what we're working with
-        console.log('[FileUploader] Canvas data before creating image:', {
-          width: canvas.width,
-          height: canvas.height,
-          hasContext: !!context,
-          dataURL: canvas.toDataURL ? canvas.toDataURL().substring(0, 100) + '...' : 'N/A'
-        });
+        // Prepare image from canvas
         
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -403,40 +394,34 @@ const processFile = async (file) => {
           
           img.onload = () => {
             clearTimeout(timeout);
-            console.log(`[FileUploader] Image loaded: ${img.width}x${img.height}`);
+            // Image loaded
             URL.revokeObjectURL(img.src); // Clean up
             resolve();
           };
           
           img.onerror = (err) => {
             clearTimeout(timeout);
-            console.error('[FileUploader] Error loading image:', err);
+            // Error loading image
             reject(new Error('Failed to load image for processing'));
           };
           
           try {
             // Create a new object URL from the blob
             const objectUrl = URL.createObjectURL(blob);
-            console.log('[FileUploader] Created object URL for image:', objectUrl);
+            // Created object URL
             img.src = objectUrl;
           } catch (urlError) {
             clearTimeout(timeout);
-            console.error('[FileUploader] Error creating object URL:', urlError);
+            // Error creating object URL
             reject(new Error('Failed to create image URL'));
           }
         });
         
-        console.log('[FileUploader] Image loaded successfully');
+        // Image loaded successfully
         
         // Process the image element
         progressMessage.value = 'Processing chart...';
-        console.log('[FileUploader] Starting chart processing with image dimensions:', {
-          width: img.width,
-          height: img.height,
-          naturalWidth: img.naturalWidth,
-          naturalHeight: img.naturalHeight,
-          complete: img.complete
-        });
+        // Start chart processing
         
         const result = await processChart(img);
         
@@ -450,7 +435,7 @@ const processFile = async (file) => {
         
         // Create object URL from processed image blob
         const processedUrl = URL.createObjectURL(result.blob);
-        console.log('[FileUploader] Created URL for processed image:', processedUrl);
+        // Created URL for processed image
         previewUrl.value = processedUrl;
         isChartProcessed.value = true; // Mark chart as processed
         emit('processing-complete', result.blob);
