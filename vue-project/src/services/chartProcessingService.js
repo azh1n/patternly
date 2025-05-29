@@ -139,14 +139,13 @@ export function useChartProcessing() {
           throw new Error('Failed to load image into OpenCV');
         }
         
-        // Process image directly without chunking
-        progressMessage.value = 'Converting to grayscale...';
+        // Skip grayscale conversion - use the original image
+        progressMessage.value = 'Processing image...';
         progress.value = 50;
         
-        console.time('cvtColor');
-        dst = new cv.Mat();
-        cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-        console.timeEnd('cvtColor');
+        // Just use the source image directly
+        console.log('[ChartProcessing] Skipping grayscale conversion, using original image');
+        dst = src.clone(); // Create a copy to maintain the same structure
       } catch (e) {
         console.error('[ChartProcessing] Error during OpenCV processing:', e);
         throw e;
