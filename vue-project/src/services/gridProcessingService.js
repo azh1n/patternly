@@ -170,185 +170,179 @@ export function useGridProcessing() {
           const gridROI = new cv.Mat();
           grayImage.roi(roiRect).copyTo(gridROI);
 
-          // Apply adaptive threshold with different parameters to catch light gray lines
-          const binaryLight = new cv.Mat();
-          cv.adaptiveThreshold(
-            gridROI,
-            binaryLight,
-            255,
-            cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv.THRESH_BINARY_INV,
-            7,  // Smaller block size to catch finer details
-            1    // Lower constant to be more sensitive
-          );
-
-          // Create a vertical kernel for detecting vertical lines
-          const verticalLineKernel = cv.getStructuringElement(
-            cv.MORPH_RECT,
-            new cv.Size(1, Math.floor(height * 0.3)) // Tall kernel to detect vertical lines
-          );
-
-          // Apply morphological operations to extract vertical lines
-          const verticalLinesMat = new cv.Mat();
-          cv.morphologyEx(binaryLight, verticalLinesMat, cv.MORPH_OPEN, verticalLineKernel);
-
-          // Apply Hough Line Transform to detect vertical lines
-          const lines = new cv.Mat();
-          cv.HoughLinesP(
-            verticalLinesMat,
-            lines,
-            1,                   // rho resolution (pixels)
-            Math.PI / 180,      // theta resolution (radians)
-            Math.floor(height * 0.1), // threshold - minimum votes (lower to catch light lines)
-            Math.floor(height * 0.2), // minLineLength - minimum line length
-            10                  // maxLineGap - maximum gap between line segments
-          );
-
-          console.log(`[GridProcessing] Detected ${lines.rows} potential vertical grid lines`);
-
-          // Process detected lines and add vertical lines to result
+          console.log('[GridProcessing] Starting precise vertical line detection...');
+          
+          // APPROACH 1: Direct gray level analysis for light gray lines
+          // Analyze pixel columns to find consistent vertical patterns
           const verticalLinePositions = [];
-          const verticalLineTolerance = 5; // pixels
-
-          for (let i = 0; i < lines.rows; i++) {
-            const line = lines.data32S.subarray(i * 4, (i + 1) * 4);
-            const x1 = line[0] + x; // Adjust for ROI offset
-            const y1 = line[1] + y;
-            const x2 = line[2] + x;
-            const y2 = line[3] + y;
-
-            // Check if this is a vertical line (x1 ≈ x2)
-            const dx = Math.abs(x2 - x1);
-            const dy = Math.abs(y2 - y1);
-
-            if (dx < 10 && dy > height * 0.2) { // Vertical line with significant height
-              // Check if we already have a line at similar x position
-              const xPosition = Math.round((x1 + x2) / 2);
-              const existingLineIndex = verticalLinePositions.findIndex(
-                pos => Math.abs(pos - xPosition) < verticalLineTolerance
-              );
-
-              if (existingLineIndex === -1) {
-                // This is a new vertical line
-                verticalLinePositions.push(xPosition);
-
-                // Add to result with height constrained to grid area
-                result.verticalLines.push({
-                  x1: xPosition,
-                  y1: y,
-                  x2: xPosition,
-                  y2: y + height,
-                  isGridBorder: false,
-                  isVerticalGridLine: true // Mark as a detected vertical grid line
-                });
+          const minLineHeight = height * 0.3; // Minimum height for a line to be considered
+          const grayThresholdRange = [140, 200]; // Gray values that represent grid lines
+          
+          // Scan each column for vertical patterns
+          for (let col = 0; col < width; col++) {
+            let verticalGrayPixels = 0;
+            let totalPixels = 0;
+            
+            // Count gray pixels in this column
+            for (let row = 0; row < height; row++) {
+              const pixelValue = gridROI.ucharPtr(row, col)[0];
+              totalPixels++;
+              
+              // Check if pixel is in the gray range typical of grid lines
+              if (pixelValue >= grayThresholdRange[0] && pixelValue <= grayThresholdRange[1]) {
+                verticalGrayPixels++;
               }
             }
+            
+            // If this column has enough gray pixels, it might be a grid line
+            const grayRatio = verticalGrayPixels / totalPixels;
+            if (grayRatio > 0.4 && verticalGrayPixels > minLineHeight) {
+              verticalLinePositions.push({
+                position: col,
+                strength: grayRatio,
+                grayPixels: verticalGrayPixels
+              });
+            }
           }
-
-          // Sort vertical lines from left to right
-          result.verticalLines.sort((a, b) => a.x1 - b.x1);
-
-          // SUPPLEMENTARY: Detect light gray vertical lines using a different approach
-          console.log('[GridProcessing] Starting supplementary light gray line detection...');
           
-          // Get existing vertical line positions to avoid duplicates
-          const existingLinePositions = result.verticalLines
-            .filter(line => !line.isGridBorder)
-            .map(line => line.x1 - x); // Convert back to ROI coordinates
+          console.log(`[GridProcessing] Found ${verticalLinePositions.length} potential column positions`);
           
-          // Create a more sensitive threshold for light gray lines
-          const binaryGray = new cv.Mat();
-          cv.threshold(gridROI, binaryGray, 180, 255, cv.THRESH_BINARY_INV); // Higher threshold for light gray
-          
-          // Also try edge detection for subtle transitions
+          // APPROACH 2: Edge detection for better line boundary detection
           const edges = new cv.Mat();
-          cv.Canny(gridROI, edges, 20, 60, 3, false); // Lower thresholds for subtle edges
+          cv.Canny(gridROI, edges, 30, 90, 3, false);
           
-          // Combine both approaches
-          const combinedGray = new cv.Mat();
-          cv.add(binaryGray, edges, combinedGray);
-          
-          // Use a shorter vertical kernel for light gray detection
-          const grayLineKernel = cv.getStructuringElement(
+          // Apply vertical morphological operation to enhance vertical edges
+          const verticalKernel = cv.getStructuringElement(
             cv.MORPH_RECT,
-            new cv.Size(1, Math.floor(height * 0.2)) // Shorter kernel for subtle lines
+            new cv.Size(1, Math.floor(height * 0.2))
           );
           
-          // Extract vertical patterns
-          const grayVerticalMat = new cv.Mat();
-          cv.morphologyEx(combinedGray, grayVerticalMat, cv.MORPH_OPEN, grayLineKernel);
+          const verticalEdges = new cv.Mat();
+          cv.morphologyEx(edges, verticalEdges, cv.MORPH_OPEN, verticalKernel);
           
-          // Apply Hough Line Transform with more sensitive parameters
-          const grayLines = new cv.Mat();
+          // Use Hough Line Transform on edges with more precise parameters
+          const edgeLines = new cv.Mat();
           cv.HoughLinesP(
-            grayVerticalMat,
-            grayLines,
-            1,                   // rho resolution
-            Math.PI / 180,      // theta resolution
-            Math.floor(height * 0.05), // Very low threshold for light lines
-            Math.floor(height * 0.1),  // Short minimum line length
-            20                  // Higher gap tolerance for broken light lines
+            verticalEdges,
+            edgeLines,
+            1,                          // rho resolution
+            Math.PI / 180,             // theta resolution  
+            Math.floor(height * 0.15), // threshold (lower for more sensitivity)
+            Math.floor(height * 0.25), // minimum line length
+            8                          // maximum gap between segments
           );
           
-          console.log(`[GridProcessing] Detected ${grayLines.rows} potential light gray vertical lines`);
+          console.log(`[GridProcessing] Edge detection found ${edgeLines.rows} potential lines`);
           
-          // Process light gray lines
-          for (let i = 0; i < grayLines.rows; i++) {
-            const line = grayLines.data32S.subarray(i * 4, (i + 1) * 4);
-            const gx1 = line[0];
-            const gy1 = line[1];
-            const gx2 = line[2];
-            const gy2 = line[3];
+          // Combine both approaches: pixel analysis and edge detection
+          const finalVerticalLines = [];
+          const lineTolerance = 3; // pixels
+          
+          // Process edge-detected lines first
+          for (let i = 0; i < edgeLines.rows; i++) {
+            const line = edgeLines.data32S.subarray(i * 4, (i + 1) * 4);
+            const x1 = line[0];
+            const y1 = line[1];
+            const x2 = line[2];
+            const y2 = line[3];
             
             // Check if this is a vertical line
-            const gdx = Math.abs(gx2 - gx1);
-            const gdy = Math.abs(gy2 - gy1);
+            const dx = Math.abs(x2 - x1);
+            const dy = Math.abs(y2 - y1);
             
-            if (gdx < 8 && gdy > height * 0.1) { // More tolerant for light gray lines
-              const grayXPosition = Math.round((gx1 + gx2) / 2);
+            if (dx < 5 && dy > height * 0.2) {
+              const lineX = Math.round((x1 + x2) / 2);
               
-              // Check if this is a new line (not near existing lines)
-              const isNewLine = !existingLinePositions.some(pos => Math.abs(pos - grayXPosition) < 12);
+              // Check if this line position is supported by our gray pixel analysis
+              const supportingColumn = verticalLinePositions.find(
+                pos => Math.abs(pos.position - lineX) <= lineTolerance
+              );
               
-              if (isNewLine) {
-                console.log(`[GridProcessing] Found new light gray line at column ${grayXPosition}`);
-                
-                // Add to result
-                result.verticalLines.push({
-                  x1: grayXPosition + x, // Adjust for ROI offset
-                  y1: y,
-                  x2: grayXPosition + x,
-                  y2: y + height,
-                  isGridBorder: false,
-                  isVerticalGridLine: true,
-                  isLightGrayLine: true // Mark as light gray line
+              if (supportingColumn) {
+                // This line has both edge and gray pixel support
+                finalVerticalLines.push({
+                  position: lineX,
+                  confidence: supportingColumn.strength + 0.5, // Bonus for edge support
+                  source: 'edge+gray'
                 });
-                
-                // Add to existing positions to prevent duplicates in this detection round
-                existingLinePositions.push(grayXPosition);
+              } else {
+                // Edge-only line
+                finalVerticalLines.push({
+                  position: lineX,
+                  confidence: 0.3,
+                  source: 'edge'
+                });
               }
             }
           }
           
-          // Sort all vertical lines again after adding light gray lines
+          // Add gray-pixel-only lines that weren't found by edge detection
+          for (const grayPos of verticalLinePositions) {
+            const existingLine = finalVerticalLines.find(
+              line => Math.abs(line.position - grayPos.position) <= lineTolerance
+            );
+            
+            if (!existingLine) {
+              finalVerticalLines.push({
+                position: grayPos.position,
+                confidence: grayPos.strength,
+                source: 'gray'
+              });
+            }
+          }
+          
+          // Sort by confidence and position
+          finalVerticalLines.sort((a, b) => {
+            // First by confidence (higher is better)
+            if (Math.abs(a.confidence - b.confidence) > 0.1) {
+              return b.confidence - a.confidence;
+            }
+            // Then by position (left to right)
+            return a.position - b.position;
+          });
+          
+          // Remove lines that are too close to each other (keep the one with higher confidence)
+          const filteredLines = [];
+          for (const line of finalVerticalLines) {
+            const tooClose = filteredLines.some(
+              existing => Math.abs(existing.position - line.position) < 8
+            );
+            
+            if (!tooClose) {
+              filteredLines.push(line);
+            }
+          }
+          
+          console.log(`[GridProcessing] Final filtered lines: ${filteredLines.length}`);
+          
+          // Add the filtered lines to our result
+          for (const line of filteredLines) {
+            // Skip lines too close to the borders
+            if (line.position > 5 && line.position < width - 5) {
+              result.verticalLines.push({
+                x1: line.position + x, // Adjust for ROI offset
+                y1: y,
+                x2: line.position + x,
+                y2: y + height,
+                isGridBorder: false,
+                isVerticalGridLine: true,
+                confidence: line.confidence,
+                detectionSource: line.source
+              });
+            }
+          }
+          
+          // Clean up resources
+          gridROI.delete();
+          edges.delete();
+          verticalKernel.delete();
+          verticalEdges.delete();
+          edgeLines.delete();
+          
+          // Sort all vertical lines from left to right
           result.verticalLines.sort((a, b) => a.x1 - b.x1);
           
-          console.log(`[GridProcessing] Total vertical lines after light gray detection: ${result.verticalLines.filter(line => !line.isGridBorder).length}`);
-          
-          // Clean up light gray detection resources
-          binaryGray.delete();
-          edges.delete();
-          combinedGray.delete();
-          grayLineKernel.delete();
-          grayVerticalMat.delete();
-          grayLines.delete();
-
-          // Clean up additional resources
-          gridROI.delete();
-          binaryLight.delete();
-          verticalLinesMat.delete();
-          verticalLineKernel.delete();
-          lines.delete();
+          console.log(`[GridProcessing] Final vertical line detection complete. Total lines: ${result.verticalLines.filter(line => !line.isGridBorder).length}`);
         }
       }
 
