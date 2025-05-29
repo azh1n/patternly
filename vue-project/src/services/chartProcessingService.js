@@ -21,6 +21,14 @@ export function useChartProcessing() {
     error.value = null;
     progressMessage.value = 'Initializing...';
     
+    // Add global error handler for better debugging
+    const handleError = (err, phase) => {
+      console.error(`[ChartProcessing] Error during ${phase}:`, err);
+      error.value = `Error during ${phase}: ${err.message}`;
+      isProcessing.value = false;
+      throw err;
+    };
+    
     let canvas = null;
     let src = null;
     let dst = null;
@@ -135,8 +143,6 @@ export function useChartProcessing() {
         // Use cv.imread directly - simpler and more reliable
         src = cv.imread(canvas);
         
-  
-        
         if (!src || src.empty()) {
           throw new Error('Failed to load image into OpenCV');
         }
@@ -156,27 +162,37 @@ export function useChartProcessing() {
         progressMessage.value = 'Processing image...';
         progress.value = 50;
         
-        // Use the original image for display
-        dst = src.clone();
+        // Create a copy of the source image for drawing
+        const dst = new cv.Mat();
+        src.copyTo(dst);
         
-        // Always draw grid lines if we have any, even if no cells were detected
-        if (gridResult && (gridResult.horizontalLines.length > 0 || gridResult.verticalLines.length > 0)) {
-          // Draw the grid lines with a thicker line for better visibility
-          drawGridLines(cv, dst, gridResult.horizontalLines, gridResult.verticalLines, gridResult.gridArea, 3);
+        // Draw grid lines if we have any
+        if (gridResult && 
+            gridResult.horizontalLines && gridResult.horizontalLines.length > 0 && 
+            gridResult.verticalLines && gridResult.verticalLines.length > 0 && 
+            gridResult.gridArea) {
+          // Draw grid lines with thinner lines (1px)
+          drawGridLines(cv, dst, gridResult.horizontalLines, gridResult.verticalLines, gridResult.gridArea, 1);
         }
         
-        // Clean up
+        // Convert back to canvas
+        progressMessage.value = 'Finalizing image...';
+        cv.imshow(canvas, dst);
+        progress.value = 80;
+        
+        // Clean up OpenCV resources
         gray.delete();
+        dst.delete();
       } catch (e) {
         // Handle OpenCV processing errors
+        console.error('[ChartProcessing] Error processing chart:', e);
+        
+        // Try to clean up any resources that might have been created
+        if (gray && !gray.isDeleted) gray.delete();
+        if (dst && !dst.isDeleted) dst.delete();
+        
         throw e;
       }
-      
-      // Convert back to canvas
-  
-      progressMessage.value = 'Finalizing image...';
-      cv.imshow(canvas, dst);
-      progress.value = 80;
       
       // Convert to blob
   
@@ -261,8 +277,9 @@ export function useChartProcessing() {
     
     // Step 5: Use Hough transform to detect lines
     const lines = new cv.Mat();
-    // Use more aggressive parameters to ensure we detect grid lines
-    cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 20, 15, 10);
+    // For larger charts, use more conservative parameters to avoid detecting too many lines
+    // Increase the threshold and minimum line length
+    cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 40, 30, 10);
     
     // Step 6: Separate horizontal and vertical lines
     const horizontalLines = [];
@@ -278,10 +295,11 @@ export function useChartProcessing() {
       const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
       const angle = Math.abs(Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI);
       
-      // For knitting charts, we want to detect even very short lines
-      if (length < 5) continue;
+      // For knitting charts, we need a minimum line length
+      // For larger charts, use a slightly higher threshold to avoid detecting too many lines
+      if (length < 10) continue;
       
-      // Use wider angle tolerance to catch more grid lines
+      // Use angle tolerance to classify lines
       if (angle < 45 || angle > 135) {
         horizontalLines.push({ x1, y1, x2, y2, length });
       } else if (angle >= 45 && angle <= 135) {
@@ -295,6 +313,28 @@ export function useChartProcessing() {
     // Adjust grid area coordinates to account for the chart region offset
     gridArea.x += regionX;
     gridArea.y += regionY;
+    
+    // Ensure the grid area is properly sized - expand it if it's too small
+    // This helps with zooming in on the actual chart content
+    const minGridSize = Math.min(grayImage.cols, grayImage.rows) * 0.5; // At least 50% of the image
+    if (gridArea.width < minGridSize || gridArea.height < minGridSize) {
+      console.log(`Grid area too small (${gridArea.width}x${gridArea.height}), expanding...`);
+      
+      // Find the center of the detected grid area
+      const centerX = gridArea.x + gridArea.width / 2;
+      const centerY = gridArea.y + gridArea.height / 2;
+      
+      // Expand the grid area while maintaining the center point
+      const newWidth = Math.max(gridArea.width, minGridSize);
+      const newHeight = Math.max(gridArea.height, minGridSize);
+      
+      gridArea.x = Math.max(0, centerX - newWidth / 2);
+      gridArea.y = Math.max(0, centerY - newHeight / 2);
+      gridArea.width = Math.min(grayImage.cols - gridArea.x, newWidth);
+      gridArea.height = Math.min(grayImage.rows - gridArea.y, newHeight);
+      
+      console.log(`Expanded grid area: ${gridArea.width}x${gridArea.height}`);
+    }
     
     // Adjust line coordinates to account for the chart region offset
     for (const line of horizontalLines) {
@@ -311,9 +351,78 @@ export function useChartProcessing() {
       line.y2 += regionY;
     }
     
+    // For large charts, we need to limit the number of lines to avoid performance issues
+    // Group nearby lines to reduce the total number
+    let mergedHorizontal = [];
+    let mergedVertical = [];
+    
+    try {
+      // For very large charts (>1000 lines), use more aggressive filtering
+      if (horizontalLines.length > 1000 || verticalLines.length > 1000) {
+        console.log('Very large chart detected - using aggressive line filtering');
+        
+        // Sort lines by position before filtering
+        const sortedHorizontal = [...horizontalLines].sort((a, b) => {
+          return ((a.y1 + a.y2) / 2) - ((b.y1 + b.y2) / 2);
+        });
+        
+        const sortedVertical = [...verticalLines].sort((a, b) => {
+          return ((a.x1 + a.x2) / 2) - ((b.x1 + b.x2) / 2);
+        });
+        
+        // For large charts, try to detect the grid cell size
+        // This helps us select lines at regular intervals that match the actual grid
+        const estimatedCellHeight = estimateGridCellSize(sortedHorizontal, 'y');
+        const estimatedCellWidth = estimateGridCellSize(sortedVertical, 'x');
+        
+        console.log(`Estimated cell size: ${estimatedCellWidth}x${estimatedCellHeight}px`);
+        
+        // Filter lines based on estimated cell size
+        if (estimatedCellHeight > 0) {
+          mergedHorizontal = filterLinesByInterval(sortedHorizontal, estimatedCellHeight, 'y');
+        } else {
+          // Fallback to simple sampling
+          const hSkip = Math.max(1, Math.floor(horizontalLines.length / 200));
+          mergedHorizontal = sortedHorizontal.filter((_, i) => i % hSkip === 0);
+        }
+        
+        if (estimatedCellWidth > 0) {
+          // For vertical lines, use a larger interval to reduce density
+          // Multiply by 2 to get half as many vertical lines
+          const adjustedCellWidth = estimatedCellWidth * 2;
+          mergedVertical = filterLinesByInterval(sortedVertical, adjustedCellWidth, 'x');
+        } else {
+          // Fallback to simple sampling with higher skip for vertical lines
+          const vSkip = Math.max(2, Math.floor(verticalLines.length / 100));
+          mergedVertical = sortedVertical.filter((_, i) => i % vSkip === 0);
+        }
+        
+        console.log(`After intelligent filtering: ${mergedHorizontal.length} horizontal, ${mergedVertical.length} vertical lines`);
+      } else {
+        // For smaller charts, use the grouping approach
+        const groupedHorizontal = groupNearbyLines(horizontalLines, 'y');
+        const groupedVertical = groupNearbyLines(verticalLines, 'x');
+        
+        // Filter out null values and ensure we have valid groups
+        const validHorizontalGroups = groupedHorizontal.filter(group => group !== null);
+        const validVerticalGroups = groupedVertical.filter(group => group !== null);
+        
+        // Convert groups back to individual lines (averaged within each group)
+        mergedHorizontal = validHorizontalGroups.map(group => averageLine(group, 'y')).filter(line => line !== null);
+        mergedVertical = validVerticalGroups.map(group => averageLine(group, 'x')).filter(line => line !== null);
+        
+        console.log(`After grouping: ${mergedHorizontal.length} horizontal, ${mergedVertical.length} vertical lines`);
+      }
+    } catch (e) {
+      console.error('Error during line grouping:', e);
+      // Fallback to original lines if grouping fails
+      mergedHorizontal = horizontalLines;
+      mergedVertical = verticalLines;
+    }
+    
     // Step 8: Filter lines to only include those in the grid area
-    const filteredHorizontal = filterLinesByRegion(horizontalLines, gridArea);
-    const filteredVertical = filterLinesByRegion(verticalLines, gridArea);
+    const filteredHorizontal = filterLinesByRegion(mergedHorizontal, gridArea);
+    const filteredVertical = filterLinesByRegion(mergedVertical, gridArea);
     
     // Step 9: Find grid cells by identifying intersections
     const gridCells = findGridCells(filteredHorizontal, filteredVertical, workingImage.cols, workingImage.rows);
@@ -584,55 +693,107 @@ export function useChartProcessing() {
   
   // Group nearby lines to handle multiple detections of the same line
   const groupNearbyLines = (lines, axis) => {
+    // Handle null or undefined input
+    if (!lines || !Array.isArray(lines)) {
+      console.error('Invalid lines input to groupNearbyLines:', lines);
+      return [];
+    }
+    
     if (lines.length === 0) return [];
+    if (lines.length === 1) return [lines[0]];
     
-    const threshold = 10; // Pixels threshold for grouping
-    const groups = [];
-    let currentGroup = [lines[0]];
+    // For large charts with many cells, we need to be more aggressive with grouping
+    // Calculate the appropriate threshold based on the number of lines
+    const lineCount = lines.length;
+    let threshold;
     
-    for (let i = 1; i < lines.length; i++) {
-      const current = lines[i];
-      const prev = lines[i - 1];
+    if (lineCount > 1000) {
+      threshold = 30; // Very aggressive grouping for very large charts
+    } else if (lineCount > 500) {
+      threshold = 20; // More aggressive grouping for large charts
+    } else if (lineCount > 200) {
+      threshold = 15; // Medium grouping for medium charts
+    } else {
+      threshold = 10; // Standard grouping for small charts
+    }
+    
+    console.log(`Grouping ${lineCount} ${axis}-axis lines with threshold ${threshold}px`);
+    
+    try {
+      // Sort lines by position to ensure consistent grouping
+      const sortedLines = [...lines].sort((a, b) => {
+        const aPos = axis === 'y' ? (a.y1 + a.y2) / 2 : (a.x1 + a.x2) / 2;
+        const bPos = axis === 'y' ? (b.y1 + b.y2) / 2 : (b.x1 + b.x2) / 2;
+        return aPos - bPos;
+      });
+    
+      const groups = [];
+      let currentGroup = [sortedLines[0]];
       
-      // Calculate position based on axis
-      const currentPos = axis === 'y' ? 
-        (current.y1 + current.y2) / 2 : 
-        (current.x1 + current.x2) / 2;
-      
-      const prevPos = axis === 'y' ? 
-        (prev.y1 + prev.y2) / 2 : 
-        (prev.x1 + prev.x2) / 2;
-      
-      if (Math.abs(currentPos - prevPos) < threshold) {
-        // Add to current group if close enough
-        currentGroup.push(current);
-      } else {
-        // Start a new group
-        groups.push(averageLine(currentGroup, axis));
-        currentGroup = [current];
+      for (let i = 1; i < sortedLines.length; i++) {
+        const current = sortedLines[i];
+        const prev = sortedLines[i - 1];
+        
+        // Calculate position based on axis
+        const currentPos = axis === 'y' ? 
+          (current.y1 + current.y2) / 2 : 
+          (current.x1 + current.x2) / 2;
+        
+        const prevPos = axis === 'y' ? 
+          (prev.y1 + prev.y2) / 2 : 
+          (prev.x1 + prev.x2) / 2;
+        
+        if (Math.abs(currentPos - prevPos) < threshold) {
+          // Add to current group if close enough
+          currentGroup.push(current);
+        } else {
+          // Start a new group
+          groups.push(averageLine(currentGroup, axis));
+          currentGroup = [current];
+        }
       }
+      
+      // Add the last group
+      if (currentGroup.length > 0) {
+        const avgLine = averageLine(currentGroup, axis);
+        if (avgLine !== null) {
+          groups.push(avgLine);
+        }
+      }
+      
+      return groups;
+    } catch (e) {
+      console.error(`Error in groupNearbyLines for ${axis}-axis:`, e);
+      // Return original lines as individual groups if grouping fails
+      return lines.map(line => line);
     }
-    
-    // Add the last group
-    if (currentGroup.length > 0) {
-      groups.push(averageLine(currentGroup, axis));
-    }
-    
-    return groups;
   };
   
   // Calculate average line from a group of lines
   const averageLine = (lines, axis) => {
+    // Handle null or undefined input
+    if (!lines || !Array.isArray(lines)) {
+      console.error('Invalid lines input to averageLine:', lines);
+      return null;
+    }
+    
     if (lines.length === 0) return null;
     if (lines.length === 1) return lines[0];
     
     let sumX1 = 0, sumY1 = 0, sumX2 = 0, sumY2 = 0;
+    let totalLength = 0;
     
-    for (const line of lines) {
-      sumX1 += line.x1;
-      sumY1 += line.y1;
-      sumX2 += line.x2;
-      sumY2 += line.y2;
+    try {
+      for (const line of lines) {
+        sumX1 += line.x1;
+        sumY1 += line.y1;
+        sumX2 += line.x2;
+        sumY2 += line.y2;
+        totalLength += line.length || 0;
+      }
+    } catch (e) {
+      console.error('Error processing lines in averageLine:', e);
+      return lines[0]; // Fallback to first line if there's an error
     }
     
     return {
@@ -644,9 +805,9 @@ export function useChartProcessing() {
   };
   
   // Draw grid lines on the image
-  const drawGridLines = (cv, image, horizontalLines, verticalLines, gridArea, lineThickness = 2) => {
+  const drawGridLines = (cv, image, horizontalLines, verticalLines, gridArea, lineThickness = 1) => {
     const color = new cv.Scalar(0, 255, 0, 255); // Bright green color for better visibility
-    const thickness = lineThickness;
+    const thickness = lineThickness; // Thinner lines (1px instead of 2px)
     
     console.log(`Drawing grid: ${horizontalLines.length} horizontal, ${verticalLines.length} vertical lines`);
     console.log(`Grid area: x=${gridArea.x}, y=${gridArea.y}, width=${gridArea.width}, height=${gridArea.height}`);
@@ -659,15 +820,19 @@ export function useChartProcessing() {
     
     // Draw horizontal lines
     for (const line of horizontalLines) {
-      const pt1 = new cv.Point(line.x1, line.y1);
-      const pt2 = new cv.Point(line.x2, line.y2);
+      // Extend horizontal lines to span the full width of the grid area
+      const y = (line.y1 + line.y2) / 2;
+      const pt1 = new cv.Point(gridArea.x, y);
+      const pt2 = new cv.Point(gridArea.x + gridArea.width, y);
       cv.line(image, pt1, pt2, color, thickness);
     }
     
     // Draw vertical lines
     for (const line of verticalLines) {
-      const pt1 = new cv.Point(line.x1, line.y1);
-      const pt2 = new cv.Point(line.x2, line.y2);
+      // Extend vertical lines to span the full height of the grid area
+      const x = (line.x1 + line.x2) / 2;
+      const pt1 = new cv.Point(x, gridArea.y);
+      const pt2 = new cv.Point(x, gridArea.y + gridArea.height);
       cv.line(image, pt1, pt2, color, thickness);
     }
     
@@ -677,6 +842,115 @@ export function useChartProcessing() {
       const pt2 = new cv.Point(gridArea.x + gridArea.width, gridArea.y + gridArea.height);
       cv.rectangle(image, pt1, pt2, new cv.Scalar(255, 0, 0, 255), 3); // Red rectangle
     }
+  };
+  
+  // Estimate the grid cell size based on line spacing
+  const estimateGridCellSize = (lines, axis) => {
+    if (!lines || lines.length < 5) return 0;
+    
+    // Calculate distances between adjacent lines
+    const distances = [];
+    for (let i = 1; i < lines.length; i++) {
+      const current = lines[i];
+      const prev = lines[i - 1];
+      
+      let currentPos, prevPos;
+      if (axis === 'y') {
+        currentPos = (current.y1 + current.y2) / 2;
+        prevPos = (prev.y1 + prev.y2) / 2;
+      } else {
+        currentPos = (current.x1 + current.x2) / 2;
+        prevPos = (prev.x1 + prev.x2) / 2;
+      }
+      
+      const distance = Math.abs(currentPos - prevPos);
+      if (distance > 0 && distance < 100) { // Ignore outliers
+        distances.push(distance);
+      }
+    }
+    
+    if (distances.length < 3) return 0;
+    
+    // Find the most common distance (mode) - this is likely our cell size
+    const distanceGroups = {};
+    let maxCount = 0;
+    let mostCommonDistance = 0;
+    
+    // Group distances with 1px tolerance
+    for (const distance of distances) {
+      const roundedDistance = Math.round(distance);
+      distanceGroups[roundedDistance] = (distanceGroups[roundedDistance] || 0) + 1;
+      
+      if (distanceGroups[roundedDistance] > maxCount) {
+        maxCount = distanceGroups[roundedDistance];
+        mostCommonDistance = roundedDistance;
+      }
+    }
+    
+    // Only return if we have a clear consensus
+    if (maxCount >= distances.length * 0.3) {
+      return mostCommonDistance;
+    }
+    
+    return 0;
+  };
+  
+  // Filter lines to keep only those at regular intervals matching the cell size
+  const filterLinesByInterval = (lines, interval, axis) => {
+    if (!lines || lines.length === 0 || interval <= 0) return lines;
+    
+    const result = [];
+    const positions = [];
+    
+    // Extract positions
+    for (const line of lines) {
+      let pos;
+      if (axis === 'y') {
+        pos = (line.y1 + line.y2) / 2;
+      } else {
+        pos = (line.x1 + line.x2) / 2;
+      }
+      positions.push({ pos, line });
+    }
+    
+    // Sort by position
+    positions.sort((a, b) => a.pos - b.pos);
+    
+    // Start with the first line
+    let currentPos = positions[0].pos;
+    result.push(positions[0].line);
+    
+    // Use different tolerances for horizontal vs vertical lines
+    // Horizontal lines (axis=y) should be more precise, vertical lines (axis=x) more sparse
+    const tolerance = axis === 'y' ? 0.2 : 0.1;
+    
+    // For vertical lines (axis=x), we want to be more selective
+    const skipFactor = axis === 'x' ? 2 : 1; // Skip every other line for vertical lines
+    let skipCount = 0;
+    
+    // Find the next line at approximately interval distance
+    for (let i = 1; i < positions.length; i++) {
+      const { pos, line } = positions[i];
+      const distance = pos - currentPos;
+      
+      // If we're close to a multiple of the interval, include this line
+      const intervalMultiple = Math.round(distance / interval);
+      
+      if (intervalMultiple >= 1 && Math.abs(distance - intervalMultiple * interval) < interval * tolerance) {
+        // For vertical lines, only include every skipFactor-th line
+        if (axis === 'x') {
+          skipCount++;
+          if (skipCount % skipFactor !== 0) {
+            continue; // Skip this line
+          }
+        }
+        
+        result.push(line);
+        currentPos = pos;
+      }
+    }
+    
+    return result;
   };
   
   // Extract grid cells as separate images
