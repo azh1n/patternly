@@ -1,5 +1,5 @@
 <template>
-  <div class="file-uploader-container">
+  <div class="file-uploader-container" :class="{ 'processing-active': isProcessing || (previewUrl && isChartProcessed) }">
     <!-- Full-page Loading Overlay -->
     <div v-if="isProcessing" class="processing-overlay">
       <div class="processing-content">
@@ -30,13 +30,34 @@
       </div>
     </div>
 
-    <div class="file-uploader">
-      <!-- Preview Container -->
-      <div v-if="previewUrl && !isProcessing" class="preview-container">
-        <div v-if="isImage" class="image-preview">
+    <!-- File Uploader (only shown when no file is loaded) -->
+    <div v-if="!isProcessing && !previewUrl" class="file-uploader">
+      <!-- No Preview State -->
+      <div class="no-preview">
+        <font-awesome-icon :icon="['fas', 'file']" size="3x" />
+        <span>No file selected</span>
+      </div>
+    </div>
+    
+    <!-- Preview Containers (shown when a file is loaded and not processing) -->
+    <div v-if="previewUrl && !isProcessing" class="content-container">
+      <!-- Image Preview (for processed charts) -->
+      <div v-if="isChartProcessed" class="chart-container">
+        <div class="chart-preview">
           <img :src="previewUrl" :alt="previewAlt" />
         </div>
-        <div v-else-if="isPdf" class="document-preview">
+      </div>
+      
+      <!-- Regular Image Preview -->
+      <div v-else-if="isImage && !isChartProcessed" class="preview-container">
+        <div class="image-preview">
+          <img :src="previewUrl" :alt="previewAlt" />
+        </div>
+      </div>
+      
+      <!-- PDF Preview -->
+      <div v-else-if="isPdf" class="preview-container">
+        <div class="document-preview">
           <iframe 
             :src="previewUrl + '#toolbar=0&navpanes=0'" 
             class="pdf-preview" 
@@ -44,19 +65,21 @@
             frameborder="0"
           ></iframe>
         </div>
-        <div v-else-if="isDocx" class="document-preview">
+      </div>
+      
+      <!-- Word Document Preview -->
+      <div v-else-if="isDocx" class="preview-container">
+        <div class="document-preview">
           <div ref="docxPreview" class="docx-preview"></div>
-        </div>
-        <div v-else class="file-icon">
-          <font-awesome-icon :icon="['fas', 'file']" size="3x" />
-          <span class="file-name">{{ fileName }}</span>
         </div>
       </div>
       
-      <!-- No Preview State -->
-      <div v-else-if="!isProcessing" class="no-preview">
-        <font-awesome-icon :icon="['fas', 'file']" size="3x" />
-        <span>No file selected</span>
+      <!-- Generic File Preview -->
+      <div v-else class="preview-container">
+        <div class="file-icon">
+          <font-awesome-icon :icon="['fas', 'file']" size="3x" />
+          <span class="file-name">{{ fileName }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -134,7 +157,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['error', 'processing-complete', 'processing-error']);
+const emit = defineEmits(['processing-complete', 'error', 'processing-start']);
 
 const { experimentalFeatures } = useUserSettings();
 const { 
@@ -162,14 +185,18 @@ const error = ref('');
 const progress = ref(0);
 const progressMessage = ref('');
 const isProcessing = ref(false);
+const isChartProcessed = ref(false); // Track if a chart has been processed
 const processingError = ref(null);
 
 // Update state based on processing services
 watchEffect(() => {
   if (chartProcessing.value || imageProcessing.value) {
+    progress.value = 0;
+    isProcessing.value = true;
+    progressMessage.value = 'Initializing...';
+    emit('processing-start');
     progress.value = chartProcessing.value ? chartProgress.value : imageProgress.value;
     progressMessage.value = chartProcessing.value ? chartProgressMessage.value : imageProgressMessage.value;
-    isProcessing.value = true;
     processingError.value = chartError.value || imageError.value;
   } else {
     isProcessing.value = false;
@@ -188,10 +215,11 @@ const isDocx = computed(() =>
 const clearPreview = () => {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value);
-    previewUrl.value = '';
   }
-  fileType.value = '';
+  previewUrl.value = '';
+  processingError.value = null;
   fileName.value = '';
+  isChartProcessed.value = false; // Reset chart processed state
 };
 
 const processFile = async (file) => {
@@ -206,6 +234,9 @@ const processFile = async (file) => {
   isProcessing.value = true;
   fileType.value = file.type || getMimeTypeFromExtension(file.name);
   fileName.value = file.name;
+  
+  // Emit processing start event
+  emit('processing-start', file);
 
   try {
     // Process different file types
@@ -421,6 +452,7 @@ const processFile = async (file) => {
         const processedUrl = URL.createObjectURL(result.blob);
         console.log('[FileUploader] Created URL for processed image:', processedUrl);
         previewUrl.value = processedUrl;
+        isChartProcessed.value = true; // Mark chart as processed
         emit('processing-complete', result.blob);
         
       } catch (err) {
@@ -460,6 +492,11 @@ const processFile = async (file) => {
     isProcessing.value = false;
     progressMessage.value = '';
     progress.value = 0;
+    
+    // If there was an error and no chart was processed, reset the flag
+    if (processingError.value && !previewUrl.value) {
+      isChartProcessed.value = false;
+    }
   }
 }
 
@@ -664,6 +701,47 @@ const getMimeTypeFromExtension = (filename) => {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Container transitions when processing is active */
+.file-uploader-container.processing-active {
+  max-width: 100%;
+  transition: max-width 0.3s ease-in-out;
+}
+
+/* Content container for all preview types */
+.content-container {
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Full-width chart container */
+.chart-container {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--preview-shadow);
+  overflow: auto;
+}
+
+.chart-preview {
+  width: 100%;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chart-preview img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  filter: var(--img-filter, none);
 }
 
 .preview-container {

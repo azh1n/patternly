@@ -1,6 +1,7 @@
 <template>
-  <div class="file-upload-container">
+  <div class="file-upload-container" :class="{ 'has-file': currentFile, 'has-chart': hasProcessedChart }">
     <div 
+      v-if="!currentFile"
       class="drop-zone"
       :class="{ 'is-dragover': isDragging }"
       @dragover.prevent="onDragOver"
@@ -29,6 +30,8 @@
       :file="currentFile" 
       :previewAlt="fileName || 'File preview'"
       @error="onPreviewError"
+      @processing-start="onProcessingStart"
+      @processing-complete="onProcessingComplete"
     />
     
     <div v-if="error" class="error-message">
@@ -59,6 +62,7 @@ const isDragging = ref(false);
 const currentFile = ref(null);
 const fileName = ref('');
 const error = ref('');
+const hasProcessedChart = ref(false);
 
 const acceptTypes = computed(() => {
   return props.accept;
@@ -115,6 +119,18 @@ const onPreviewError = (err) => {
   emit('error', err);
 };
 
+const onProcessingStart = (file) => {
+  // Reset chart processing state when starting new processing
+  hasProcessedChart.value = false;
+};
+
+const onProcessingComplete = (result) => {
+  // Check if this is a processed chart (from PDF)
+  if (currentFile.value && currentFile.value.type === 'application/pdf') {
+    hasProcessedChart.value = true;
+  }
+};
+
 const handleFile = (file) => {
   // Check file size
   if (file.size > props.maxSize) {
@@ -147,6 +163,15 @@ const handleFile = (file) => {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
+  transition: max-width 0.3s ease-in-out;
+}
+
+.file-upload-container.has-chart {
+  max-width: 100%;
+}
+
+.file-upload-container.has-file {
+  max-width: 800px;
 }
 
 .drop-zone {
