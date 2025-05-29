@@ -3,7 +3,7 @@ import { ref } from 'vue';
 // Create a worker to load OpenCV in the background
 const createOpenCVWorker = () => {
   console.log('[OpenCV] Starting OpenCV worker initialization');
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (window.cv) {
       console.log('[OpenCV] OpenCV already loaded, reusing existing instance');
       resolve(window.cv);
@@ -35,29 +35,53 @@ const createOpenCVWorker = () => {
     worker.onmessage = function(e) {
       if (e.data.status === 'loaded') {
         console.log('[OpenCV] Main: Worker signaled OpenCV is ready, loading in main thread');
+        
+        // Clean up worker
         worker.terminate();
         URL.revokeObjectURL(workerUrl);
+        
+        // Check if already loaded by another process
+        if (window.cv) {
+          console.log('[OpenCV] Main: OpenCV already loaded in window');
+          resolve(window.cv);
+          return;
+        }
         
         // Now load OpenCV in the main thread
         const script = document.createElement('script');
         script.src = 'https://docs.opencv.org/4.5.5/opencv.js';
         script.async = true;
+        script.crossOrigin = 'anonymous';
         script.onload = () => {
           console.log('[OpenCV] Main: OpenCV script loaded, waiting for initialization');
+          
+          // Set a timeout to prevent infinite waiting
+          const timeout = setTimeout(() => {
+            console.error('[OpenCV] Main: Timeout waiting for OpenCV to initialize');
+            document.head.removeChild(script);
+            reject(new Error('Timeout waiting for OpenCV to initialize'));
+          }, 10000); // 10 second timeout
+          
           // Wait for OpenCV to be ready
           const checkCV = setInterval(() => {
             if (window.cv) {
               console.log('[OpenCV] Main: OpenCV fully initialized');
               clearInterval(checkCV);
+              clearTimeout(timeout);
+              document.head.removeChild(script);
               resolve(window.cv);
-            } else {
-              console.log('[OpenCV] Main: Waiting for OpenCV to initialize...');
             }
           }, 100);
         };
+        
         script.onerror = (error) => {
           console.error('[OpenCV] Error loading OpenCV script:', error);
+          if (document.head.contains(script)) {
+            document.head.removeChild(script);
+          }
+          reject(error);
         };
+        
         console.log('[OpenCV] Main: Appending OpenCV script to document');
         document.head.appendChild(script);
       }
@@ -143,47 +167,50 @@ export function useChartProcessing() {
       progressMessage.value = 'Processing chart image...';
       console.log('[Chart Processing] OpenCV initialized, starting image processing');
       
-      console.log('[Chart Processing] Creating canvas for image processing');
-      // Create a canvas to work with the image
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+      
+      // Set canvas dimensions to match image
       canvas.width = imageElement.width;
       canvas.height = imageElement.height;
+      console.log(`[Chart Processing] Canvas created with dimensions: ${canvas.width}x${canvas.height}`);
       
-      console.log('[Chart Processing] Drawing image to canvas');
-      ctx.drawImage(imageElement, 0, 0);
+      console.log('[Chart Processing] Drawing image to canvas...');
+      // Draw image on canvas
+      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+      console.log('[Chart Processing] Image drawn to canvas');
       
-      console.log('[Chart Processing] Converting to OpenCV format');
-      // Convert to OpenCV format
+      console.log('[Chart Processing] Starting OpenCV image processing...');
+      // Convert to grayscale
+      console.log('[Chart Processing] Converting to grayscale...');
       const src = cv.imread(canvas);
       const dst = new cv.Mat();
-      console.log('[Chart Processing] OpenCV source image created');
+      cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY, 0);
+      console.log('[Chart Processing] Grayscale conversion complete');
       
-      console.log('[Chart Processing] Converting to grayscale');
-      // Convert to grayscale
-      cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-      
-      console.log('[Chart Processing] Applying thresholding');
-      // Apply thresholding
+      // Apply threshold
+      console.log('[Chart Processing] Applying threshold...');
       const threshold = new cv.Mat();
-      cv.threshold(dst, threshold, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+      cv.threshold(dst, threshold, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+      console.log('[Chart Processing] Threshold applied');
       
-      console.log('[Chart Processing] Finding contours');
       // Find contours
+      console.log('[Chart Processing] Finding contours...');
       const contours = new cv.MatVector();
       const hierarchy = new cv.Mat();
-      console.log('[Chart Processing] Calling findContours');
-      cv.findContours(threshold, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
-      console.log('[Chart Processing] Found', contours.size(), 'contours');
+      cv.findContours(threshold, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+      console.log(`[Chart Processing] Found ${contours.size()} contours`);
       
-      // Process contours to find grid cells (stitches)
+      // Process contours
+      console.log('[Chart Processing] Processing contours...');
+      const minArea = 100; // Minimum area for a contour to be considered a cell
       const gridCells = [];
+      
       for (let i = 0; i < contours.size(); i++) {
         const contour = contours.get(i);
         const area = cv.contourArea(contour);
         
-        // Filter contours by area to find stitch cells
-        if (area > 50 && area < 10000) { // Adjust these values based on your chart
+        if (area > minArea) {
           const moments = cv.moments(contour, false);
           const cx = moments.m10 / moments.m00;
           const cy = moments.m01 / moments.m00;
@@ -196,25 +223,34 @@ export function useChartProcessing() {
           });
         }
       }
+      console.log(`[Chart Processing] Processed ${gridCells.length} valid cells`);
       
       // Sort cells into grid structure
+      console.log('[Chart Processing] Sorting cells into grid...');
       const sortedCells = sortCellsIntoGrid(gridCells);
+      console.log(`[Chart Processing] Sorted into ${sortedCells.length} rows`);
       
       // Clean up
+      console.log('[Chart Processing] Cleaning up OpenCV resources...');
       src.delete();
       dst.delete();
       threshold.delete();
       contours.delete();
       hierarchy.delete();
+      console.log('[Chart Processing] OpenCV resources cleaned up');
       
+      // Process cells with Roboflow
+      console.log('[Chart Processing] Starting Roboflow processing...');
       progress.value = 80;
       progressMessage.value = 'Identifying stitches...';
       
-      // Process each cell with Roboflow (to be implemented)
+      // Process each cell with Roboflow
       const processedCells = await processCellsWithRoboflow(canvas, sortedCells);
+      console.log(`[Chart Processing] Roboflow processing complete. Processed ${processedCells.flat().length} cells`);
       
       progress.value = 100;
       progressMessage.value = 'Processing complete!';
+      console.log('[Chart Processing] Image processing pipeline completed successfully');
       
       return {
         originalImage: canvas.toDataURL('image/png'),
