@@ -41,38 +41,73 @@ export function useGridProcessing() {
       );
 
       console.log("Step 2");
-      // Step 2: Find thick black lines (grid borders)
-      // Create kernel for morphological operations
-      const kernelSize = Math.max(3, Math.floor(Math.min(grayImage.cols, grayImage.rows) * 0.01));
-      const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(kernelSize, kernelSize));
-
-      // Apply morphological operations to enhance grid lines
-      const morphed = new cv.Mat();
-      cv.morphologyEx(binary, morphed, cv.MORPH_CLOSE, kernel);
+      // Step 2: Find grid patterns by detecting regular patterns of lines
+      // Create kernels for horizontal and vertical line detection
+      const horizontalKernelSize = new cv.Size(Math.floor(grayImage.cols * 0.1), 1);
+      const verticalKernelSize = new cv.Size(1, Math.floor(grayImage.rows * 0.1));
+      
+      const horizontalKernel = cv.getStructuringElement(cv.MORPH_RECT, horizontalKernelSize);
+      const verticalKernel = cv.getStructuringElement(cv.MORPH_RECT, verticalKernelSize);
+      
+      // Detect horizontal and vertical lines separately
+      const horizontalLines = new cv.Mat();
+      const verticalLines = new cv.Mat();
+      
+      // Morphological operations to extract horizontal lines
+      cv.morphologyEx(binary, horizontalLines, cv.MORPH_OPEN, horizontalKernel);
+      
+      // Morphological operations to extract vertical lines
+      cv.morphologyEx(binary, verticalLines, cv.MORPH_OPEN, verticalKernel);
+      
+      // Combine horizontal and vertical lines to get grid structure
+      const gridStructure = new cv.Mat();
+      cv.add(horizontalLines, verticalLines, gridStructure);
+      
+      // Apply morphological closing to connect nearby lines
+      const morphedGrid = new cv.Mat();
+      const closeKernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+      cv.morphologyEx(gridStructure, morphedGrid, cv.MORPH_CLOSE, closeKernel);
 
       console.log("Step 3");
-      // Step 3: Find contours to detect the grid border
+      // Step 3: Find contours to detect the grid structure
       const contours = new cv.MatVector();
       const hierarchy = new cv.Mat();
-      cv.findContours(morphed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+      cv.findContours(morphedGrid, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-      // Find the largest contour which is likely the grid border
-      let maxArea = 0;
+      // Find the largest rectangular-like contour which is likely the grid
+      let maxGridScore = 0;
       let maxContourIndex = -1;
 
       for (let i = 0; i < contours.size(); i++) {
         const contour = contours.get(i);
         const area = cv.contourArea(contour);
-
-        if (area > maxArea) {
-          maxArea = area;
+        
+        // Skip very small contours
+        if (area < (grayImage.cols * grayImage.rows * 0.05)) {
+          continue;
+        }
+        
+        // Calculate rectangularity - how rectangular is this contour?
+        const rect = cv.boundingRect(contour);
+        const rectArea = rect.width * rect.height;
+        const rectangularity = area / rectArea;
+        
+        // Calculate aspect ratio - grids are typically more square-like
+        const aspectRatio = Math.max(rect.width / rect.height, rect.height / rect.width);
+        
+        // Score based on size, rectangularity and aspect ratio
+        // Higher score for larger, more rectangular contours with aspect ratio closer to 1
+        const gridScore = area * rectangularity * (1 / aspectRatio);
+        
+        if (gridScore > maxGridScore) {
+          maxGridScore = gridScore;
           maxContourIndex = i;
         }
       }
 
-      console.log("SignificantCountour");
+      console.log("SignificantContour");
       // If we found a significant contour
-      if (maxContourIndex >= 0 && maxArea > (grayImage.cols * grayImage.rows * 0.1)) {
+      if (maxContourIndex >= 0) {
         result.gridFound = true;
         const gridContour = contours.get(maxContourIndex);
 
@@ -123,14 +158,20 @@ export function useGridProcessing() {
           y2: rect.y + rect.height,
           isGridBorder: true
         });
-
-        console.log('[GridProcessing] Grid detected:', result);
+        
+        // We're only keeping the outer border, no internal grid lines
+        console.log('[GridProcessing] Grid border detected:', result);
       }
 
       // Clean up OpenCV resources
       binary.delete();
-      morphed.delete();
-      kernel.delete();
+      horizontalLines.delete();
+      verticalLines.delete();
+      gridStructure.delete();
+      morphedGrid.delete();
+      horizontalKernel.delete();
+      verticalKernel.delete();
+      closeKernel.delete();
       contours.delete();
       hierarchy.delete();
 
