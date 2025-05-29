@@ -184,6 +184,8 @@ const progress = ref(0);
 const progressMessage = ref('');
 const isProcessing = ref(false);
 const isChartProcessed = ref(false); // Track if a chart has been processed
+const gridCells = ref([]); // Store detected grid cells
+const cellImages = ref([]); // Store extracted cell images
 const processingError = ref(null);
 
 // Update state based on processing services
@@ -433,12 +435,27 @@ const processFile = async (file) => {
           throw new Error('No processed image data received');
         }
         
+        // Store grid detection results if available
+        if (result.gridCells && result.gridCells.length > 0) {
+          gridCells.value = result.gridCells;
+          progressMessage.value = `Detected ${result.gridCells.length} grid cells`;
+        }
+        
+        // Store cell images if available
+        if (result.cellImages && result.cellImages.length > 0) {
+          cellImages.value = result.cellImages;
+        }
+        
         // Create object URL from processed image blob
         const processedUrl = URL.createObjectURL(result.blob);
         // Created URL for processed image
         previewUrl.value = processedUrl;
         isChartProcessed.value = true; // Mark chart as processed
-        emit('processing-complete', result.blob);
+        emit('processing-complete', {
+          blob: result.blob,
+          gridCells: gridCells.value,
+          cellImages: cellImages.value
+        });
         
       } catch (err) {
         console.error('Error processing PDF:', err);

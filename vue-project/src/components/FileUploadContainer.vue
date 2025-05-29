@@ -55,7 +55,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['file-selected', 'error']);
+const emit = defineEmits(['file-selected', 'error', 'grid-detected']);
 
 const fileInput = ref(null);
 const isDragging = ref(false);
@@ -63,6 +63,8 @@ const currentFile = ref(null);
 const fileName = ref('');
 const error = ref('');
 const hasProcessedChart = ref(false);
+const detectedGridCells = ref([]);
+const extractedCellImages = ref([]);
 
 const acceptTypes = computed(() => {
   return props.accept;
@@ -128,6 +130,25 @@ const onProcessingComplete = (result) => {
   // Check if this is a processed chart (from PDF)
   if (currentFile.value && currentFile.value.type === 'application/pdf') {
     hasProcessedChart.value = true;
+    
+    // Store grid detection results if available
+    if (result.gridCells && result.gridCells.length > 0) {
+      detectedGridCells.value = result.gridCells;
+    }
+    
+    // Store cell images if available
+    if (result.cellImages && result.cellImages.length > 0) {
+      extractedCellImages.value = result.cellImages;
+      
+      // If we have cell images, we can prepare them for Roboflow analysis
+      if (extractedCellImages.value.length > 0) {
+        // Emit an event with the cell images for Roboflow analysis
+        emit('grid-detected', {
+          cells: detectedGridCells.value,
+          images: extractedCellImages.value
+        });
+      }
+    }
   }
 };
 
