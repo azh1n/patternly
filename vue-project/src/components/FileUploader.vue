@@ -39,10 +39,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, watch, defineEmits } from 'vue';
+import { ref, computed, onBeforeUnmount, watch, defineEmits, onMounted, watchEffect } from 'vue';
 import { renderAsync } from 'docx-preview';
 import { useUserSettings } from '@/services/userSettings';
 import { useImageProcessing } from '@/services/imageProcessingService';
+import { useChartProcessing } from '@/services/chartProcessingService';
 import ImageProcessingProgress from './ImageProcessingProgress.vue';
 
 const props = defineProps({
@@ -60,16 +61,52 @@ const emit = defineEmits(['error', 'processing-complete', 'processing-error']);
 
 const { experimentalFeatures } = useUserSettings();
 const { 
-  progress, 
-  progressMessage, 
-  isProcessing, 
-  error: processingError, 
+  progress: imageProgress, 
+  progressMessage: imageProgressMessage, 
+  isProcessing: imageProcessing, 
+  error: imageError, 
   processImage 
 } = useImageProcessing();
+
+const { 
+  progress: chartProgress, 
+  progressMessage: chartProgressMessage, 
+  isProcessing: chartProcessing, 
+  error: chartError, 
+  processChart 
+} = useChartProcessing();
+
 const previewUrl = ref('');
 const fileType = ref('');
 const fileName = ref('');
 const error = ref('');
+
+// Use source refs directly for state that needs to be modified
+const progress = ref(0);
+const progressMessage = ref('');
+const isProcessing = ref(false);
+const processingError = ref(null);
+
+// Update state based on processing services
+watchEffect(() => {
+  if (chartProcessing.value || imageProcessing.value) {
+    progress.value = chartProcessing.value ? chartProgress.value : imageProgress.value;
+    progressMessage.value = chartProcessing.value ? chartProgressMessage.value : imageProgressMessage.value;
+    isProcessing.value = true;
+    processingError.value = chartError.value || imageError.value;
+  } else {
+    isProcessing.value = false;
+  }
+});
+
+// File type detection - using startsWith for broader image type checking
+const isImage = computed(() => fileType.value && fileType.value.startsWith('image/'));
+const isPdf = computed(() => experimentalFeatures.value && fileType.value === 'application/pdf');
+const isDocx = computed(() => 
+  experimentalFeatures.value && 
+  (fileType.value === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+   fileType.value === 'application/msword')
+);
 
 const clearPreview = () => {
   if (previewUrl.value) {
@@ -88,49 +125,68 @@ const processFile = async (file) => {
 
   // Clear previous preview and errors
   clearPreview();
-  error.value = '';
+  processingError.value = null;
+  isProcessing.value = true;
+  fileType.value = file.type || getMimeTypeFromExtension(file.name);
+  fileName.value = file.name;
 
   try {
-    // Check file type
-    fileType.value = file.type || getMimeTypeFromExtension(file.name);
-    fileName.value = file.name;
-
     // Process different file types
     if (isImage.value) {
-      // For images, process with our image processing pipeline
+      // For images, use OpenCV processing
       try {
-        const result = await processImage(file);
-        // Emit the processing results
-        emit('processing-complete', {
-          originalImage: result.originalImage,
-          processedImage: result.processedImage,
-          gridLines: result.gridLines,
-          extractedText: result.extractedText,
-          width: result.width,
-          height: result.height
-        });
-        // Set preview to the original image
-        previewUrl.value = result.originalImage;
+        // Process with OpenCV
+        progressMessage.value = 'Processing image...';
+        const processedImage = await processImage(file);
+        previewUrl.value = URL.createObjectURL(processedImage);
+        emit('processing-complete', processedImage);
       } catch (err) {
-        console.error('Image processing error:', err);
-        emit('processing-error', err.message || 'Failed to process image');
-        // Fall back to simple preview
+        console.error('Error processing image with OpenCV:', err);
+        // Fall back to regular image preview
         previewUrl.value = URL.createObjectURL(file);
+        processingError.value = 'Image processing failed, showing original';
+        emit('error', processingError.value);
       }
     } else if (isPdf.value) {
-      // For PDFs, create object URL for preview
-      previewUrl.value = URL.createObjectURL(file);
+      // For PDFs, use Roboflow processing
+      try {
+        progressMessage.value = 'Processing PDF...';
+        const processedPdf = await processChart(file);
+        previewUrl.value = URL.createObjectURL(processedPdf);
+        emit('processing-complete', processedPdf);
+      } catch (err) {
+        console.error('Error processing PDF with Roboflow:', err);
+        previewUrl.value = URL.createObjectURL(file);
+        processingError.value = 'PDF processing failed, showing original';
+        emit('error', processingError.value);
+      }
     } else if (isDocx.value) {
-      // For DOCX files, use docx-preview
-      const arrayBuffer = await file.arrayBuffer();
-      await renderAsync(arrayBuffer, document.querySelector('.docx-preview'));
+      // For Word docs, use docx-preview
+      try {
+        progressMessage.value = 'Rendering document...';
+        const result = await renderAsync(file, document.querySelector('.docx-preview'));
+        emit('processing-complete', result);
+      } catch (err) {
+        console.error('Error rendering Word document:', err);
+        processingError.value = 'Document preview not available';
+        emit('error', processingError.value);
+      }
+    } else {
+      // For other file types, just create a preview URL
+      progressMessage.value = 'Loading file...';
+      previewUrl.value = URL.createObjectURL(file);
+      emit('processing-complete', file);
     }
   } catch (err) {
-    error.value = 'Failed to process file';
-    emit('error', error.value);
     console.error('Error processing file:', err);
+    processingError.value = 'Failed to process file';
+    emit('error', processingError.value);
+  } finally {
+    isProcessing.value = false;
+    progressMessage.value = '';
+    progress.value = 0;
   }
-};
+}
 
 // Watch for file prop changes
 watch(() => props.file, async (newFile) => {
@@ -152,19 +208,13 @@ const allowedTypes = computed(() => {
   if (experimentalFeatures.value) {
     types.push(
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword'
     );
   }
   
   return types;
 });
-
-const isImage = computed(() => fileType.value.startsWith('image/'));
-const isPdf = computed(() => experimentalFeatures.value && fileType.value === 'application/pdf');
-const isDocx = computed(() => 
-  experimentalFeatures.value && 
-  fileType.value === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-);
 
 
 

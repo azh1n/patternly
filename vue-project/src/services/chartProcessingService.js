@@ -1,26 +1,55 @@
 import { ref } from 'vue';
 
-// Load OpenCV.js dynamically
-const loadOpenCV = () => {
+// Create a worker to load OpenCV in the background
+const createOpenCVWorker = () => {
   return new Promise((resolve) => {
     if (window.cv) {
       resolve(window.cv);
       return;
     }
-    
-    const script = document.createElement('script');
-    script.src = 'https://docs.opencv.org/4.5.5/opencv.js';
-    script.async = true;
-    script.onload = () => {
-      // Wait for OpenCV to be ready
-      const checkCV = setInterval(() => {
-        if (window.cv) {
-          clearInterval(checkCV);
-          resolve(window.cv);
-        }
-      }, 100);
+
+    // Create a blob URL for the worker
+    const workerCode = `
+      self.importScripts('https://docs.opencv.org/4.5.5/opencv.js');
+      
+      self.onmessage = function(e) {
+        // Wait for OpenCV to be ready
+        const checkCV = setInterval(() => {
+          if (self.cv) {
+            clearInterval(checkCV);
+            self.postMessage({ status: 'loaded' });
+          }
+        }, 100);
+      };
+    `;
+
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(blob);
+    const worker = new Worker(workerUrl);
+
+    worker.onmessage = function(e) {
+      if (e.data.status === 'loaded') {
+        worker.terminate();
+        URL.revokeObjectURL(workerUrl);
+        
+        // Now load OpenCV in the main thread
+        const script = document.createElement('script');
+        script.src = 'https://docs.opencv.org/4.5.5/opencv.js';
+        script.async = true;
+        script.onload = () => {
+          // Wait for OpenCV to be ready
+          const checkCV = setInterval(() => {
+            if (window.cv) {
+              clearInterval(checkCV);
+              resolve(window.cv);
+            }
+          }, 100);
+        };
+        document.head.appendChild(script);
+      }
     };
-    document.head.appendChild(script);
+
+    worker.postMessage({});
   });
 };
 
@@ -30,21 +59,31 @@ export function useChartProcessing() {
   const isProcessing = ref(false);
   const error = ref(null);
   let cv = null;
+  let openCVLoading = false;
+  let openCVPromise = null;
 
   // Initialize OpenCV
   const initialize = async () => {
     if (cv) return true;
+    if (openCVLoading) return openCVPromise;
     
-    try {
-      progressMessage.value = 'Loading image processing engine...';
-      cv = await loadOpenCV();
-      progress.value = 20;
-      return true;
-    } catch (err) {
-      console.error('Failed to load OpenCV:', err);
-      error.value = 'Failed to load image processing engine';
-      return false;
-    }
+    openCVLoading = true;
+    openCVPromise = (async () => {
+      try {
+        progressMessage.value = 'Loading image processing engine...';
+        cv = await createOpenCVWorker();
+        progress.value = 20;
+        return true;
+      } catch (err) {
+        console.error('Failed to load OpenCV:', err);
+        error.value = 'Failed to load image processing engine';
+        return false;
+      } finally {
+        openCVLoading = false;
+      }
+    })();
+    
+    return openCVPromise;
   };
 
   // Process knitting chart image
