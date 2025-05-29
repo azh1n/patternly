@@ -45,24 +45,24 @@ export function useGridProcessing() {
       // Create kernels for horizontal and vertical line detection
       const horizontalKernelSize = new cv.Size(Math.floor(grayImage.cols * 0.1), 1);
       const verticalKernelSize = new cv.Size(1, Math.floor(grayImage.rows * 0.1));
-      
+
       const horizontalKernel = cv.getStructuringElement(cv.MORPH_RECT, horizontalKernelSize);
       const verticalKernel = cv.getStructuringElement(cv.MORPH_RECT, verticalKernelSize);
-      
+
       // Detect horizontal and vertical lines separately
       const horizontalLines = new cv.Mat();
       const verticalLines = new cv.Mat();
-      
+
       // Morphological operations to extract horizontal lines
       cv.morphologyEx(binary, horizontalLines, cv.MORPH_OPEN, horizontalKernel);
-      
+
       // Morphological operations to extract vertical lines
       cv.morphologyEx(binary, verticalLines, cv.MORPH_OPEN, verticalKernel);
-      
+
       // Combine horizontal and vertical lines to get grid structure
       const gridStructure = new cv.Mat();
       cv.add(horizontalLines, verticalLines, gridStructure);
-      
+
       // Apply morphological closing to connect nearby lines
       const morphedGrid = new cv.Mat();
       const closeKernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
@@ -81,24 +81,24 @@ export function useGridProcessing() {
       for (let i = 0; i < contours.size(); i++) {
         const contour = contours.get(i);
         const area = cv.contourArea(contour);
-        
+
         // Skip very small contours
         if (area < (grayImage.cols * grayImage.rows * 0.05)) {
           continue;
         }
-        
+
         // Calculate rectangularity - how rectangular is this contour?
         const rect = cv.boundingRect(contour);
         const rectArea = rect.width * rect.height;
         const rectangularity = area / rectArea;
-        
+
         // Calculate aspect ratio - grids are typically more square-like
         const aspectRatio = Math.max(rect.width / rect.height, rect.height / rect.width);
-        
+
         // Score based on size, rectangularity and aspect ratio
         // Higher score for larger, more rectangular contours with aspect ratio closer to 1
         const gridScore = area * rectangularity * (1 / aspectRatio);
-        
+
         if (gridScore > maxGridScore) {
           maxGridScore = gridScore;
           maxContourIndex = i;
@@ -113,7 +113,7 @@ export function useGridProcessing() {
 
         // Get bounding rectangle of the grid
         const rect = cv.boundingRect(gridContour);
-        
+
         // Add gridArea property needed by drawGridLines
         result.gridArea = {
           x: rect.x,
@@ -158,9 +158,103 @@ export function useGridProcessing() {
           y2: rect.y + rect.height,
           isGridBorder: true
         });
-        
+
         // We're only keeping the outer border, no internal grid lines
         console.log('[GridProcessing] Grid border detected:', result);
+
+        // If we found a grid, detect vertical lines within it
+        if (result.gridFound && result.gridArea) {
+          // Create a region of interest (ROI) for the grid area
+          const { x, y, width, height } = result.gridArea;
+          const roiRect = new cv.Rect(x, y, width, height);
+          const gridROI = new cv.Mat();
+          grayImage.roi(roiRect).copyTo(gridROI);
+
+          // Apply adaptive threshold with different parameters to catch light gray lines
+          const binaryLight = new cv.Mat();
+          cv.adaptiveThreshold(
+            gridROI,
+            binaryLight,
+            255,
+            cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv.THRESH_BINARY_INV,
+            7,  // Smaller block size to catch finer details
+            1    // Lower constant to be more sensitive
+          );
+
+          // Create a vertical kernel for detecting vertical lines
+          const verticalLineKernel = cv.getStructuringElement(
+            cv.MORPH_RECT, 
+            new cv.Size(1, Math.floor(height * 0.3)) // Tall kernel to detect vertical lines
+          );
+
+          // Apply morphological operations to extract vertical lines
+          const verticalLinesMat = new cv.Mat();
+          cv.morphologyEx(binaryLight, verticalLinesMat, cv.MORPH_OPEN, verticalLineKernel);
+
+          // Apply Hough Line Transform to detect vertical lines
+          const lines = new cv.Mat();
+          cv.HoughLinesP(
+            verticalLinesMat,
+            lines,
+            1,                   // rho resolution (pixels)
+            Math.PI / 180,      // theta resolution (radians)
+            Math.floor(height * 0.1), // threshold - minimum votes (lower to catch light lines)
+            Math.floor(height * 0.2), // minLineLength - minimum line length
+            10                  // maxLineGap - maximum gap between line segments
+          );
+
+          console.log(`[GridProcessing] Detected ${lines.rows} potential vertical grid lines`);
+
+          // Process detected lines and add vertical lines to result
+          const verticalLinePositions = [];
+          const verticalLineTolerance = 5; // pixels
+
+          for (let i = 0; i < lines.rows; i++) {
+            const line = lines.data32S.subarray(i * 4, (i + 1) * 4);
+            const x1 = line[0] + x; // Adjust for ROI offset
+            const y1 = line[1] + y;
+            const x2 = line[2] + x;
+            const y2 = line[3] + y;
+
+            // Check if this is a vertical line (x1 ≈ x2)
+            const dx = Math.abs(x2 - x1);
+            const dy = Math.abs(y2 - y1);
+
+            if (dx < 10 && dy > height * 0.2) { // Vertical line with significant height
+              // Check if we already have a line at similar x position
+              const xPosition = Math.round((x1 + x2) / 2);
+              const existingLineIndex = verticalLinePositions.findIndex(
+                pos => Math.abs(pos - xPosition) < verticalLineTolerance
+              );
+
+              if (existingLineIndex === -1) {
+                // This is a new vertical line
+                verticalLinePositions.push(xPosition);
+
+                // Add to result with height constrained to grid area
+                result.verticalLines.push({
+                  x1: xPosition,
+                  y1: y,
+                  x2: xPosition,
+                  y2: y + height,
+                  isGridBorder: false,
+                  isVerticalGridLine: true // Mark as a detected vertical grid line
+                });
+              }
+            }
+          }
+
+          // Sort vertical lines from left to right
+          result.verticalLines.sort((a, b) => a.x1 - b.x1);
+
+          // Clean up additional resources
+          gridROI.delete();
+          binaryLight.delete();
+          verticalLinesMat.delete();
+          verticalLineKernel.delete();
+          lines.delete();
+        }
       }
 
       // Clean up OpenCV resources
@@ -383,46 +477,50 @@ export function useGridProcessing() {
    * @returns {cv.Mat} - The modified image (modifies in place)
    */
   const drawGridLines = (cv, image, horizontalLines, verticalLines, gridArea, lineThickness = 2) => {
-    console.log('[GridProcessing] Drawing grid lines with lime green color');
-    
-    // Define line color (lime green: RGB 0,255,0)
-    const color = new cv.Scalar(0, 255, 0, 255);
-    
+    console.log('[GridProcessing] Drawing grid lines: horizontal in green, vertical in blue');
+
+    // Define line colors
+    const greenColor = new cv.Scalar(0, 255, 0, 255);  // lime green: RGB 0,255,0
+    const blueColor = new cv.Scalar(0, 0, 255, 255);   // blue: RGB 0,0,255
+
     // Use provided thickness or default to 2
     const thickness = lineThickness || 2;
-    
+
     try {
-      // Draw horizontal lines
+      // Draw horizontal lines in green
       if (horizontalLines && horizontalLines.length > 0) {
         for (const line of horizontalLines) {
           const pt1 = new cv.Point(line.x1, line.y1);
           const pt2 = new cv.Point(line.x2, line.y2);
-          cv.line(image, pt1, pt2, color, thickness);
+          cv.line(image, pt1, pt2, greenColor, thickness);
         }
       }
-      
-      // Draw vertical lines
+
+      // Draw vertical lines - blue for detected grid lines, green for border
       if (verticalLines && verticalLines.length > 0) {
         for (const line of verticalLines) {
           const pt1 = new cv.Point(line.x1, line.y1);
           const pt2 = new cv.Point(line.x2, line.y2);
-          cv.line(image, pt1, pt2, color, thickness);
+          
+          // Use blue for detected vertical grid lines, green for border lines
+          const lineColor = line.isVerticalGridLine ? blueColor : greenColor;
+          cv.line(image, pt1, pt2, lineColor, thickness);
         }
       }
-      
+
       // Draw grid area border with thicker line if available
       if (gridArea) {
         const { x, y, width, height } = gridArea;
-        
+
         // Draw rectangle around grid area
         const topLeft = new cv.Point(x, y);
         const bottomRight = new cv.Point(x + width, y + height);
-        cv.rectangle(image, topLeft, bottomRight, color, thickness + 1);
+        cv.rectangle(image, topLeft, bottomRight, greenColor, thickness + 1);
       }
     } catch (error) {
       console.error('[GridProcessing] Error drawing grid lines:', error);
     }
-    
+
     // Return the modified image (modified in place)
     return image;
   };
