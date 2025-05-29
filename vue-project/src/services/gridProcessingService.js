@@ -616,6 +616,189 @@ export function useGridProcessing() {
           mediumVerticalEdges.delete();
           mediumEdgeLines.delete();
           
+          // STEP 4: Adaptive contrast detection for challenging areas (like color changes)
+          console.log('[GridProcessing] Step 4: Adaptive contrast detection for challenging backgrounds...');
+          
+          // Create a new ROI for adaptive detection
+          const adaptiveROI = new cv.Mat();
+          grayImage.roi(roiRect).copyTo(adaptiveROI);
+          
+          // Get all existing vertical line positions
+          const allCurrentPositions = result.verticalLines
+            .filter(line => !line.isGridBorder)
+            .map(line => line.x1 - x);
+          
+          // Apply histogram equalization to improve contrast
+          const equalizedROI = new cv.Mat();
+          cv.equalizeHist(adaptiveROI, equalizedROI);
+          
+          // Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) for better local contrast
+          const clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
+          const claheROI = new cv.Mat();
+          clahe.apply(equalizedROI, claheROI);
+          
+          // Multiple edge detection approaches for different contrast scenarios
+          const adaptiveEdges1 = new cv.Mat();
+          const adaptiveEdges2 = new cv.Mat();
+          const adaptiveEdges3 = new cv.Mat();
+          
+          // Ultra-sensitive edge detection
+          cv.Canny(claheROI, adaptiveEdges1, 10, 30, 3, false);
+          
+          // Standard edge detection on equalized image
+          cv.Canny(equalizedROI, adaptiveEdges2, 20, 60, 3, false);
+          
+          // Gradient-based edge detection
+          cv.Canny(adaptiveROI, adaptiveEdges3, 5, 25, 3, false);
+          
+          // Combine all edge detections
+          const combinedEdges = new cv.Mat();
+          cv.add(adaptiveEdges1, adaptiveEdges2, combinedEdges);
+          cv.add(combinedEdges, adaptiveEdges3, combinedEdges);
+          
+          // Apply vertical morphological operation
+          const adaptiveVerticalKernel = cv.getStructuringElement(
+            cv.MORPH_RECT,
+            new cv.Size(1, Math.floor(height * 0.08)) // Very small kernel for maximum sensitivity
+          );
+          
+          const adaptiveVerticalEdges = new cv.Mat();
+          cv.morphologyEx(combinedEdges, adaptiveVerticalEdges, cv.MORPH_OPEN, adaptiveVerticalKernel);
+          
+          // Ultra-sensitive Hough Line Transform
+          const adaptiveLines = new cv.Mat();
+          cv.HoughLinesP(
+            adaptiveVerticalEdges,
+            adaptiveLines,
+            1,                          // rho resolution
+            Math.PI / 180,             // theta resolution  
+            Math.floor(height * 0.05), // Very low threshold
+            Math.floor(height * 0.1),  // Very short minimum line length
+            20                         // Large gap tolerance
+          );
+          
+          console.log(`[GridProcessing] Adaptive edge detection found ${adaptiveLines.rows} potential lines`);
+          
+          // Process adaptive lines with very lenient criteria
+          const adaptiveDetectedLines = [];
+          
+          for (let i = 0; i < adaptiveLines.rows; i++) {
+            const line = adaptiveLines.data32S.subarray(i * 4, (i + 1) * 4);
+            const x1 = line[0];
+            const y1 = line[1];
+            const x2 = line[2];
+            const y2 = line[3];
+            
+            // Very lenient vertical line criteria
+            const dx = Math.abs(x2 - x1);
+            const dy = Math.abs(y2 - y1);
+            
+            if (dx < 10 && dy > height * 0.08) {
+              const lineX = Math.round((x1 + x2) / 2);
+              
+              // Check if this is a new line
+              const isNewLine = !allCurrentPositions.some(pos => Math.abs(pos - lineX) < 6);
+              
+              if (isNewLine && lineX > 1 && lineX < width - 1) {
+                adaptiveDetectedLines.push({
+                  position: lineX,
+                  confidence: 0.15, // Lower confidence but still valid
+                  length: dy,
+                  source: 'adaptive-contrast'
+                });
+              }
+            }
+          }
+          
+          // Additionally, try template-based detection for regular grid patterns
+          // Analyze spacing between existing lines to predict missing ones
+          const existingPositions = allCurrentPositions.sort((a, b) => a - b);
+          const spacings = [];
+          
+          for (let i = 1; i < existingPositions.length; i++) {
+            const spacing = existingPositions[i] - existingPositions[i-1];
+            if (spacing > 10 && spacing < width * 0.5) { // Reasonable spacing
+              spacings.push(spacing);
+            }
+          }
+          
+          if (spacings.length > 0) {
+            // Calculate most common spacing
+            const avgSpacing = spacings.reduce((a, b) => a + b, 0) / spacings.length;
+            console.log(`[GridProcessing] Average grid spacing: ${avgSpacing.toFixed(1)} pixels`);
+            
+            // Look for missing lines based on expected spacing
+            for (let i = 0; i < existingPositions.length - 1; i++) {
+              const currentPos = existingPositions[i];
+              const nextPos = existingPositions[i + 1];
+              const gap = nextPos - currentPos;
+              
+              // If gap is significantly larger than average, there might be a missing line
+              if (gap > avgSpacing * 1.8) {
+                const expectedPos = Math.round(currentPos + avgSpacing);
+                
+                // Check if there's a weak line at the expected position
+                if (expectedPos > currentPos + 5 && expectedPos < nextPos - 5) {
+                  // Analyze this specific column for any vertical pattern
+                  let verticalPixels = 0;
+                  let totalAnalyzed = 0;
+                  
+                  for (let row = 0; row < height; row += 2) { // Sample every other row
+                    const pixelValue = claheROI.ucharPtr(row, expectedPos)[0];
+                    totalAnalyzed++;
+                    
+                    // Look for any consistent pattern (very broad criteria)
+                    if (pixelValue < 200) { // Any non-white pixel
+                      verticalPixels++;
+                    }
+                  }
+                  
+                  const patternStrength = verticalPixels / totalAnalyzed;
+                  if (patternStrength > 0.3) {
+                    console.log(`[GridProcessing] Found missing line by spacing analysis at column ${expectedPos}`);
+                    adaptiveDetectedLines.push({
+                      position: expectedPos,
+                      confidence: 0.2 + patternStrength * 0.3,
+                      source: 'spacing-analysis',
+                      patternStrength: patternStrength
+                    });
+                  }
+                }
+              }
+            }
+          }
+          
+          // Add all adaptive detected lines
+          for (const adaptiveLine of adaptiveDetectedLines) {
+            console.log(`[GridProcessing] Found adaptive line at column ${adaptiveLine.position} (confidence: ${adaptiveLine.confidence.toFixed(2)}, source: ${adaptiveLine.source})`);
+            
+            result.verticalLines.push({
+              x1: adaptiveLine.position + x, // Adjust for ROI offset
+              y1: y,
+              x2: adaptiveLine.position + x,
+              y2: y + height,
+              isGridBorder: false,
+              isVerticalGridLine: true,
+              detectionMethod: 'adaptive-contrast',
+              confidence: adaptiveLine.confidence,
+              grayRange: 'adaptive',
+              source: adaptiveLine.source
+            });
+          }
+          
+          // Clean up adaptive detection resources
+          adaptiveROI.delete();
+          equalizedROI.delete();
+          claheROI.delete();
+          clahe.delete();
+          adaptiveEdges1.delete();
+          adaptiveEdges2.delete();
+          adaptiveEdges3.delete();
+          combinedEdges.delete();
+          adaptiveVerticalKernel.delete();
+          adaptiveVerticalEdges.delete();
+          adaptiveLines.delete();
+          
           // Sort all vertical lines from left to right
           result.verticalLines.sort((a, b) => a.x1 - b.x1);
           
