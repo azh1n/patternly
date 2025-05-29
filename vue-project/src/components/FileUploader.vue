@@ -241,59 +241,148 @@ const processFile = async (file) => {
           }
         }
         
-        // Double check the PDF.js version
-        if (pdfjsLib.value.version !== '3.4.120') {
-          console.warn(`PDF.js version mismatch. Expected 3.4.120, got ${pdfjsLib.value.version}`);
-        }
-        
-        progressMessage.value = 'Converting PDF to image...';
-        
-        // Create a temporary URL for the PDF
+        // Step 1: Create object URL for the PDF
+        progressMessage.value = 'Preparing PDF...';
+        console.log('[FileUploader] Creating object URL for PDF...');
         pdfUrl = URL.createObjectURL(file);
         
-        // Use PDF.js to render the first page as an image
+        if (!pdfUrl) {
+          throw new Error('Failed to create object URL for PDF');
+        }
+        
+        // Step 2: Load the PDF document
+        progressMessage.value = 'Loading PDF document...';
+        console.log('[FileUploader] Loading PDF document...');
         loadingTask = pdfjsLib.value.getDocument({
           url: pdfUrl,
-          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.4.120/cmaps/',
+          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.0.279/cmaps/',
           cMapPacked: true,
         });
         
         const pdf = await loadingTask.promise;
+        console.log(`[FileUploader] PDF loaded: ${pdf.numPages} pages`);
+        
+        if (pdf.numPages === 0) {
+          throw new Error('PDF contains no pages');
+        }
+        
+        // Step 3: Get the first page
+        progressMessage.value = 'Rendering PDF page...';
+        console.log('[FileUploader] Getting first page...');
         const page = await pdf.getPage(1);
         
-        // Set scale for better quality
-        const viewport = page.getViewport({ scale: 2.0 });
+        // Step 4: Set up viewport and canvas
+        console.log('[FileUploader] Setting up viewport and canvas...');
+        const scale = window.devicePixelRatio || 1;
+        const viewport = page.getViewport({ 
+          scale: 2.0 * scale, // Higher DPI for better quality
+          rotation: 0,
+          offsetX: 0,
+          offsetY: 0,
+          dontFlip: false
+        });
         
-        // Create canvas for rendering
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Set canvas display size
+        canvas.style.width = `${viewport.width / scale}px`;
+        canvas.style.height = `${viewport.height / scale}px`;
+        
+        // Set canvas render size
         canvas.width = viewport.width;
+        canvas.height = viewport.height;
         
-        // Set canvas styles for better rendering
-        context.imageSmoothingEnabled = true;
-        context.imageSmoothingQuality = 'high';
-        
-        // Render PDF page to canvas
+        // Step 5: Render PDF page to canvas
+        progressMessage.value = 'Converting PDF to image...';
+        console.log('[FileUploader] Rendering PDF page to canvas...');
         await page.render({
           canvasContext: context,
           viewport: viewport,
-          background: '#ffffff', // White background for better contrast
-          intent: 'print' // Better quality rendering
+          intent: 'print', // Better quality rendering
+          transform: [scale, 0, 0, scale, 0, 0],
+          background: '#ffffff', // White background
+          imageLayer: true
+          // intent: 'print' is already set above
         }).promise;
         
-        // Now process the rendered image
+        // Step 6: Convert canvas to blob for processing
+        progressMessage.value = 'Preparing image for processing...';
+        console.log('[FileUploader] Converting canvas to blob...');
+        
+        const blob = await new Promise((resolve, reject) => {
+          try {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error('Failed to create blob from canvas'));
+                  return;
+                }
+                console.log(`[FileUploader] Created blob of size: ${blob.size} bytes`);
+                resolve(blob);
+              },
+              'image/png',
+              0.95 // High quality
+            );
+          } catch (blobError) {
+            console.error('[FileUploader] Error creating blob:', blobError);
+            reject(new Error('Failed to convert canvas to blob'));
+          }
+        });
+        
+        // Step 7: Create an image element for processing
+        console.log('[FileUploader] Creating image element...');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        // Step 8: Wait for the image to load
+        progressMessage.value = 'Loading image for processing...';
+        console.log('[FileUploader] Loading image from blob...');
+        
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Image loading timed out'));
+          }, 30000); // 30 second timeout
+          
+          img.onload = () => {
+            clearTimeout(timeout);
+            console.log(`[FileUploader] Image loaded: ${img.width}x${img.height}`);
+            URL.revokeObjectURL(img.src); // Clean up
+            resolve();
+          };
+          
+          img.onerror = (err) => {
+            clearTimeout(timeout);
+            console.error('[FileUploader] Error loading image:', err);
+            reject(new Error('Failed to load image for processing'));
+          };
+          
+          try {
+            img.src = URL.createObjectURL(blob);
+          } catch (urlError) {
+            clearTimeout(timeout);
+            console.error('[FileUploader] Error creating object URL:', urlError);
+            reject(new Error('Failed to create image URL'));
+          }
+        });
+        
+        console.log('[FileUploader] Image loaded successfully');
+        
+        // Process the image element
         progressMessage.value = 'Processing chart...';
+        const result = await processChart(img);
         
-        // Convert canvas to blob
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1));
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to process image');
+        }
         
-        // Process the image blob
-        const processedImage = await processChart(blob);
+        if (!result.blob) {
+          throw new Error('No processed image data received');
+        }
         
-        // Create object URL from processed image
-        previewUrl.value = URL.createObjectURL(processedImage);
-        emit('processing-complete', processedImage);
+        // Create object URL from processed image blob
+        previewUrl.value = URL.createObjectURL(result.blob);
+        emit('processing-complete', result.blob);
         
       } catch (err) {
         console.error('Error processing PDF:', err);
