@@ -1,6 +1,15 @@
 <template>
   <div class="file-uploader">
-    <div v-if="previewUrl" class="preview-container">
+    <!-- Image Processing Progress -->
+    <ImageProcessingProgress
+      v-if="isProcessing"
+      :progress="progress"
+      :progress-message="progressMessage"
+      :error="processingError"
+    />
+    
+    <!-- Preview Container -->
+    <div v-if="previewUrl && !isProcessing" class="preview-container">
       <div v-if="isImage" class="image-preview">
         <img :src="previewUrl" :alt="previewAlt" />
       </div>
@@ -20,7 +29,9 @@
         <span class="file-name">{{ fileName }}</span>
       </div>
     </div>
-    <div v-else class="no-preview">
+    
+    <!-- No Preview State -->
+    <div v-if="!previewUrl && !isProcessing" class="no-preview">
       <font-awesome-icon :icon="['fas', 'file']" size="3x" />
       <span>No file selected</span>
     </div>
@@ -28,9 +39,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onBeforeUnmount, watch, defineEmits } from 'vue';
 import { renderAsync } from 'docx-preview';
 import { useUserSettings } from '@/services/userSettings';
+import { useImageProcessing } from '@/services/imageProcessingService';
+import ImageProcessingProgress from './ImageProcessingProgress.vue';
 
 const props = defineProps({
   file: {
@@ -43,9 +56,16 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['error']);
+const emit = defineEmits(['error', 'processing-complete', 'processing-error']);
 
 const { experimentalFeatures } = useUserSettings();
+const { 
+  progress, 
+  progressMessage, 
+  isProcessing, 
+  error: processingError, 
+  processImage 
+} = useImageProcessing();
 const previewUrl = ref('');
 const fileType = ref('');
 const fileName = ref('');
@@ -66,7 +86,7 @@ const processFile = async (file) => {
     return;
   }
 
-  // Clear previous preview
+  // Clear previous preview and errors
   clearPreview();
   error.value = '';
 
@@ -76,8 +96,29 @@ const processFile = async (file) => {
     fileName.value = file.name;
 
     // Process different file types
-    if (isImage.value || isPdf.value) {
-      // For images and PDFs, create object URL for preview
+    if (isImage.value) {
+      // For images, process with our image processing pipeline
+      try {
+        const result = await processImage(file);
+        // Emit the processing results
+        emit('processing-complete', {
+          originalImage: result.originalImage,
+          processedImage: result.processedImage,
+          gridLines: result.gridLines,
+          extractedText: result.extractedText,
+          width: result.width,
+          height: result.height
+        });
+        // Set preview to the original image
+        previewUrl.value = result.originalImage;
+      } catch (err) {
+        console.error('Image processing error:', err);
+        emit('processing-error', err.message || 'Failed to process image');
+        // Fall back to simple preview
+        previewUrl.value = URL.createObjectURL(file);
+      }
+    } else if (isPdf.value) {
+      // For PDFs, create object URL for preview
       previewUrl.value = URL.createObjectURL(file);
     } else if (isDocx.value) {
       // For DOCX files, use docx-preview
