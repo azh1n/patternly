@@ -91,51 +91,66 @@ export function useChartProcessing() {
         throw new Error('Could not get 2D context from canvas');
       }
       
-      // Set canvas size to match image
+      // Use the exact dimensions of the original image
       const width = imageElement.naturalWidth || imageElement.width;
       const height = imageElement.naturalHeight || imageElement.height;
       
-      console.log(`[ChartProcessing] Image dimensions: ${width}x${height}`);
+      console.log(`[ChartProcessing] Original image dimensions: ${width}x${height}`);
       
       if (!width || !height || width <= 0 || height <= 0) {
         throw new Error(`Invalid image dimensions: ${width}x${height}`);
       }
       
-      // Limit maximum dimensions to prevent memory issues
-      const maxDimension = 3000;
-      let scale = 1;
-      if (width > maxDimension || height > maxDimension) {
-        scale = Math.min(maxDimension / width, maxDimension / height);
-        console.log(`[ChartProcessing] Scaling down by ${scale.toFixed(2)}`);
-      }
+      // No scaling - use exact original dimensions
+      const canvasWidth = width;
+      const canvasHeight = height;
       
-      const canvasWidth = Math.floor(width * scale);
-      const canvasHeight = Math.floor(height * scale);
+      console.log(`[ChartProcessing] Using exact original dimensions: ${canvasWidth}x${canvasHeight}`);
       
+      console.log(`[ChartProcessing] Canvas dimensions: ${canvasWidth}x${canvasHeight}`);
+      
+      // Set canvas size
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
       
-      // Draw image to canvas
+      // Draw image to canvas - ensure we use the full canvas
       progressMessage.value = 'Processing image...';
       console.log(`[ChartProcessing] Drawing image to canvas...`);
+      
+      // Clear canvas first
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      
+      // Draw with exact dimensions
       ctx.drawImage(imageElement, 0, 0, canvasWidth, canvasHeight);
       progress.value = 30;
       
       // Convert to OpenCV format
       console.log('[ChartProcessing] Converting to OpenCV format...');
-      src = cv.imread(canvas);
       
-      if (!src || src.empty()) {
-        throw new Error('Failed to load image into OpenCV');
+      try {
+        // Use cv.imread directly - simpler and more reliable
+        console.time('imread');
+        src = cv.imread(canvas);
+        console.timeEnd('imread');
+        
+        console.log(`[ChartProcessing] OpenCV image loaded: ${src.cols}x${src.rows}, channels: ${src.channels()}, type: ${src.type()}`);
+        
+        if (!src || src.empty()) {
+          throw new Error('Failed to load image into OpenCV');
+        }
+        
+        // Process image directly without chunking
+        progressMessage.value = 'Converting to grayscale...';
+        progress.value = 50;
+        
+        console.time('cvtColor');
+        dst = new cv.Mat();
+        cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+        console.timeEnd('cvtColor');
+      } catch (e) {
+        console.error('[ChartProcessing] Error during OpenCV processing:', e);
+        throw e;
       }
-      
-      console.log(`[ChartProcessing] OpenCV image: ${src.cols}x${src.rows}`);
-      progressMessage.value = 'Converting to grayscale...';
-      progress.value = 50;
-      
-      // Process image (convert to grayscale)
-      dst = new cv.Mat();
-      cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
       
       // Convert back to canvas
       console.log('[ChartProcessing] Converting back to canvas...');
@@ -248,10 +263,17 @@ function waitForOpenCVInitialization() {
       };
     }
     
-    // Safety timeout
-    setTimeout(() => {
+    // Safety timeout - only used if initialization gets stuck
+    const timeoutId = setTimeout(() => {
       console.log('[ChartProcessing] OpenCV initialization timed out, resolving anyway');
       resolve();
-    }, 5000);
+    }, 10000);
+    
+    // Make sure we clear the timeout when we resolve normally
+    const originalResolve = resolve;
+    resolve = (...args) => {
+      clearTimeout(timeoutId);
+      originalResolve(...args);
+    };
   });
 }

@@ -273,38 +273,56 @@ const processFile = async (file) => {
         
         // Step 4: Set up viewport and canvas
         console.log('[FileUploader] Setting up viewport and canvas...');
-        const scale = window.devicePixelRatio || 1;
+        
+        // Get the original page dimensions
+        const origViewport = page.getViewport({ scale: 1.0 });
+        console.log(`[FileUploader] Original PDF dimensions: ${origViewport.width}x${origViewport.height}`);
+        
+        // Use a higher scale for better quality
+        const scale = 2.0;
         const viewport = page.getViewport({ 
-          scale: 2.0 * scale, // Higher DPI for better quality
-          rotation: 0,
-          offsetX: 0,
-          offsetY: 0,
-          dontFlip: false
+          scale: scale,
+          rotation: 0
         });
         
+        console.log(`[FileUploader] Scaled viewport dimensions: ${viewport.width}x${viewport.height}`);
+        
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d', { willReadFrequently: true });
+        const context = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
         
-        // Set canvas display size
-        canvas.style.width = `${viewport.width / scale}px`;
-        canvas.style.height = `${viewport.height / scale}px`;
+        if (!context) {
+          throw new Error('Could not get canvas context');
+        }
         
-        // Set canvas render size
+        // Set canvas size to match the viewport exactly
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        
+        console.log(`[FileUploader] Canvas dimensions set to: ${canvas.width}x${canvas.height}`);
         
         // Step 5: Render PDF page to canvas
         progressMessage.value = 'Converting PDF to image...';
         console.log('[FileUploader] Rendering PDF page to canvas...');
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-          intent: 'print', // Better quality rendering
-          transform: [scale, 0, 0, scale, 0, 0],
-          background: '#ffffff', // White background
-          imageLayer: true
-          // intent: 'print' is already set above
-        }).promise;
+        
+        // Fill with white background first
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Render the PDF page
+        try {
+          console.time('renderPDF');
+          await page.render({
+            canvasContext: context,
+            viewport: viewport,
+            intent: 'print', // Better quality rendering
+            background: 'transparent'
+          }).promise;
+          console.timeEnd('renderPDF');
+          console.log('[FileUploader] PDF rendered successfully');
+        } catch (renderError) {
+          console.error('[FileUploader] Error rendering PDF:', renderError);
+          throw new Error(`Failed to render PDF: ${renderError.message}`);
+        }
         
         // Step 6: Convert canvas to blob for processing
         progressMessage.value = 'Preparing image for processing...';
@@ -339,6 +357,14 @@ const processFile = async (file) => {
         progressMessage.value = 'Loading image for processing...';
         console.log('[FileUploader] Loading image from blob...');
         
+        // Debug: Save canvas data directly to see what we're working with
+        console.log('[FileUploader] Canvas data before creating image:', {
+          width: canvas.width,
+          height: canvas.height,
+          hasContext: !!context,
+          dataURL: canvas.toDataURL ? canvas.toDataURL().substring(0, 100) + '...' : 'N/A'
+        });
+        
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Image loading timed out'));
@@ -358,7 +384,10 @@ const processFile = async (file) => {
           };
           
           try {
-            img.src = URL.createObjectURL(blob);
+            // Create a new object URL from the blob
+            const objectUrl = URL.createObjectURL(blob);
+            console.log('[FileUploader] Created object URL for image:', objectUrl);
+            img.src = objectUrl;
           } catch (urlError) {
             clearTimeout(timeout);
             console.error('[FileUploader] Error creating object URL:', urlError);
@@ -370,6 +399,14 @@ const processFile = async (file) => {
         
         // Process the image element
         progressMessage.value = 'Processing chart...';
+        console.log('[FileUploader] Starting chart processing with image dimensions:', {
+          width: img.width,
+          height: img.height,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          complete: img.complete
+        });
+        
         const result = await processChart(img);
         
         if (!result.success) {
@@ -381,7 +418,9 @@ const processFile = async (file) => {
         }
         
         // Create object URL from processed image blob
-        previewUrl.value = URL.createObjectURL(result.blob);
+        const processedUrl = URL.createObjectURL(result.blob);
+        console.log('[FileUploader] Created URL for processed image:', processedUrl);
+        previewUrl.value = processedUrl;
         emit('processing-complete', result.blob);
         
       } catch (err) {
@@ -629,31 +668,35 @@ const getMimeTypeFromExtension = (filename) => {
 
 .preview-container {
   width: 100%;
-  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   background: var(--card-bg);
   border-radius: 8px;
-  overflow: hidden;
-  aspect-ratio: 16/9;
+  overflow: auto; /* Allow scrolling if needed */
   position: relative;
+  min-height: 300px;
+  max-height: 80vh; /* Limit height on larger screens */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .image-preview {
   width: 100%;
-  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   background: var(--card-bg);
+  padding: 1rem;
 }
 
 .image-preview img {
   max-width: 100%;
-  max-height: 100%;
+  height: auto;
   object-fit: contain;
   display: block;
+  border-radius: 4px;
+  /* Support for dark mode */
+  filter: var(--img-filter, none);
 }
 
 .document-preview {
@@ -715,7 +758,15 @@ const getMimeTypeFromExtension = (filename) => {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .preview-container {
-    aspect-ratio: 1;
+    min-height: 250px;
+  }
+  
+  .image-preview {
+    padding: 0.5rem;
+  }
+  
+  .image-preview img {
+    max-width: 100%;
   }
   
   .file-icon, .no-preview {
@@ -732,13 +783,25 @@ const getMimeTypeFromExtension = (filename) => {
   color: var(--uploader-error);
   font-size: 0.875rem;
 }
-/* Dark mode is handled by the theme service */
+/* Theme variables */
 :root {
   --uploader-error: #dc3545;
+  --img-filter: none;
+  --preview-shadow: rgba(0, 0, 0, 0.1);
 }
 
 :root.dark {
   --uploader-error: #ff6b6b;
+  --img-filter: brightness(0.95);
+  --preview-shadow: rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --uploader-error: #ff6b6b;
+    --img-filter: brightness(0.95);
+    --preview-shadow: rgba(0, 0, 0, 0.3);
+  }
 }
 
 /* Document preview theming */
