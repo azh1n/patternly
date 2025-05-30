@@ -40,14 +40,16 @@ export function useChartProcessing() {
     
     let canvas = null;
     let src = null;
-    let dst = null;
     let gridResult = null;
+    let gray = null;
+    let dst = null;
     
     // Helper function to clean up resources
     const cleanup = () => {
       try {
         // Clean up OpenCV resources
         if (src && typeof src.delete === 'function') src.delete();
+        if (gray && typeof gray.delete === 'function') gray.delete();
         if (dst && typeof dst.delete === 'function') dst.delete();
         if (canvas && canvas.remove) canvas.remove();
         
@@ -109,13 +111,6 @@ export function useChartProcessing() {
       progress.value = 20;
       progressMessage.value = 'Preparing image...';
       
-      // Create canvas for processing
-      canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) {
-        throw new Error('Could not get 2D context from canvas');
-      }
-      
       // Use the exact dimensions of the original image
       const width = imageElement.naturalWidth || imageElement.width;
       const height = imageElement.naturalHeight || imageElement.height;
@@ -126,47 +121,94 @@ export function useChartProcessing() {
         throw new Error(`Invalid image dimensions: ${width}x${height}`);
       }
       
-      // No scaling - use exact original dimensions
-      const canvasWidth = width;
-      const canvasHeight = height;
+      // Set reasonable limits for OpenCV processing to prevent memory issues
+      const MAX_DIMENSION = 2000; // Maximum width or height for OpenCV processing
+      const MAX_PIXELS = 4000000; // Maximum total pixels (roughly 2000x2000)
       
-  
+      let canvasWidth = width;
+      let canvasHeight = height;
+      let needsResize = false;
       
-  
+      // Check if image is too large for OpenCV processing
+      const totalPixels = width * height;
+      const maxDimension = Math.max(width, height);
+      
+      if (totalPixels > MAX_PIXELS || maxDimension > MAX_DIMENSION) {
+        needsResize = true;
+        
+        // Calculate resize ratio to fit within limits
+        const dimensionRatio = MAX_DIMENSION / maxDimension;
+        const pixelRatio = Math.sqrt(MAX_PIXELS / totalPixels);
+        const resizeRatio = Math.min(dimensionRatio, pixelRatio, 1.0); // Never upscale
+        
+        canvasWidth = Math.floor(width * resizeRatio);
+        canvasHeight = Math.floor(height * resizeRatio);
+        
+        console.log(`[ChartProcessing] Large image detected (${width}x${height}=${totalPixels} pixels)`);
+        console.log(`[ChartProcessing] Resizing for OpenCV processing: ${canvasWidth}x${canvasHeight} (ratio: ${resizeRatio.toFixed(3)})`);
+      } else {
+        console.log(`[ChartProcessing] Image size acceptable for direct processing: ${width}x${height}`);
+      }
+      
+      // Validate canvas dimensions
+      if (canvasWidth <= 0 || canvasHeight <= 0) {
+        throw new Error(`Invalid canvas dimensions: ${canvasWidth}x${canvasHeight}`);
+      }
+      
+      // Create canvas for processing
+      canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) {
+        throw new Error('Could not get 2D context from canvas');
+      }
       
       // Set canvas size
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
       
       // Draw image to canvas - ensure we use the full canvas
-      progressMessage.value = 'Processing image...';
-  
+      progressMessage.value = 'Drawing image to canvas...';
       
       // Clear canvas first
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       
-      // Draw with exact dimensions
+      // Draw with calculated dimensions (may be resized)
       ctx.drawImage(imageElement, 0, 0, canvasWidth, canvasHeight);
       progress.value = 30;
       
-      // Convert to OpenCV format
-  
+      // Validate canvas has data
+      try {
+        const imageData = ctx.getImageData(0, 0, Math.min(canvasWidth, 10), Math.min(canvasHeight, 10));
+        if (!imageData || !imageData.data || imageData.data.length === 0) {
+          throw new Error('Canvas contains no image data');
+        }
+        console.log('[ChartProcessing] Canvas validation passed');
+      } catch (validationError) {
+        throw new Error(`Canvas validation failed: ${validationError.message}`);
+      }
       
+      // Convert to OpenCV format
       try {
         // Use cv.imread directly - simpler and more reliable
+        console.log('[ChartProcessing] Reading image into OpenCV...');
         src = cv.imread(canvas);
         
         if (!src || src.empty()) {
           throw new Error('Failed to load image into OpenCV');
         }
         
+        console.log(`[ChartProcessing] Image loaded: ${src.cols}x${src.rows} channels=${src.channels()}`);
+        
         // Create a grayscale copy for processing
-        progressMessage.value = 'Processing image...';
+        progressMessage.value = 'Converting to grayscale...';
         progress.value = 30;
         
         // Create a grayscale copy
-        const gray = new cv.Mat();
+        gray = new cv.Mat();
+        console.log('[ChartProcessing] Converting to grayscale...');
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        
+        console.log(`[ChartProcessing] Grayscale conversion complete: ${gray.cols}x${gray.rows}`);
         
         // Detect grid in the image
         progressMessage.value = 'Detecting grid structure...';
@@ -174,7 +216,9 @@ export function useChartProcessing() {
         
         // Use the grid processing service to detect grid
         try {
-          gridResult = detectGrid(cv, gray.clone()); // Clone gray to avoid issues with the original being deleted
+          console.log('[ChartProcessing] Starting grid detection...');
+          gridResult = await detectGrid(cv, gray.clone()); // Clone gray to avoid issues with the original being deleted
+          console.log('[ChartProcessing] Grid detection completed:', gridResult);
         } catch (gridError) {
           console.warn('[ChartProcessing] Grid detection failed:', gridError);
           // Continue without grid detection
@@ -182,12 +226,15 @@ export function useChartProcessing() {
         }
         
         // Use the original image for the final output
-        progressMessage.value = 'Processing image...';
+        progressMessage.value = 'Preparing final image...';
         progress.value = 50;
         
         // Create a copy of the source image for drawing
-        const dst = new cv.Mat();
+        console.log('[ChartProcessing] Creating destination image...');
+        dst = new cv.Mat();
         src.copyTo(dst);
+        
+        console.log(`[ChartProcessing] Destination image created: ${dst.cols}x${dst.rows}`);
         
         // Draw grid lines if we have any
         if (gridResult && 
@@ -195,35 +242,60 @@ export function useChartProcessing() {
             gridResult.verticalLines && gridResult.verticalLines.length > 0 && 
             gridResult.gridArea) {
           try {
+            console.log('[ChartProcessing] Drawing grid lines...');
             // Draw grid lines with thinner lines (1px)
             drawGridLines(cv, dst, gridResult.horizontalLines, gridResult.verticalLines, gridResult.gridArea, 1);
+            console.log('[ChartProcessing] Grid lines drawn successfully');
           } catch (drawError) {
             console.warn('[ChartProcessing] Error drawing grid lines:', drawError);
             // Continue without grid visualization
           }
+        } else {
+          console.log('[ChartProcessing] No grid found or insufficient grid data, skipping grid drawing');
         }
         
         // Convert back to canvas
         progressMessage.value = 'Finalizing image...';
+        console.log('[ChartProcessing] Converting back to canvas...');
         cv.imshow(canvas, dst);
+        console.log('[ChartProcessing] Canvas conversion complete');
         progress.value = 80;
         
         // Clean up OpenCV resources
         try {
-          if (gray && !gray.isDeleted) gray.delete();
-          if (dst && !dst.isDeleted) dst.delete();
+          console.log('[ChartProcessing] Cleaning up intermediate resources...');
+          if (gray && !gray.isDeleted) {
+            gray.delete();
+            gray = null;
+          }
+          if (dst && !dst.isDeleted) {
+            dst.delete();
+            dst = null;
+          }
         } catch (cleanupError) {
           console.warn('[ChartProcessing] Error cleaning up resources:', cleanupError);
         }
       } catch (e) {
         // Handle OpenCV processing errors
         console.error('[ChartProcessing] Error processing chart:', e);
+        console.error('[ChartProcessing] Error type:', typeof e);
+        console.error('[ChartProcessing] Error details:', e.stack || e.message || e);
         
         // Try to clean up any resources that might have been created
-        if (gray && !gray.isDeleted) gray.delete();
-        if (dst && !dst.isDeleted) dst.delete();
+        try {
+          if (gray && typeof gray.delete === 'function' && !gray.isDeleted) {
+            gray.delete();
+            gray = null;
+          }
+          if (dst && typeof dst.delete === 'function' && !dst.isDeleted) {
+            dst.delete();
+            dst = null;
+          }
+        } catch (cleanupError) {
+          console.warn('[ChartProcessing] Error during cleanup in catch block:', cleanupError);
+        }
         
-        throw e;
+        throw new Error(`Failed to process image: ${e.message || e}`);
       }
       
       // Convert to blob

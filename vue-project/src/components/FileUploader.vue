@@ -241,17 +241,102 @@ const processFile = async (file) => {
   try {
     // Process different file types
     if (isImage.value) {
-      // For images, use OpenCV processing
+      // For images, process them like charts to enable grid detection
       try {
-        // Process with OpenCV
-        progressMessage.value = 'Processing image...';
-        const processedImage = await processImage(file);
-        previewUrl.value = URL.createObjectURL(processedImage);
-        emit('processing-complete', processedImage);
+        progressMessage.value = 'Loading image...';
+        
+        // Create image element for processing
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        // Load the image
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Image loading timed out'));
+          }, 30000); // 30 second timeout
+          
+          img.onload = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+          
+          img.onerror = (err) => {
+            clearTimeout(timeout);
+            reject(new Error('Failed to load image for processing'));
+          };
+          
+          try {
+            // Create object URL from the file
+            const objectUrl = URL.createObjectURL(file);
+            img.src = objectUrl;
+          } catch (urlError) {
+            clearTimeout(timeout);
+            reject(new Error('Failed to create image URL'));
+          }
+        });
+        
+        // Process the image with chart processing (includes grid detection)
+        progressMessage.value = 'Processing chart...';
+        console.log(`[FileUploader] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
+        
+        const result = await processChart(img);
+        
+        if (!result.success) {
+          console.warn('[FileUploader] Chart processing failed, falling back to original image');
+          // Fall back to showing original image
+          previewUrl.value = URL.createObjectURL(file);
+          isChartProcessed.value = false; // Ensure we use regular image display
+          processingError.value = `Chart processing failed: ${result.error || 'Unknown error'}. Showing original image.`;
+          emit('error', processingError.value);
+          return;
+        }
+        
+        if (!result.blob) {
+          console.warn('[FileUploader] No processed image blob received, falling back to original');
+          // Fall back to showing original image
+          previewUrl.value = URL.createObjectURL(file);
+          isChartProcessed.value = false; // Ensure we use regular image display
+          processingError.value = 'No processed image received. Showing original image.';
+          emit('error', processingError.value);
+          return;
+        }
+        
+        console.log('[FileUploader] Chart processing completed successfully');
+        
+        // Store grid detection results if available
+        if (result.gridCells && result.gridCells.length > 0) {
+          gridCells.value = result.gridCells;
+          progressMessage.value = `Detected ${result.gridCells.length} grid cells`;
+          console.log(`[FileUploader] Grid cells detected: ${result.gridCells.length}`);
+        }
+        
+        // Store cell images if available
+        if (result.cellImages && result.cellImages.length > 0) {
+          cellImages.value = result.cellImages;
+          console.log(`[FileUploader] Cell images extracted: ${result.cellImages.length}`);
+        }
+        
+        // Create object URL from processed image blob
+        const processedUrl = URL.createObjectURL(result.blob);
+        previewUrl.value = processedUrl;
+        isChartProcessed.value = true; // Mark chart as processed
+        
+        console.log('[FileUploader] Image processing complete, preview URL created');
+        
+        emit('processing-complete', {
+          blob: result.blob,
+          gridCells: gridCells.value,
+          cellImages: cellImages.value
+        });
+        
+        // Clean up the temporary image URL
+        URL.revokeObjectURL(img.src);
+        
       } catch (err) {
-        console.error('Error processing image with OpenCV:', err);
+        console.error('Error processing image:', err);
         // Fall back to regular image preview
         previewUrl.value = URL.createObjectURL(file);
+        isChartProcessed.value = false; // Ensure we use regular image display
         processingError.value = 'Image processing failed, showing original';
         emit('error', processingError.value);
       }
@@ -723,11 +808,13 @@ const getMimeTypeFromExtension = (filename) => {
   margin: 0 auto;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 2px 8px var(--preview-shadow);
-  overflow: auto;
+  overflow: visible; /* Changed from auto to visible to prevent cropping */
+  min-height: 300px;
+  max-height: none; /* Remove height restriction */
 }
 
 .chart-preview {
@@ -735,7 +822,10 @@ const getMimeTypeFromExtension = (filename) => {
   padding: 1rem;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  min-height: 100%;
+  max-width: 100%;
+  overflow: visible; /* Ensure no cropping */
 }
 
 .chart-preview img {
@@ -744,6 +834,9 @@ const getMimeTypeFromExtension = (filename) => {
   object-fit: contain;
   border-radius: 4px;
   filter: var(--img-filter, none);
+  display: block;
+  margin: 0; /* Ensure no margin issues */
+  vertical-align: top; /* Prevent baseline alignment issues */
 }
 
 .preview-container {
@@ -837,6 +930,18 @@ const getMimeTypeFromExtension = (filename) => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .chart-container {
+    min-height: 250px;
+  }
+  
+  .chart-preview {
+    padding: 0.5rem;
+  }
+  
+  .chart-preview img {
+    max-width: 100%;
+  }
+  
   .preview-container {
     min-height: 250px;
   }
