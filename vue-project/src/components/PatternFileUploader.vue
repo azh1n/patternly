@@ -20,7 +20,7 @@
         <div v-if="!file && !isProcessing" class="upload-prompt">
           <font-awesome-icon :icon="['fas', 'cloud-upload-alt']" class="upload-icon" />
           <p class="upload-text">Drag & drop your knitting chart here or click to browse</p>
-          <p class="file-types">Supports: JPG, PNG, GIF (max 10MB)</p>
+          <p class="file-types">Supports: JPG, PNG, GIF (max 25MB)</p>
         </div>
         
         <div v-else-if="isProcessing" class="processing-state">
@@ -91,7 +91,7 @@ const props = defineProps({
   },
   maxSizeMB: {
     type: Number,
-    default: 10
+    default: 25
   }
 });
 

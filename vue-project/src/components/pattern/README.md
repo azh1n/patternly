@@ -20,7 +20,7 @@ A file uploader component specifically designed for knitting chart images. It ha
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | autoProcess | Boolean | true | Whether to automatically process the image after upload |
-| maxSizeMB | Number | 10 | Maximum file size in MB |
+| maxSizeMB | Number | 25 | Maximum file size in MB |
 | showChartPreview | Boolean | true | Whether to show the chart preview |
 
 #### Events
