@@ -122,8 +122,9 @@ export function useChartProcessing() {
       }
       
       // Set reasonable limits for OpenCV processing to prevent memory issues
-      const MAX_DIMENSION = 2000; // Maximum width or height for OpenCV processing
-      const MAX_PIXELS = 4000000; // Maximum total pixels (roughly 2000x2000)
+      // Increased limits to preserve grid line details in high-resolution images
+      const MAX_DIMENSION = 3000; // Increased from 2000 to preserve more detail
+      const MAX_PIXELS = 8000000; // Increased from 4M to 8M pixels (roughly 2800x2800)
       
       let canvasWidth = width;
       let canvasHeight = height;
@@ -141,11 +142,17 @@ export function useChartProcessing() {
         const pixelRatio = Math.sqrt(MAX_PIXELS / totalPixels);
         const resizeRatio = Math.min(dimensionRatio, pixelRatio, 1.0); // Never upscale
         
-        canvasWidth = Math.floor(width * resizeRatio);
-        canvasHeight = Math.floor(height * resizeRatio);
+        // For grid detection, be less aggressive with resizing
+        // Use a minimum resize ratio to preserve grid details
+        const minResizeRatio = 0.4; // Don't shrink below 40% of original size
+        const finalResizeRatio = Math.max(resizeRatio, minResizeRatio);
+        
+        canvasWidth = Math.floor(width * finalResizeRatio);
+        canvasHeight = Math.floor(height * finalResizeRatio);
         
         console.log(`[ChartProcessing] Large image detected (${width}x${height}=${totalPixels} pixels)`);
-        console.log(`[ChartProcessing] Resizing for OpenCV processing: ${canvasWidth}x${canvasHeight} (ratio: ${resizeRatio.toFixed(3)})`);
+        console.log(`[ChartProcessing] Resizing for OpenCV processing: ${canvasWidth}x${canvasHeight} (ratio: ${finalResizeRatio.toFixed(3)})`);
+        console.log(`[ChartProcessing] Minimum ratio applied: ${minResizeRatio} to preserve grid details`);
       } else {
         console.log(`[ChartProcessing] Image size acceptable for direct processing: ${width}x${height}`);
       }

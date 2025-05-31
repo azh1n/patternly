@@ -213,26 +213,135 @@ export function useGridProcessing() {
           grayImage.roi(roiRect).copyTo(gridROI);
 
           console.log('[GridProcessing] Starting multi-step vertical line detection...');
+          console.log(`[GridProcessing] Grid ROI dimensions: ${width}x${height} pixels`);
+          
+          // Determine image resolution category and set parameters accordingly
+          const isHighRes = width > 2000 || height > 2000;
+          const isMediumRes = !isHighRes && (width > 1000 || height > 1000);
+          const isStandardRes = !isHighRes && !isMediumRes;
+          
+          const resolutionCategory = isHighRes ? 'High Resolution' : isMediumRes ? 'Medium Resolution' : 'Standard Resolution';
+          console.log(`[GridProcessing] Image classification: ${resolutionCategory}`);
+          
+          // Resolution-aware parameter configuration
+          const params = {
+            // Adaptive threshold parameters
+            blockSize: isHighRes ? Math.max(3, Math.min(21, Math.floor(Math.min(width, height) / 100) | 1)) : 
+                      isMediumRes ? 9 : 7,
+            adaptiveConstant: isHighRes ? Math.max(1, Math.floor(Math.min(width, height) / 500)) : 
+                             isMediumRes ? 2 : 1,
+            
+            // Vertical kernel height
+            verticalKernelHeight: isHighRes ? Math.max(10, Math.floor(height * 0.2)) :
+                                 isMediumRes ? Math.floor(height * 0.25) : Math.floor(height * 0.3),
+            
+            // Hough Line parameters
+            houghThreshold: isHighRes ? Math.max(3, Math.floor(height * 0.08)) :
+                           isMediumRes ? Math.floor(height * 0.09) : Math.floor(height * 0.1),
+            houghMinLength: isHighRes ? Math.max(10, Math.floor(height * 0.15)) :
+                           isMediumRes ? Math.floor(height * 0.18) : Math.floor(height * 0.2),
+            houghMaxGap: isHighRes ? Math.max(5, Math.floor(height * 0.02)) :
+                        isMediumRes ? 8 : 10,
+            
+            // Tolerance values
+            verticalLineTolerance: isHighRes ? Math.max(5, Math.floor(width * 0.005)) :
+                                  isMediumRes ? 4 : 5,
+            
+            // Vertical line detection criteria
+            maxHorizontalDeviation: isHighRes ? Math.max(10, Math.floor(width * 0.01)) :
+                                   isMediumRes ? 8 : 10,
+            minVerticalLength: isHighRes ? height * 0.15 :
+                              isMediumRes ? height * 0.18 : height * 0.2,
+            
+            // Light gray detection parameters
+            lightGrayMinHeight: isHighRes ? Math.max(height * 0.2, 20) :
+                               isMediumRes ? height * 0.25 : height * 0.3,
+            lightGrayRange: isHighRes ? [120, 220] : [140, 200],
+            lightGrayMinRatio: isHighRes ? Math.max(0.25, 0.4 - 0.15) :
+                              isMediumRes ? 0.35 : 0.4,
+            lightGrayLineTolerance: isHighRes ? Math.max(3, Math.floor(width * 0.003)) :
+                                   isMediumRes ? 3 : 3,
+            lightGrayEdgeKernelHeight: isHighRes ? Math.floor(height * 0.15) :
+                                      isMediumRes ? Math.floor(height * 0.18) : Math.floor(height * 0.2),
+            lightGrayHoughThreshold: isHighRes ? Math.max(5, Math.floor(height * 0.08)) :
+                                    isMediumRes ? Math.floor(height * 0.12) : Math.floor(height * 0.15),
+            lightGrayHoughMinLength: isHighRes ? Math.max(10, Math.floor(height * 0.15)) :
+                                    isMediumRes ? Math.floor(height * 0.2) : Math.floor(height * 0.25),
+            lightGrayHoughMaxGap: isHighRes ? Math.max(5, Math.floor(height * 0.02)) :
+                                 isMediumRes ? 6 : 8,
+            lightGrayMaxHorizontalDev: isHighRes ? Math.max(5, Math.floor(width * 0.008)) :
+                                      isMediumRes ? 4 : 5,
+            lightGrayMinDistance: isHighRes ? Math.max(8, Math.floor(width * 0.008)) :
+                                 isMediumRes ? 10 : 12,
+            lightGrayEdgeMargin: isHighRes ? Math.max(5, Math.floor(width * 0.005)) :
+                                isMediumRes ? 5 : 5,
+            
+            // Medium gray detection parameters
+            mediumGrayMinHeight: isHighRes ? Math.max(height * 0.1, 15) :
+                                isMediumRes ? height * 0.12 : height * 0.15,
+            mediumGrayRange: [60, 180],
+            mediumGrayMinRatio: isHighRes ? Math.max(0.15, 0.2 - 0.05) :
+                               isMediumRes ? 0.18 : 0.2,
+            mediumGrayMinConsistency: isHighRes ? Math.max(0.08, 0.1 - 0.02) :
+                                     isMediumRes ? 0.09 : 0.1,
+            mediumGrayMinConsecutiveRatio: isHighRes ? Math.max(0.08, 0.1 - 0.02) :
+                                          isMediumRes ? 0.09 : 0.1,
+            mediumGrayEdgeKernelHeight: isHighRes ? Math.max(5, Math.floor(height * 0.08)) :
+                                       isMediumRes ? Math.floor(height * 0.09) : Math.floor(height * 0.1),
+            mediumGrayHoughThreshold: isHighRes ? Math.max(3, Math.floor(height * 0.05)) :
+                                     isMediumRes ? Math.floor(height * 0.07) : Math.floor(height * 0.08),
+            mediumGrayHoughMinLength: isHighRes ? Math.max(8, Math.floor(height * 0.12)) :
+                                     isMediumRes ? Math.floor(height * 0.14) : Math.floor(height * 0.15),
+            mediumGrayHoughMaxGap: isHighRes ? Math.max(8, Math.floor(height * 0.03)) :
+                                  isMediumRes ? 12 : 15,
+            mediumGrayLineTolerance: isHighRes ? Math.max(4, Math.floor(width * 0.004)) :
+                                    isMediumRes ? 4 : 5,
+            mediumGrayMaxHorizontalDev: isHighRes ? Math.max(8, Math.floor(width * 0.01)) :
+                                       isMediumRes ? 7 : 8,
+            mediumGrayMinVerticalLength: isHighRes ? height * 0.08 :
+                                        isMediumRes ? height * 0.09 : height * 0.1,
+            mediumGrayMinDistance: isHighRes ? Math.max(10, Math.floor(width * 0.01)) :
+                                  isMediumRes ? 12 : 15,
+            mediumGrayEdgeMargin: isHighRes ? Math.max(5, Math.floor(width * 0.005)) :
+                                 isMediumRes ? 5 : 5
+          };
 
           // STEP 1: Original approach - detect black/dark lines using adaptive threshold and morphological operations
           console.log('[GridProcessing] Step 1: Detecting black/dark lines with adaptive threshold...');
           
           // Apply adaptive threshold to enhance grid lines
           const binaryLight = new cv.Mat();
-          cv.adaptiveThreshold(
-            gridROI,
-            binaryLight,
-            255,
-            cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv.THRESH_BINARY_INV,
-            7,  // Smaller block size to catch finer details
-            1    // Lower constant to be more sensitive
-          );
+          
+          if (isStandardRes) {
+            // Use original hardcoded parameters for standard resolution
+            cv.adaptiveThreshold(
+              gridROI,
+              binaryLight,
+              255,
+              cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+              cv.THRESH_BINARY_INV,
+              7,  // Original block size
+              1   // Original constant
+            );
+          } else {
+            // Use dynamic parameters for medium/high resolution
+            cv.adaptiveThreshold(
+              gridROI,
+              binaryLight,
+              255,
+              cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+              cv.THRESH_BINARY_INV,
+              params.blockSize,
+              params.adaptiveConstant
+            );
+          }
 
           // Create a vertical kernel for detecting vertical lines
           const verticalLineKernel = cv.getStructuringElement(
             cv.MORPH_RECT,
-            new cv.Size(1, Math.floor(height * 0.3)) // Tall kernel to detect vertical lines
+            isStandardRes ? 
+              new cv.Size(1, Math.floor(height * 0.3)) : // Original kernel size
+              new cv.Size(1, params.verticalKernelHeight)
           );
 
           // Apply morphological operations to extract vertical lines
@@ -241,21 +350,36 @@ export function useGridProcessing() {
 
           // Apply Hough Line Transform to detect vertical lines
           const lines = new cv.Mat();
-          cv.HoughLinesP(
-            verticalLinesMat,
-            lines,
-            1,                   // rho resolution (pixels)
-            Math.PI / 180,      // theta resolution (radians)
-            Math.floor(height * 0.1), // threshold - minimum votes (lower to catch light lines)
-            Math.floor(height * 0.2), // minLineLength - minimum line length
-            10                  // maxLineGap - maximum gap between line segments
-          );
+          
+          if (isStandardRes) {
+            // Use original hardcoded parameters
+            cv.HoughLinesP(
+              verticalLinesMat,
+              lines,
+              1,                   // rho resolution (pixels)
+              Math.PI / 180,      // theta resolution (radians)
+              Math.floor(height * 0.1), // Original threshold
+              Math.floor(height * 0.2), // Original minLineLength
+              10                  // Original maxLineGap
+            );
+          } else {
+            // Use dynamic parameters for medium/high resolution
+            cv.HoughLinesP(
+              verticalLinesMat,
+              lines,
+              1,                   // rho resolution (pixels)
+              Math.PI / 180,      // theta resolution (radians)
+              params.houghThreshold,
+              params.houghMinLength,
+              params.houghMaxGap
+            );
+          }
 
           console.log(`[GridProcessing] Step 1 detected ${lines.rows} potential vertical grid lines`);
 
           // Process detected lines and add vertical lines to result
           const verticalLinePositions = [];
-          const verticalLineTolerance = 5; // pixels
+          const verticalLineTolerance = isStandardRes ? 5 : params.verticalLineTolerance; // Original value for standard res
 
           for (let i = 0; i < lines.rows; i++) {
             const line = lines.data32S.subarray(i * 4, (i + 1) * 4);
@@ -268,27 +392,58 @@ export function useGridProcessing() {
             const dx = Math.abs(x2 - x1);
             const dy = Math.abs(y2 - y1);
 
-            if (dx < 10 && dy > height * 0.2) { // Vertical line with significant height
-              // Check if we already have a line at similar x position
-              const xPosition = Math.round((x1 + x2) / 2);
-              const existingLineIndex = verticalLinePositions.findIndex(
-                pos => Math.abs(pos - xPosition) < verticalLineTolerance
-              );
+            if (isStandardRes) {
+              // Use original hardcoded criteria for standard resolution
+              if (dx < 10 && dy > height * 0.2) {
+                // Check if we already have a line at similar x position
+                const xPosition = Math.round((x1 + x2) / 2);
+                const existingLineIndex = verticalLinePositions.findIndex(
+                  pos => Math.abs(pos - xPosition) < verticalLineTolerance
+                );
 
-              if (existingLineIndex === -1) {
-                // This is a new vertical line
-                verticalLinePositions.push(xPosition);
+                if (existingLineIndex === -1) {
+                  // This is a new vertical line
+                  verticalLinePositions.push(xPosition);
 
-                // Add to result with height constrained to grid area
-                result.verticalLines.push({
-                  x1: xPosition,
-                  y1: y,
-                  x2: xPosition,
-                  y2: y + height,
-                  isGridBorder: false,
-                  isVerticalGridLine: true, // Mark as a detected vertical grid line
-                  detectionMethod: 'adaptive-threshold'
-                });
+                  // Add to result with height constrained to grid area
+                  result.verticalLines.push({
+                    x1: xPosition,
+                    y1: y,
+                    x2: xPosition,
+                    y2: y + height,
+                    isGridBorder: false,
+                    isVerticalGridLine: true, // Mark as a detected vertical grid line
+                    detectionMethod: 'adaptive-threshold'
+                  });
+                }
+              }
+            } else {
+              // Use dynamic criteria for medium/high resolution
+              const maxHorizontalDeviation = params.maxHorizontalDeviation;
+              const minVerticalLength = params.minVerticalLength;
+
+              if (dx < maxHorizontalDeviation && dy > minVerticalLength) {
+                // Check if we already have a line at similar x position
+                const xPosition = Math.round((x1 + x2) / 2);
+                const existingLineIndex = verticalLinePositions.findIndex(
+                  pos => Math.abs(pos - xPosition) < verticalLineTolerance
+                );
+
+                if (existingLineIndex === -1) {
+                  // This is a new vertical line
+                  verticalLinePositions.push(xPosition);
+
+                  // Add to result with height constrained to grid area
+                  result.verticalLines.push({
+                    x1: xPosition,
+                    y1: y,
+                    x2: xPosition,
+                    y2: y + height,
+                    isGridBorder: false,
+                    isVerticalGridLine: true, // Mark as a detected vertical grid line
+                    detectionMethod: 'adaptive-threshold'
+                  });
+                }
               }
             }
           }
@@ -303,33 +458,70 @@ export function useGridProcessing() {
           
           // Analyze pixel columns to find consistent vertical patterns for light gray lines
           const lightGrayPositions = [];
-          const minLineHeight = height * 0.3; // Minimum height for a line to be considered
-          const grayThresholdRange = [140, 200]; // Gray values that represent light grid lines
           
-          // Scan each column for vertical patterns
-          for (let col = 0; col < width; col++) {
-            let verticalGrayPixels = 0;
-            let totalPixels = 0;
+          if (isStandardRes) {
+            // Use original hardcoded parameters for standard resolution
+            const minLineHeight = height * 0.3; // Original minimum height
+            const grayThresholdRange = [140, 200]; // Original gray values
             
-            // Count gray pixels in this column
-            for (let row = 0; row < height; row++) {
-              const pixelValue = gridROI.ucharPtr(row, col)[0];
-              totalPixels++;
+            // Scan each column for vertical patterns
+            for (let col = 0; col < width; col++) {
+              let verticalGrayPixels = 0;
+              let totalPixels = 0;
               
-              // Check if pixel is in the gray range typical of grid lines
-              if (pixelValue >= grayThresholdRange[0] && pixelValue <= grayThresholdRange[1]) {
-                verticalGrayPixels++;
+              // Count gray pixels in this column
+              for (let row = 0; row < height; row++) {
+                const pixelValue = gridROI.ucharPtr(row, col)[0];
+                totalPixels++;
+                
+                // Check if pixel is in the gray range typical of grid lines
+                if (pixelValue >= grayThresholdRange[0] && pixelValue <= grayThresholdRange[1]) {
+                  verticalGrayPixels++;
+                }
+              }
+              
+              // If this column has enough gray pixels, it might be a grid line
+              const grayRatio = verticalGrayPixels / totalPixels;
+              if (grayRatio > 0.4 && verticalGrayPixels > minLineHeight) { // Original thresholds
+                lightGrayPositions.push({
+                  position: col,
+                  strength: grayRatio,
+                  grayPixels: verticalGrayPixels
+                });
               }
             }
+          } else {
+            // Use dynamic parameters for medium/high resolution
+            const minLineHeight = params.lightGrayMinHeight;
+            const grayThresholdRange = params.lightGrayRange;
             
-            // If this column has enough gray pixels, it might be a grid line
-            const grayRatio = verticalGrayPixels / totalPixels;
-            if (grayRatio > 0.4 && verticalGrayPixels > minLineHeight) {
-              lightGrayPositions.push({
-                position: col,
-                strength: grayRatio,
-                grayPixels: verticalGrayPixels
-              });
+            // Scan each column for vertical patterns
+            for (let col = 0; col < width; col++) {
+              let verticalGrayPixels = 0;
+              let totalPixels = 0;
+              
+              // Count gray pixels in this column
+              for (let row = 0; row < height; row++) {
+                const pixelValue = gridROI.ucharPtr(row, col)[0];
+                totalPixels++;
+                
+                // Check if pixel is in the gray range typical of grid lines
+                if (pixelValue >= grayThresholdRange[0] && pixelValue <= grayThresholdRange[1]) {
+                  verticalGrayPixels++;
+                }
+              }
+              
+              // Scale threshold with image size
+              const grayRatio = verticalGrayPixels / totalPixels;
+              const minGrayRatio = params.lightGrayMinRatio;
+              
+              if (grayRatio > minGrayRatio && verticalGrayPixels > minLineHeight) {
+                lightGrayPositions.push({
+                  position: col,
+                  strength: grayRatio,
+                  grayPixels: verticalGrayPixels
+                });
+              }
             }
           }
           
@@ -342,7 +534,9 @@ export function useGridProcessing() {
           // Apply vertical morphological operation to enhance vertical edges
           const verticalKernel = cv.getStructuringElement(
             cv.MORPH_RECT,
-            new cv.Size(1, Math.floor(height * 0.2))
+            isStandardRes ?
+              new cv.Size(1, Math.floor(height * 0.2)) : // Original kernel size
+              new cv.Size(1, params.lightGrayEdgeKernelHeight)
           );
           
           const verticalEdges = new cv.Mat();
@@ -350,21 +544,36 @@ export function useGridProcessing() {
           
           // Use Hough Line Transform on edges with more precise parameters
           const edgeLines = new cv.Mat();
-          cv.HoughLinesP(
-            verticalEdges,
-            edgeLines,
-            1,                          // rho resolution
-            Math.PI / 180,             // theta resolution  
-            Math.floor(height * 0.15), // threshold (lower for more sensitivity)
-            Math.floor(height * 0.25), // minimum line length
-            8                          // maximum gap between segments
-          );
+          
+          if (isStandardRes) {
+            // Use original hardcoded parameters
+            cv.HoughLinesP(
+              verticalEdges,
+              edgeLines,
+              1,                          // rho resolution
+              Math.PI / 180,             // theta resolution  
+              Math.floor(height * 0.15), // Original threshold
+              Math.floor(height * 0.25), // Original minimum line length
+              8                          // Original maximum gap
+            );
+          } else {
+            // Use dynamic parameters for medium/high resolution
+            cv.HoughLinesP(
+              verticalEdges,
+              edgeLines,
+              1,                          // rho resolution
+              Math.PI / 180,             // theta resolution  
+              params.lightGrayHoughThreshold,
+              params.lightGrayHoughMinLength,
+              params.lightGrayHoughMaxGap
+            );
+          }
           
           console.log(`[GridProcessing] Edge detection found ${edgeLines.rows} potential light gray lines`);
           
           // Combine pixel analysis and edge detection for light gray lines
           const lightGrayLines = [];
-          const lineTolerance = 3; // pixels
+          const lineTolerance = isStandardRes ? 3 : params.lightGrayLineTolerance; // Original value for standard res
           
           // Process edge-detected lines first
           for (let i = 0; i < edgeLines.rows; i++) {
@@ -378,28 +587,60 @@ export function useGridProcessing() {
             const dx = Math.abs(x2 - x1);
             const dy = Math.abs(y2 - y1);
             
-            if (dx < 5 && dy > height * 0.2) {
-              const lineX = Math.round((x1 + x2) / 2);
+            if (isStandardRes) {
+              // Use original hardcoded criteria
+              if (dx < 5 && dy > height * 0.2) {
+                const lineX = Math.round((x1 + x2) / 2);
+                
+                // Check if this line position is supported by our gray pixel analysis
+                const supportingColumn = lightGrayPositions.find(
+                  pos => Math.abs(pos.position - lineX) <= lineTolerance
+                );
+                
+                if (supportingColumn) {
+                  // This line has both edge and gray pixel support
+                  lightGrayLines.push({
+                    position: lineX,
+                    confidence: supportingColumn.strength + 0.5, // Bonus for edge support
+                    source: 'edge+gray'
+                  });
+                } else {
+                  // Edge-only line
+                  lightGrayLines.push({
+                    position: lineX,
+                    confidence: 0.3,
+                    source: 'edge'
+                  });
+                }
+              }
+            } else {
+              // Use dynamic criteria for medium/high resolution
+              const maxHorizontalDeviation = params.lightGrayMaxHorizontalDev;
+              const minVerticalLength = params.minVerticalLength;
               
-              // Check if this line position is supported by our gray pixel analysis
-              const supportingColumn = lightGrayPositions.find(
-                pos => Math.abs(pos.position - lineX) <= lineTolerance
-              );
-              
-              if (supportingColumn) {
-                // This line has both edge and gray pixel support
-                lightGrayLines.push({
-                  position: lineX,
-                  confidence: supportingColumn.strength + 0.5, // Bonus for edge support
-                  source: 'edge+gray'
-                });
-              } else {
-                // Edge-only line
-                lightGrayLines.push({
-                  position: lineX,
-                  confidence: 0.3,
-                  source: 'edge'
-                });
+              if (dx < maxHorizontalDeviation && dy > minVerticalLength) {
+                const lineX = Math.round((x1 + x2) / 2);
+                
+                // Check if this line position is supported by our gray pixel analysis
+                const supportingColumn = lightGrayPositions.find(
+                  pos => Math.abs(pos.position - lineX) <= lineTolerance
+                );
+                
+                if (supportingColumn) {
+                  // This line has both edge and gray pixel support
+                  lightGrayLines.push({
+                    position: lineX,
+                    confidence: supportingColumn.strength + 0.5, // Bonus for edge support
+                    source: 'edge+gray'
+                  });
+                } else {
+                  // Edge-only line
+                  lightGrayLines.push({
+                    position: lineX,
+                    confidence: 0.3,
+                    source: 'edge'
+                  });
+                }
               }
             }
           }
@@ -420,11 +661,15 @@ export function useGridProcessing() {
           }
           
           // Add light gray lines that don't conflict with existing lines
+          const minDistanceFromExisting = isStandardRes ? 12 : params.lightGrayMinDistance; // Original value
+          
           for (const lightLine of lightGrayLines) {
             // Check if this line is too close to existing lines from Step 1
-            const isNewLine = !existingLinePositions.some(pos => Math.abs(pos - lightLine.position) < 12);
+            const isNewLine = !existingLinePositions.some(pos => Math.abs(pos - lightLine.position) < minDistanceFromExisting);
             
-            if (isNewLine && lightLine.position > 5 && lightLine.position < width - 5) {
+            const edgeMargin = isStandardRes ? 5 : params.lightGrayEdgeMargin; // Original value
+            
+            if (isNewLine && lightLine.position > edgeMargin && lightLine.position < width - edgeMargin) {
               console.log(`[GridProcessing] Found new light gray line at column ${lightLine.position}`);
               
               // Add to result
@@ -443,6 +688,7 @@ export function useGridProcessing() {
 
           // STEP 3: Detection for medium gray lines
           console.log('[GridProcessing] Step 3: Detecting medium gray lines...');
+          console.log('[GridProcessing] Using pixel-analysis-focused approach to avoid edge detection double lines');
           
           // Create a new ROI for medium gray detection
           const mediumGrayROI = new cv.Mat();
@@ -453,165 +699,181 @@ export function useGridProcessing() {
             .filter(line => !line.isGridBorder)
             .map(line => line.x1 - x); // Convert back to ROI coordinates
           
-          // Expanded parameters for medium gray detection - more sensitive
-          const mediumGrayThresholdRange = [60, 180]; // Wider range to catch more variations
-          const minMediumLineHeight = height * 0.15; // Lower minimum height requirement
-          
-          // Analyze pixel columns for medium gray patterns
+          // Focus on pixel analysis to find CENTER of gray columns (not edges)
           const mediumGrayPositions = [];
           
-          for (let col = 0; col < width; col++) {
-            let mediumGrayPixels = 0;
-            let totalPixels = 0;
-            let consecutiveGrayPixels = 0;
-            let maxConsecutiveGray = 0;
-            let grayValueSum = 0;
-            let grayValueCount = 0;
+          if (isStandardRes) {
+            // Use original hardcoded parameters for standard resolution
+            const mediumGrayThresholdRange = [60, 180]; // Original range
+            const minMediumLineHeight = height * 0.15; // Original minimum height
             
-            // Count medium gray pixels in this column
-            for (let row = 0; row < height; row++) {
-              const pixelValue = mediumGrayROI.ucharPtr(row, col)[0];
-              totalPixels++;
-              grayValueSum += pixelValue;
-              grayValueCount++;
+            for (let col = 0; col < width; col++) {
+              let mediumGrayPixels = 0;
+              let totalPixels = 0;
+              let consecutiveGrayPixels = 0;
+              let maxConsecutiveGray = 0;
               
-              // Check if pixel is in the medium gray range
-              if (pixelValue >= mediumGrayThresholdRange[0] && pixelValue <= mediumGrayThresholdRange[1]) {
-                mediumGrayPixels++;
-                consecutiveGrayPixels++;
-                maxConsecutiveGray = Math.max(maxConsecutiveGray, consecutiveGrayPixels);
-              } else {
-                consecutiveGrayPixels = 0;
+              // Count medium gray pixels in this column
+              for (let row = 0; row < height; row++) {
+                const pixelValue = mediumGrayROI.ucharPtr(row, col)[0];
+                totalPixels++;
+                
+                // Check if pixel is in the medium gray range
+                if (pixelValue >= mediumGrayThresholdRange[0] && pixelValue <= mediumGrayThresholdRange[1]) {
+                  mediumGrayPixels++;
+                  consecutiveGrayPixels++;
+                  maxConsecutiveGray = Math.max(maxConsecutiveGray, consecutiveGrayPixels);
+                } else {
+                  consecutiveGrayPixels = 0;
+                }
+              }
+              
+              // Check if this column has enough medium gray pixels and good consistency
+              const grayRatio = mediumGrayPixels / totalPixels;
+              const consistencyScore = maxConsecutiveGray / height;
+              
+              // Use original much more lenient thresholds
+              if (grayRatio > 0.2 && // Original threshold
+                  mediumGrayPixels > minMediumLineHeight && 
+                  consistencyScore > 0.1 && // Original threshold
+                  maxConsecutiveGray > height * 0.1) { // Original threshold
+                mediumGrayPositions.push({
+                  position: col,
+                  strength: grayRatio,
+                  consistency: consistencyScore,
+                  maxConsecutive: maxConsecutiveGray,
+                  grayPixels: mediumGrayPixels
+                });
               }
             }
+          } else {
+            // Use dynamic parameters for medium/high resolution
+            const mediumGrayThresholdRange = params.mediumGrayRange;
+            const minMediumLineHeight = params.mediumGrayMinHeight;
             
-            // Calculate average gray value for this column
-            const avgGrayValue = grayValueSum / grayValueCount;
-            
-            // Check if this column has enough medium gray pixels and good consistency
-            const grayRatio = mediumGrayPixels / totalPixels;
-            const consistencyScore = maxConsecutiveGray / height;
-            
-            // Much more lenient thresholds
-            if (grayRatio > 0.2 && // Lowered from 0.3
-                mediumGrayPixels > minMediumLineHeight && 
-                consistencyScore > 0.1 && // Lowered from 0.2
-                maxConsecutiveGray > height * 0.1) { // Lowered from 0.2
-              mediumGrayPositions.push({
-                position: col,
-                strength: grayRatio,
-                consistency: consistencyScore,
-                maxConsecutive: maxConsecutiveGray,
-                grayPixels: mediumGrayPixels,
-                avgGrayValue: avgGrayValue
-              });
-            }
-          }
-          
-          console.log(`[GridProcessing] Found ${mediumGrayPositions.length} potential medium gray column positions`);
-          
-          // Apply edge detection specifically tuned for medium gray lines - more sensitive
-          const mediumEdges = new cv.Mat();
-          cv.Canny(mediumGrayROI, mediumEdges, 15, 45, 3, false); // Even lower thresholds
-          
-          // Apply vertical morphological operation for medium gray edges
-          const mediumVerticalKernel = cv.getStructuringElement(
-            cv.MORPH_RECT,
-            new cv.Size(1, Math.floor(height * 0.1)) // Smaller kernel for more sensitivity
-          );
-          
-          const mediumVerticalEdges = new cv.Mat();
-          cv.morphologyEx(mediumEdges, mediumVerticalEdges, cv.MORPH_OPEN, mediumVerticalKernel);
-          
-          // Hough Line Transform for medium gray edges - more sensitive
-          const mediumEdgeLines = new cv.Mat();
-          cv.HoughLinesP(
-            mediumVerticalEdges,
-            mediumEdgeLines,
-            1,                          // rho resolution
-            Math.PI / 180,             // theta resolution  
-            Math.floor(height * 0.08), // Much lower threshold
-            Math.floor(height * 0.15), // Shorter minimum line length
-            15                         // Larger gap tolerance
-          );
-          
-          console.log(`[GridProcessing] Medium gray edge detection found ${mediumEdgeLines.rows} potential lines`);
-          
-          // Process medium gray lines
-          const mediumGrayLines = [];
-          const mediumLineTolerance = 5; // Slightly larger tolerance
-          
-          // Process edge-detected medium gray lines
-          for (let i = 0; i < mediumEdgeLines.rows; i++) {
-            const line = mediumEdgeLines.data32S.subarray(i * 4, (i + 1) * 4);
-            const x1 = line[0];
-            const y1 = line[1];
-            const x2 = line[2];
-            const y2 = line[3];
-            
-            // Check if this is a vertical line - more lenient
-            const dx = Math.abs(x2 - x1);
-            const dy = Math.abs(y2 - y1);
-            
-            if (dx < 8 && dy > height * 0.1) { // More lenient vertical line criteria
-              const lineX = Math.round((x1 + x2) / 2);
+            for (let col = 0; col < width; col++) {
+              let mediumGrayPixels = 0;
+              let totalPixels = 0;
+              let consecutiveGrayPixels = 0;
+              let maxConsecutiveGray = 0;
               
-              // Check if this line position is supported by our medium gray pixel analysis
-              const supportingColumn = mediumGrayPositions.find(
-                pos => Math.abs(pos.position - lineX) <= mediumLineTolerance
-              );
+              // Count medium gray pixels in this column
+              for (let row = 0; row < height; row++) {
+                const pixelValue = mediumGrayROI.ucharPtr(row, col)[0];
+                totalPixels++;
+                
+                // Check if pixel is in the medium gray range
+                if (pixelValue >= mediumGrayThresholdRange[0] && pixelValue <= mediumGrayThresholdRange[1]) {
+                  mediumGrayPixels++;
+                  consecutiveGrayPixels++;
+                  maxConsecutiveGray = Math.max(maxConsecutiveGray, consecutiveGrayPixels);
+                } else {
+                  consecutiveGrayPixels = 0;
+                }
+              }
               
-              if (supportingColumn) {
-                // This line has both edge and gray pixel support
-                mediumGrayLines.push({
-                  position: lineX,
-                  confidence: supportingColumn.strength + 0.3, // Bonus for edge support
-                  source: 'edge+gray'
-                });
-              } else {
-                // Edge-only line
-                mediumGrayLines.push({
-                  position: lineX,
-                  confidence: 0.2,
-                  source: 'edge'
+              // Check if this column has enough medium gray pixels and good consistency
+              const grayRatio = mediumGrayPixels / totalPixels;
+              const consistencyScore = maxConsecutiveGray / height;
+              
+              // Scale thresholds with image size - more lenient for larger images
+              const minGrayRatio = params.mediumGrayMinRatio;
+              const minConsistency = params.mediumGrayMinConsistency;
+              const minConsecutiveRatio = params.mediumGrayMinConsecutiveRatio;
+              
+              if (grayRatio > minGrayRatio && 
+                  mediumGrayPixels > minMediumLineHeight && 
+                  consistencyScore > minConsistency && 
+                  maxConsecutiveGray > height * minConsecutiveRatio) {
+                mediumGrayPositions.push({
+                  position: col,
+                  strength: grayRatio,
+                  consistency: consistencyScore,
+                  maxConsecutive: maxConsecutiveGray,
+                  grayPixels: mediumGrayPixels
                 });
               }
             }
           }
           
-          // Add medium gray-pixel-only lines that weren't found by edge detection
-          for (const grayPos of mediumGrayPositions) {
-            const existingLine = mediumGrayLines.find(
-              line => Math.abs(line.position - grayPos.position) <= mediumLineTolerance
-            );
+          console.log(`[GridProcessing] Found ${mediumGrayPositions.length} potential medium gray column positions using pixel analysis`);
+          
+          // Group adjacent columns into single lines and find their centers
+          console.log(`[GridProcessing] Grouping adjacent columns to find center lines...`);
+          
+          const groupedLines = [];
+          const processedColumns = new Set();
+          
+          // Sort positions by column number for easier grouping
+          mediumGrayPositions.sort((a, b) => a.position - b.position);
+          
+          for (let i = 0; i < mediumGrayPositions.length; i++) {
+            if (processedColumns.has(i)) continue;
             
-            if (!existingLine) {
-              mediumGrayLines.push({
-                position: grayPos.position,
-                confidence: grayPos.strength,
-                source: 'gray'
-              });
+            const startPos = mediumGrayPositions[i];
+            const group = [startPos];
+            processedColumns.add(i);
+            
+            // Find all adjacent columns that should be part of this line
+            for (let j = i + 1; j < mediumGrayPositions.length; j++) {
+              if (processedColumns.has(j)) continue;
+              
+              const nextPos = mediumGrayPositions[j];
+              const lastInGroup = group[group.length - 1];
+              
+              // If this column is adjacent (within 2 pixels) to the last one in the group, add it
+              if (Math.abs(nextPos.position - lastInGroup.position) <= 2) {
+                group.push(nextPos);
+                processedColumns.add(j);
+              } else {
+                // Gap found, stop extending this group
+                break;
+              }
             }
+            
+            // Calculate the center of this group
+            const minPos = group[0].position;
+            const maxPos = group[group.length - 1].position;
+            const centerPos = Math.round((minPos + maxPos) / 2);
+            
+            // Calculate combined confidence (average of all columns in group)
+            const combinedConfidence = group.reduce((sum, pos) => sum + pos.strength, 0) / group.length;
+            
+            groupedLines.push({
+              position: centerPos,
+              confidence: combinedConfidence,
+              groupSize: group.length,
+              minPosition: minPos,
+              maxPosition: maxPos
+            });
+            
+            console.log(`[GridProcessing] Grouped ${group.length} adjacent columns (${minPos}-${maxPos}) into center line at ${centerPos}`);
           }
           
-          // Add medium gray lines that don't conflict with existing lines
-          for (const mediumLine of mediumGrayLines) {
+          console.log(`[GridProcessing] Reduced ${mediumGrayPositions.length} columns to ${groupedLines.length} center lines`);
+          
+          // Add grouped medium gray lines that don't conflict with existing lines
+          const minDistanceFromAllExisting = isStandardRes ? 15 : params.mediumGrayMinDistance; // Original value
+          
+          for (const groupedLine of groupedLines) {
             // Check if this line is too close to existing lines from previous steps
-            const isNewLine = !allExistingPositions.some(pos => Math.abs(pos - mediumLine.position) < 15);
+            const isNewLine = !allExistingPositions.some(pos => Math.abs(pos - groupedLine.position) < minDistanceFromAllExisting);
             
-            if (isNewLine && mediumLine.position > 5 && mediumLine.position < width - 5) {
-              console.log(`[GridProcessing] Found new medium gray line at column ${mediumLine.position}`);
+            const edgeMargin = isStandardRes ? 5 : params.mediumGrayEdgeMargin; // Original value
+            
+            if (isNewLine && groupedLine.position > edgeMargin && groupedLine.position < width - edgeMargin) {
+              console.log(`[GridProcessing] Found new medium gray line at column ${groupedLine.position} (center of ${groupedLine.groupSize} columns: ${groupedLine.minPosition}-${groupedLine.maxPosition})`);
               
               // Add to result
               result.verticalLines.push({
-                x1: mediumLine.position + x, // Adjust for ROI offset
+                x1: groupedLine.position + x, // Adjust for ROI offset
                 y1: y,
-                x2: mediumLine.position + x,
+                x2: groupedLine.position + x,
                 y2: y + height,
                 isGridBorder: false,
                 isVerticalGridLine: true,
-                detectionMethod: 'medium-gray-analysis',
-                confidence: mediumLine.confidence
+                detectionMethod: 'medium-gray-pixel-analysis-grouped',
+                confidence: groupedLine.confidence
               });
             }
           }
@@ -629,10 +891,6 @@ export function useGridProcessing() {
           verticalEdges.delete();
           edgeLines.delete();
           mediumGrayROI.delete();
-          mediumEdges.delete();
-          mediumVerticalKernel.delete();
-          mediumVerticalEdges.delete();
-          mediumEdgeLines.delete();
 
         } catch (roiError) {
           console.warn('[GridProcessing] Error in ROI processing:', roiError);
