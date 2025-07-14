@@ -1,5 +1,8 @@
 <template>
-  <div class="file-uploader-container" :class="{ 'processing-active': isProcessing || (previewUrl && isChartProcessed) }">
+  <div class="file-uploader-container" :class="{ 
+    'processing-active': isProcessing || (previewUrl && isChartProcessed),
+    'fullscreen-mode': isFullScreen
+  }" ref="previewContainer">
     <!-- Full-page Loading Overlay -->
     <div v-if="isProcessing" class="processing-overlay">
       <div class="processing-content">
@@ -42,16 +45,54 @@
     <!-- Preview Containers (shown when a file is loaded and not processing) -->
     <div v-if="previewUrl && !isProcessing" class="content-container">
       <!-- Image Preview (for processed charts) -->
+      <button v-if="isFullScreen" @click="toggleFullScreen" class="fullscreen-close" aria-label="Exit full screen">
+        <font-awesome-icon :icon="['fas', 'times']" />
+      </button>
       <div v-if="isChartProcessed" class="chart-container">
-        <div class="chart-preview">
-          <img :src="previewUrl" :alt="previewAlt" />
+        <div class="chart-preview" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan" @mouseup="stopPan" @mouseleave="stopPan" @touchstart="startPan" @touchmove="handlePan" @touchend="stopPan">
+          <div class="zoom-container" :style="zoomTransform">
+            <img :src="previewUrl" :alt="previewAlt" ref="imageRef" />
+          </div>
+          <div class="zoom-controls">
+            <button @click="zoomIn" aria-label="Zoom in" class="zoom-button" :class="{ 'disabled': zoomState.scale >= zoomState.maxScale }">
+              <span class="icon">+</span>
+            </button>
+            <button @click="zoomOut" aria-label="Zoom out" class="zoom-button" :class="{ 'disabled': zoomState.scale <= zoomState.minScale }">
+              <span class="icon">−</span>
+            </button>
+            <button @click="resetZoom" aria-label="Reset zoom" class="zoom-button" :class="{ 'disabled': zoomState.scale === 1 && !isFullScreen }">
+              <span class="icon">↔</span>
+            </button>
+            <button @click="toggleFullScreen" aria-label="Toggle full screen" class="zoom-button fullscreen-button" :class="{ 'active': isFullScreen }">
+              <span class="icon">{{ isFullScreen ? '⤵' : '⤢' }}</span>
+            </button>
+          </div>
         </div>
       </div>
       
       <!-- Regular Image Preview -->
+      <button v-else-if="isFullScreen" @click="toggleFullScreen" class="fullscreen-close" aria-label="Exit full screen">
+        <font-awesome-icon :icon="['fas', 'times']" />
+      </button>
       <div v-else-if="isImage && !isChartProcessed" class="preview-container">
-        <div class="image-preview">
-          <img :src="previewUrl" :alt="previewAlt" />
+        <div class="image-preview" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan" @mouseup="stopPan" @mouseleave="stopPan" @touchstart="startPan" @touchmove="handlePan" @touchend="stopPan">
+          <div class="zoom-container" :style="zoomTransform">
+            <img :src="previewUrl" :alt="previewAlt" ref="imageRef" />
+          </div>
+          <div class="zoom-controls">
+            <button @click="zoomIn" aria-label="Zoom in" class="zoom-button" :class="{ 'disabled': zoomState.scale >= zoomState.maxScale }">
+              <span class="icon">+</span>
+            </button>
+            <button @click="zoomOut" aria-label="Zoom out" class="zoom-button" :class="{ 'disabled': zoomState.scale <= zoomState.minScale }">
+              <span class="icon">−</span>
+            </button>
+            <button @click="resetZoom" aria-label="Reset zoom" class="zoom-button" :class="{ 'disabled': zoomState.scale === 1 && !isFullScreen }">
+              <span class="icon">↔</span>
+            </button>
+            <button @click="toggleFullScreen" aria-label="Toggle full screen" class="zoom-button fullscreen-button" :class="{ 'active': isFullScreen }">
+              <span class="icon">{{ isFullScreen ? '⤵' : '⤢' }}</span>
+            </button>
+          </div>
         </div>
       </div>
       
@@ -86,7 +127,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, watch, defineEmits, onMounted, watchEffect } from 'vue';
+import { ref, computed, onBeforeUnmount, watch, defineEmits, onMounted, watchEffect, reactive } from 'vue';
+
+// Full screen state
+const isFullScreen = ref(false);
+const previewContainer = ref(null);
+
+// Zoom and pan state
+const zoomState = reactive({
+  scale: 1,
+  posX: 0,
+  posY: 0,
+  isPanning: false,
+  lastX: 0,
+  lastY: 0,
+  maxScale: 10,  // Increased from 4 to 10 for more zoom
+  minScale: 0.2,  // Reduced from 0.5 to 0.2 for more zoom out
+  scaleStep: 0.3,  // Increased step for faster zooming
+  originalScale: 1
+});
+
+const imageRef = ref(null);
 
 // PDF.js loading state
 const isPdfJsLoaded = ref(false);
@@ -587,6 +648,169 @@ const processFile = async (file) => {
   }
 }
 
+// Zoom and pan functionality
+const zoomTransform = computed(() => ({
+  transform: `scale(${zoomState.scale}) translate(${zoomState.posX / zoomState.scale}px, ${zoomState.posY / zoomState.scale}px)`,
+  transformOrigin: 'center center',
+  transition: 'transform 0.1s ease-out',
+  willChange: 'transform',
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  maxWidth: 'none',  // Allow image to expand beyond container
+  maxHeight: 'none', // Allow image to expand beyond container
+  minWidth: '100%',  // Ensure minimum size matches container
+  minHeight: '100%'  // Ensure minimum size matches container
+}));
+
+const zoomIn = () => {
+  if (zoomState.scale < zoomState.maxScale) {
+    zoomState.scale = Math.min(zoomState.scale + zoomState.scaleStep, zoomState.maxScale);
+  }
+};
+
+const zoomOut = () => {
+  if (zoomState.scale > zoomState.minScale) {
+    zoomState.scale = Math.max(zoomState.scale - zoomState.scaleStep, zoomState.minScale);
+  }
+};
+
+const toggleFullScreen = () => {
+  isFullScreen.value = !isFullScreen.value;
+  
+  if (isFullScreen.value) {
+    // Store the current scale when entering full screen
+    zoomState.originalScale = zoomState.scale;
+    // Reset position for full screen
+    zoomState.posX = 0;
+    zoomState.posY = 0;
+    // Adjust scale for full screen
+    zoomState.scale = Math.max(1, zoomState.scale);
+    
+    // Add a class to the body to prevent scrolling
+    document.body.classList.add('modal-fullscreen');
+  } else {
+    // Restore the original scale when exiting full screen
+    zoomState.scale = zoomState.originalScale;
+    // Remove the fullscreen class
+    document.body.classList.remove('modal-fullscreen');
+  }
+};
+
+const resetZoom = () => {
+  zoomState.scale = 1;
+  zoomState.posX = 0;
+  zoomState.posY = 0;
+  // Only reset originalScale if not in fullscreen
+  if (!isFullScreen.value) {
+    zoomState.originalScale = 1;
+  } else {
+    // In fullscreen, keep the original scale for toggling back
+    zoomState.originalScale = 1;
+  }
+};
+
+const handleWheel = (e) => {
+  e.preventDefault();
+  
+  // Get the position of the mouse relative to the image
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Calculate the position relative to the image's natural dimensions
+  const xPercent = x / rect.width;
+  const yPercent = y / rect.height;
+  
+  // Store the current scale before updating
+  const oldScale = zoomState.scale;
+  
+  // Determine zoom direction and calculate new scale
+  const delta = -Math.sign(e.deltaY);
+  const scaleFactor = 1 + (delta * zoomState.scaleStep * 0.8); // Increased multiplier for faster zoom
+  let newScale = zoomState.scale * scaleFactor;
+  
+  // Clamp the scale within min/max bounds
+  newScale = Math.max(zoomState.minScale, Math.min(newScale, zoomState.maxScale));
+  
+  // Only update if scale changed
+  if (newScale !== oldScale) {
+    zoomState.scale = newScale;
+    
+    // Calculate the focal point (where the cursor is relative to the image)
+    const focalX = (x - rect.width / 2) / oldScale;
+    const focalY = (y - rect.height / 2) / oldScale;
+    
+    // Calculate the new position to keep the focal point under the cursor
+    zoomState.posX = (x - rect.width / 2) - (focalX * newScale);
+    zoomState.posY = (y - rect.height / 2) - (focalY * newScale);
+  }
+};
+
+const startPan = (e) => {
+  if (zoomState.scale <= 1) return;
+  
+  zoomState.isPanning = true;
+  if (e.type === 'mousedown') {
+    zoomState.lastX = e.clientX;
+    zoomState.lastY = e.clientY;
+  } else if (e.type === 'touchstart' && e.touches.length === 1) {
+    zoomState.lastX = e.touches[0].clientX;
+    zoomState.lastY = e.touches[0].clientY;
+  }
+  
+  // Prevent text selection while panning
+  e.preventDefault();
+};
+
+const handlePan = (e) => {
+  if (!zoomState.isPanning || zoomState.scale <= 1) return;
+  
+  let clientX, clientY;
+  
+  if (e.type === 'mousemove') {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  } else if (e.type === 'touchmove' && e.touches.length === 1) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    return;
+  }
+  
+  // Calculate the change in position
+  const deltaX = clientX - zoomState.lastX;
+  const deltaY = clientY - zoomState.lastY;
+  
+  // Update the position
+  zoomState.posX += deltaX;
+  zoomState.posY += deltaY;
+  
+  // Update the last position
+  zoomState.lastX = clientX;
+  zoomState.lastY = clientY;
+  
+  e.preventDefault();
+};
+
+const stopPan = () => {
+  zoomState.isPanning = false;
+};
+
+// Reset zoom and full screen when file changes
+watch(() => props.file, () => {
+  resetZoom();
+  isFullScreen.value = false;
+  document.body.classList.remove('modal-fullscreen');
+});
+
+// Clean up full screen state when component is unmounted
+onBeforeUnmount(() => {
+  document.body.classList.remove('modal-fullscreen');
+});
+
 // Watch for file prop changes
 watch(() => props.file, async (newFile) => {
   if (newFile) {
@@ -642,6 +866,74 @@ const getMimeTypeFromExtension = (filename) => {
 </script>
 
 <style scoped>
+/* Full screen styles */
+:global(.modal-fullscreen) {
+  overflow: hidden;
+}
+
+.fullscreen-mode {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 20px !important;
+  z-index: 9999 !important;
+  background-color: var(--card-bg) !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.fullscreen-mode .zoom-container,
+.fullscreen-mode .image-preview,
+.fullscreen-mode .chart-preview {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: var(--card-bg) !important;
+  z-index: 9998 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.fullscreen-mode .zoom-controls {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  transform: scale(1.1);
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10000;
+}
+
+.fullscreen-mode .zoom-button {
+  width: 40px;
+  height: 40px;
+}
+
+.fullscreen-button.active {
+  background-color: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
 /* Processing Overlay */
 .processing-overlay {
   position: fixed;
@@ -807,69 +1099,285 @@ const getMimeTypeFromExtension = (filename) => {
   width: 100%;
   margin: 0 auto;
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: flex-start;
-  background: var(--card-bg);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px var(--preview-shadow);
-  overflow: visible; /* Changed from auto to visible to prevent cropping */
-  min-height: 300px;
-  max-height: none; /* Remove height restriction */
 }
 
 .chart-preview {
   width: 100%;
-  padding: 1rem;
+  height: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: flex-start;
-  min-height: 100%;
-  max-width: 100%;
-  overflow: visible; /* Ensure no cropping */
+  overflow: hidden;
+  position: relative;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  touch-action: none;
+  cursor: grab;
+}
+
+.chart-preview:active {
+  cursor: grabbing;
 }
 
 .chart-preview img {
-  max-width: 100%;
+  max-width: none;  /* Allow image to expand beyond container */
+  max-height: none; /* Allow image to expand beyond container */
+  width: auto;
   height: auto;
   object-fit: contain;
-  border-radius: 4px;
-  filter: var(--img-filter, none);
-  display: block;
-  margin: 0; /* Ensure no margin issues */
-  vertical-align: top; /* Prevent baseline alignment issues */
+  border-radius: 6px;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: center center;
 }
 
 .preview-container {
   width: 100%;
+  height: 100%;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: var(--card-bg);
-  border-radius: 8px;
-  overflow: auto; /* Allow scrolling if needed */
+  justify-content: center;
+  overflow: hidden;
   position: relative;
-  min-height: 300px;
-  max-height: 80vh; /* Limit height on larger screens */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background-color: var(--card-bg, #2a2a2a);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  touch-action: none;
+  cursor: grab;
+}
+
+.preview-container:active {
+  cursor: grabbing;
 }
 
 .image-preview {
   width: 100%;
+  height: 100%;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: var(--card-bg);
-  padding: 1rem;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.zoom-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .image-preview img {
-  max-width: 100%;
+  max-width: none;  /* Allow image to expand beyond container */
+  max-height: none; /* Allow image to expand beyond container */
+  width: auto;
   height: auto;
   object-fit: contain;
-  display: block;
-  border-radius: 4px;
-  /* Support for dark mode */
-  filter: var(--img-filter, none);
+  border-radius: 6px;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: center center;
+}
+
+.zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+  background-color: rgba(var(--card-bg-rgb), 0.8);
+}
+
+:root.dark .zoom-controls {
+  background-color: rgba(40, 40, 40, 0.9);
+  border-color: var(--border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.zoom-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--button-bg, #f0f0f0);
+  border: 1px solid var(--button-border, #d0d0d0);
+  border-radius: 6px;
+  color: var(--button-text, #333);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
+.zoom-button .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+:root.dark .zoom-button {
+  background: var(--button-bg-dark, #2d3748);
+  border-color: var(--button-border-dark, #4a5568);
+  color: var(--button-text-dark, #e2e8f0);
+}
+
+.zoom-button:not(.disabled):hover {
+  background: var(--button-hover-bg, #e0e0e0);
+  color: var(--button-hover-text, #000);
+  transform: scale(1.05);
+  border-color: var(--button-hover-border, #b0b0b0);
+}
+
+:root.dark .zoom-button:not(.disabled):hover {
+  background: var(--button-hover-bg-dark, #4a5568);
+  color: var(--button-hover-text-dark, #fff);
+  border-color: var(--button-hover-border-dark, #718096);
+}
+
+.zoom-button:not(.disabled):active {
+  transform: scale(0.95);
+  background: var(--button-active-bg, #d0d0d0);
+}
+
+:root.dark .zoom-button:not(.disabled):active {
+  background: var(--button-active-bg-dark, #4a5568);
+}
+
+.zoom-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  background: var(--button-disabled-bg, #f0f0f0);
+  color: var(--button-disabled-text, #a0a0a0);
+  border-color: var(--button-disabled-border, #e0e0e0);
+}
+
+:root.dark .zoom-button.disabled {
+  background: var(--button-disabled-bg-dark, #2d3748);
+  color: var(--button-disabled-text-dark, #6b7280);
+  border-color: var(--button-disabled-border-dark, #4a5568);
+}
+
+.zoom-button:hover:not(.disabled) {
+  background: var(--input-bg);
+  transform: scale(1.05);
+}
+
+.fullscreen-button {
+  margin-top: 4px;
+  border-top: 1px solid var(--border-color) !important;
+  border-radius: 0 0 6px 6px !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.fullscreen-button:not(.disabled):hover {
+  background: var(--accent-color, #4f46e5);
+  color: white;
+  border-color: var(--accent-color, #4f46e5);
+}
+
+:root.dark .fullscreen-button:not(.disabled):hover {
+  background: var(--accent-color-dark, #6366f1);
+  border-color: var(--accent-color-dark, #6366f1);
+}
+
+.fullscreen-button.active {
+  background: var(--accent-color, #4f46e5);
+  color: white;
+  border-color: var(--accent-color, #4f46e5);
+}
+
+:root.dark .fullscreen-button.active {
+  background: var(--accent-color-dark, #6366f1);
+  border-color: var(--accent-color-dark, #6366f1);
+}
+
+/* Full screen close button for mobile */
+.fullscreen-close {
+  display: none;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  background: var(--button-bg, #ffffff);
+  border: 1px solid var(--button-border, #e2e8f0);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary, #1a202c);
+}
+
+:root.dark .fullscreen-close {
+  background: var(--button-bg-dark, #2d3748);
+  border-color: var(--button-border-dark, #4a5568);
+  color: var(--text-primary-dark, #e2e8f0);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.fullscreen-close:hover {
+  background: var(--button-hover-bg, #f7fafc);
+  transform: scale(1.1);
+  border-color: var(--button-hover-border, #cbd5e0);
+}
+
+:root.dark .fullscreen-close:hover {
+  background: var(--button-hover-bg-dark, #4a5568);
+  border-color: var(--button-hover-border-dark, #718096);
+}
+
+.fullscreen-close:active {
+  transform: scale(0.95);
+  background: var(--button-active-bg, #edf2f7);
+}
+
+:root.dark .fullscreen-close:active {
+  background: var(--button-active-bg-dark, #4a5568);
+}
+
+.fullscreen-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fullscreen-mode .fullscreen-close {
+  display: flex;
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+  .zoom-controls {
+    bottom: 8px;
+    right: 8px;
+  }
+  
+  .zoom-button {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 .document-preview {
