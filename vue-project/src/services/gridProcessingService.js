@@ -344,18 +344,30 @@ export function useGridProcessing() {
               new cv.Size(1, params.verticalKernelHeight)
           );
 
+          // Create a horizontal kernel for detecting horizontal lines
+          const horizontalLineKernel = cv.getStructuringElement(
+            cv.MORPH_RECT,
+            isStandardRes ? 
+              new cv.Size(Math.floor(width * 0.3), 1) : // Similar approach as vertical but for horizontal
+              new cv.Size(params.verticalKernelHeight, 1) // Reusing the same parameter but for width
+          );
+
           // Apply morphological operations to extract vertical lines
           const verticalLinesMat = new cv.Mat();
           cv.morphologyEx(binaryLight, verticalLinesMat, cv.MORPH_OPEN, verticalLineKernel);
 
+          // Apply morphological operations to extract horizontal lines
+          const horizontalLinesMat = new cv.Mat();
+          cv.morphologyEx(binaryLight, horizontalLinesMat, cv.MORPH_OPEN, horizontalLineKernel);
+
           // Apply Hough Line Transform to detect vertical lines
-          const lines = new cv.Mat();
+          const verticalLines = new cv.Mat();
           
           if (isStandardRes) {
             // Use original hardcoded parameters
             cv.HoughLinesP(
               verticalLinesMat,
-              lines,
+              verticalLines,
               1,                   // rho resolution (pixels)
               Math.PI / 180,      // theta resolution (radians)
               Math.floor(height * 0.1), // Original threshold
@@ -366,7 +378,34 @@ export function useGridProcessing() {
             // Use dynamic parameters for medium/high resolution
             cv.HoughLinesP(
               verticalLinesMat,
-              lines,
+              verticalLines,
+              1,                   // rho resolution (pixels)
+              Math.PI / 180,      // theta resolution (radians)
+              params.houghThreshold,
+              params.houghMinLength,
+              params.houghMaxGap
+            );
+          }
+          
+          // Apply Hough Line Transform to detect horizontal lines
+          const horizontalLines = new cv.Mat();
+          
+          if (isStandardRes) {
+            // Use original hardcoded parameters adapted for horizontal lines
+            cv.HoughLinesP(
+              horizontalLinesMat,
+              horizontalLines,
+              1,                   // rho resolution (pixels)
+              Math.PI / 180,      // theta resolution (radians)
+              Math.floor(width * 0.1), // Threshold adapted for horizontal
+              Math.floor(width * 0.2), // MinLineLength adapted for horizontal
+              10                  // Original maxLineGap
+            );
+          } else {
+            // Use dynamic parameters for medium/high resolution
+            cv.HoughLinesP(
+              horizontalLinesMat,
+              horizontalLines,
               1,                   // rho resolution (pixels)
               Math.PI / 180,      // theta resolution (radians)
               params.houghThreshold,
@@ -375,14 +414,14 @@ export function useGridProcessing() {
             );
           }
 
-          console.log(`[GridProcessing] Step 1 detected ${lines.rows} potential vertical grid lines`);
+          console.log(`[GridProcessing] Step 1 detected ${verticalLines.rows} potential vertical grid lines and ${horizontalLines.rows} potential horizontal grid lines`);
 
           // Process detected lines and add vertical lines to result
           const verticalLinePositions = [];
           const verticalLineTolerance = isStandardRes ? 5 : params.verticalLineTolerance; // Original value for standard res
 
-          for (let i = 0; i < lines.rows; i++) {
-            const line = lines.data32S.subarray(i * 4, (i + 1) * 4);
+          for (let i = 0; i < verticalLines.rows; i++) {
+            const line = verticalLines.data32S.subarray(i * 4, (i + 1) * 4);
             const x1 = line[0] + x; // Adjust for ROI offset
             const y1 = line[1] + y;
             const x2 = line[2] + x;
@@ -418,6 +457,7 @@ export function useGridProcessing() {
                 }
               }
             } else {
+
               // Use dynamic criteria for medium/high resolution
               const maxHorizontalDeviation = params.maxHorizontalDeviation;
               const minVerticalLength = params.minVerticalLength;
@@ -447,6 +487,76 @@ export function useGridProcessing() {
               }
             }
           }
+
+          // Process detected horizontal lines and add to result
+          const horizontalLinePositions = [];
+          const horizontalLineTolerance = isStandardRes ? 5 : params.verticalLineTolerance; // Reuse vertical tolerance
+
+          for (let i = 0; i < horizontalLines.rows; i++) {
+            const line = horizontalLines.data32S.subarray(i * 4, (i + 1) * 4);
+            const x1 = line[0] + x; // Adjust for ROI offset
+            const y1 = line[1] + y;
+            const x2 = line[2] + x;
+            const y2 = line[3] + y;
+
+            // Check if this is a horizontal line (y1 ≈ y2)
+            const dx = Math.abs(x2 - x1);
+            const dy = Math.abs(y2 - y1);
+
+            if (isStandardRes) {
+              // Use criteria adapted for horizontal lines
+              if (dy < 10 && dx > width * 0.2) {
+                // Check if we already have a line at similar y position
+                const yPosition = Math.round((y1 + y2) / 2);
+                const existingLineIndex = horizontalLinePositions.findIndex(
+                  pos => Math.abs(pos - yPosition) < horizontalLineTolerance
+                );
+
+                if (existingLineIndex === -1) {
+                  // This is a new horizontal line
+                  horizontalLinePositions.push(yPosition);
+
+                  // Add to result with width constrained to grid area
+                  result.horizontalLines.push({
+                    x1: x,
+                    y1: yPosition,
+                    x2: x + width,
+                    y2: yPosition,
+                    isGridBorder: false,
+                    isHorizontalGridLine: true, // Mark as a detected horizontal grid line
+                    detectionMethod: 'adaptive-threshold'
+                  });
+                }
+              }
+            } else {
+              // Use dynamic criteria for medium/high resolution
+              if (dy < params.verticalLineTolerance && dx > width * params.houghMinLengthRatio) {
+                // Check if we already have a line at similar y position
+                const yPosition = Math.round((y1 + y2) / 2);
+                const existingLineIndex = horizontalLinePositions.findIndex(
+                  pos => Math.abs(pos - yPosition) < horizontalLineTolerance
+                );
+
+                if (existingLineIndex === -1) {
+                  // This is a new horizontal line
+                  horizontalLinePositions.push(yPosition);
+
+                  // Add to result with width constrained to grid area
+                  result.horizontalLines.push({
+                    x1: x,
+                    y1: yPosition,
+                    x2: x + width,
+                    y2: yPosition,
+                    isGridBorder: false,
+                    isHorizontalGridLine: true, // Mark as a detected horizontal grid line
+                    detectionMethod: 'adaptive-threshold'
+                  });
+                }
+              }
+            }
+          }
+
+          console.log(`[GridProcessing] Detected ${result.horizontalLines.length - 2} internal horizontal grid lines`);
 
           // STEP 2: Supplementary detection for light gray lines using improved pixel analysis
           console.log('[GridProcessing] Step 2: Detecting light gray lines with pixel analysis...');
@@ -904,8 +1014,10 @@ export function useGridProcessing() {
       binary.delete();
       horizontalKernel.delete();
       verticalKernel.delete();
-      horizontalLines.delete();
       verticalLinesMat.delete();
+      horizontalLinesMat.delete();
+      verticalLines.delete();
+      horizontalLines.delete();
       gridStructure.delete();
       morphedGrid.delete();
       closeKernel.delete();
@@ -1130,12 +1242,15 @@ export function useGridProcessing() {
     const thickness = lineThickness || 2;
 
     try {
-      // Draw horizontal lines in green
+      // Draw horizontal lines - red for detected grid lines, green for border
       if (horizontalLines && horizontalLines.length > 0) {
         for (const line of horizontalLines) {
           const pt1 = new cv.Point(line.x1, line.y1);
           const pt2 = new cv.Point(line.x2, line.y2);
-          cv.line(image, pt1, pt2, greenColor, thickness);
+          
+          // Use red for detected horizontal grid lines, green for border lines
+          const lineColor = line.isHorizontalGridLine ? new cv.Scalar(255, 0, 0, 255) : greenColor;
+          cv.line(image, pt1, pt2, lineColor, thickness);
         }
       }
 

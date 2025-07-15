@@ -205,7 +205,7 @@
                 :y1="i * (svgSize / 10)" 
                 :x2="svgSize" 
                 :y2="i * (svgSize / 10)" 
-                class="grid-line"
+                class="grid-line horizontal-grid-line"
               />
               <!-- Vertical grid lines -->
               <line 
@@ -215,7 +215,7 @@
                 :y1="0" 
                 :x2="i * (svgSize / 10)" 
                 :y2="svgSize" 
-                class="grid-line"
+                class="grid-line vertical-grid-line"
               />
             </g>
             
@@ -1141,8 +1141,16 @@ const getRepeatCount = (stitch) => {
 }
 
 .grid-line {
-  stroke: var(--border-color, rgba(255, 255, 255, 0.1));
-  stroke-width: 0.5;
+  stroke-width: 1;
+}
+
+.horizontal-grid-line {
+  stroke: rgba(255, 0, 0, 0.7); /* Red color for horizontal lines with higher opacity */
+  stroke-width: 1.5; /* Thicker lines for better visibility */
+}
+
+.vertical-grid-line {
+  stroke: rgba(100, 100, 255, 0.3); /* Blue color for vertical lines */
 }
 
 .stitch-connection {
