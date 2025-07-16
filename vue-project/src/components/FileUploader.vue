@@ -49,11 +49,51 @@
         <font-awesome-icon :icon="['fas', 'times']" />
       </button>
       <div v-if="isChartProcessed" class="chart-container">
-        <div class="chart-preview" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan" @mouseup="stopPan" @mouseleave="stopPan" @touchstart="startPan" @touchmove="handlePan" @touchend="stopPan">
+        <div class="chart-preview" @wheel.prevent="!isEditMode && handleWheel" @mousedown="!isEditMode ? startPan : startDrawing" @mousemove="!isEditMode ? handlePan : continueDrawing" @mouseup="!isEditMode ? stopPan : finishDrawing" @mouseleave="!isEditMode ? stopPan : null" @touchstart="!isEditMode ? startPan : startDrawing" @touchmove="!isEditMode ? handlePan : continueDrawing" @touchend="!isEditMode ? stopPan : finishDrawing">
+          <!-- Line Editor Controls -->
+          <div v-if="isEditMode && isFullScreen" class="line-editor-controls">
+            <button 
+              v-for="type in ['horizontal', 'vertical', 'border']" 
+              :key="type"
+              @click="setLineType(type)"
+              class="line-type-btn"
+              :class="{ 'active': currentLineType === type }"
+            >
+              {{ type.charAt(0).toUpperCase() + type.slice(1) }}
+            </button>
+            <button 
+              @click="deleteSelectedLine" 
+              class="delete-line-btn"
+              :disabled="selectedLineIndex === -1"
+            >
+              <span class="icon">🗑️</span>
+              <span class="text">Delete</span>
+            </button>
+          </div>
           <div class="zoom-container" :style="zoomTransform">
             <img :src="previewUrl" :alt="previewAlt" ref="imageRef" />
+            <!-- SVG overlay for line editing -->
+            <svg v-if="isEditMode && isFullScreen" class="line-editor-overlay">
+              <!-- Existing lines -->
+              <line v-for="(line, index) in lines" :key="index"
+                :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
+                :stroke="line.type === 'border' ? 'var(--border-line-color, #ff8585)' : 'var(--line-color, #4299e1)'"
+                :stroke-width="line.type === 'border' ? 3 : 2"
+                :stroke-dasharray="line.type === 'border' ? '0' : '5,5'"
+                :class="{ 'selected': selectedLineIndex === index }"
+                @click.stop="selectLine(index)" />
+              <!-- Current line being drawn -->
+              <line v-if="currentLine"
+                :x1="currentLine.x1" :y1="currentLine.y1" :x2="currentLine.x2" :y2="currentLine.y2"
+                :stroke="currentLineType === 'border' ? 'var(--border-line-color, #ff8585)' : 'var(--line-color, #4299e1)'"
+                :stroke-width="currentLineType === 'border' ? 3 : 2"
+                :stroke-dasharray="currentLineType === 'border' ? '0' : '5,5'" />
+            </svg>
           </div>
           <div class="zoom-controls">
+            <button @click="toggleEditMode" aria-label="Edit chart" class="zoom-button edit-button" :class="{ 'active': isEditMode }" :title="isEditMode ? 'Exit Edit Mode' : 'Edit Chart'">
+              <span class="icon">📝</span>
+            </button>
             <button @click="zoomIn" aria-label="Zoom in" class="zoom-button" :class="{ 'disabled': zoomState.scale >= zoomState.maxScale }">
               <span class="icon">+</span>
             </button>
@@ -76,10 +116,50 @@
       </button>
       <div v-else-if="isImage && !isChartProcessed" class="preview-container">
         <div class="image-preview" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan" @mouseup="stopPan" @mouseleave="stopPan" @touchstart="startPan" @touchmove="handlePan" @touchend="stopPan">
+          <!-- Line Editor Controls -->
+          <div v-if="isEditMode && isFullScreen" class="line-editor-controls">
+            <button 
+              v-for="type in ['horizontal', 'vertical', 'border']" 
+              :key="type"
+              @click="setLineType(type)"
+              class="line-type-btn"
+              :class="{ 'active': currentLineType === type }"
+            >
+              {{ type.charAt(0).toUpperCase() + type.slice(1) }}
+            </button>
+            <button 
+              @click="deleteSelectedLine" 
+              class="delete-line-btn"
+              :disabled="selectedLineIndex === -1"
+            >
+              <span class="icon">🗑️</span>
+              <span class="text">Delete</span>
+            </button>
+          </div>
           <div class="zoom-container" :style="zoomTransform">
             <img :src="previewUrl" :alt="previewAlt" ref="imageRef" />
+            <!-- SVG overlay for line editing -->
+            <svg v-if="isEditMode && isFullScreen" class="line-editor-overlay">
+              <!-- Existing lines -->
+              <line v-for="(line, index) in lines" :key="index"
+                :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
+                :stroke="line.type === 'border' ? 'var(--border-line-color, #ff8585)' : 'var(--line-color, #4299e1)'"
+                :stroke-width="line.type === 'border' ? 3 : 2"
+                :stroke-dasharray="line.type === 'border' ? '0' : '5,5'"
+                :class="{ 'selected': selectedLineIndex === index }"
+                @click.stop="selectLine(index)" />
+              <!-- Current line being drawn -->
+              <line v-if="currentLine"
+                :x1="currentLine.x1" :y1="currentLine.y1" :x2="currentLine.x2" :y2="currentLine.y2"
+                :stroke="currentLineType === 'border' ? 'var(--border-line-color, #ff8585)' : 'var(--line-color, #4299e1)'"
+                :stroke-width="currentLineType === 'border' ? 3 : 2"
+                :stroke-dasharray="currentLineType === 'border' ? '0' : '5,5'" />
+            </svg>
           </div>
           <div class="zoom-controls">
+            <button @click="toggleEditMode" aria-label="Edit chart" class="zoom-button edit-button" :class="{ 'active': isEditMode }" :title="isEditMode ? 'Exit Edit Mode' : 'Edit Chart'">
+              <span class="icon">📝</span>
+            </button>
             <button @click="zoomIn" aria-label="Zoom in" class="zoom-button" :class="{ 'disabled': zoomState.scale >= zoomState.maxScale }">
               <span class="icon">+</span>
             </button>
@@ -146,6 +226,12 @@ const zoomState = reactive({
   scaleStep: 0.3,  // Increased step for faster zooming
   originalScale: 1
 });
+
+// Line editing state
+const isEditMode = ref(false);
+const lines = ref([]);
+const currentLine = ref(null);
+const selectedLineIndex = ref(-1);
 
 const imageRef = ref(null);
 
@@ -216,7 +302,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['processing-complete', 'error', 'processing-start']);
+const emit = defineEmits(['processing-complete', 'error', 'processing-start', 'lines-updated']);
 
 const { experimentalFeatures } = useUserSettings();
 const { 
@@ -678,25 +764,46 @@ const zoomOut = () => {
 };
 
 const toggleFullScreen = () => {
-  isFullScreen.value = !isFullScreen.value;
+  console.log('toggleFullScreen called. Current state:', {
+    isEditMode: isEditMode.value,
+    isFullScreen: isFullScreen.value
+  });
   
-  if (isFullScreen.value) {
-    // Store the current scale when entering full screen
-    zoomState.originalScale = zoomState.scale;
-    // Reset position for full screen
-    zoomState.posX = 0;
-    zoomState.posY = 0;
-    // Adjust scale for full screen
-    zoomState.scale = Math.max(1, zoomState.scale);
+  return new Promise((resolve) => {
+    const wasFullScreen = isFullScreen.value;
+    isFullScreen.value = !wasFullScreen;
+    isEditMode.value = false;
     
-    // Add a class to the body to prevent scrolling
-    document.body.classList.add('modal-fullscreen');
-  } else {
-    // Restore the original scale when exiting full screen
-    zoomState.scale = zoomState.originalScale;
-    // Remove the fullscreen class
-    document.body.classList.remove('modal-fullscreen');
-  }
+    console.log('After state update:', {
+      isEditMode: isEditMode.value,
+      isFullScreen: isFullScreen.value
+    });
+    
+    if (!wasFullScreen) {
+      // Entering fullscreen
+      zoomState.originalScale = zoomState.scale;
+      zoomState.posX = 0;
+      zoomState.posY = 0;
+      zoomState.scale = Math.max(1, zoomState.scale);
+      document.body.classList.add('modal-fullscreen');
+      console.log('Entering fullscreen mode');
+    } else {
+      // Exiting fullscreen
+      zoomState.scale = zoomState.originalScale;
+      document.body.classList.remove('modal-fullscreen');
+      console.log('Exiting fullscreen mode');
+      
+      if (!isEditMode.value) {
+        selectedLineIndex.value = -1;
+      }
+    }
+    
+    // Resolve after a small delay to ensure the DOM has updated
+    setTimeout(() => {
+      console.log('Fullscreen toggled, new state:', isFullScreen.value);
+      resolve();
+    }, 100);
+  });
 };
 
 const resetZoom = () => {
@@ -713,6 +820,9 @@ const resetZoom = () => {
 };
 
 const handleWheel = (e) => {
+  // Don't zoom if in edit mode
+  if (isEditMode.value) return;
+  
   e.preventDefault();
   
   // Get the position of the mouse relative to the image
@@ -750,6 +860,9 @@ const handleWheel = (e) => {
 };
 
 const startPan = (e) => {
+  // Don't start panning if in edit mode
+  if (isEditMode.value) return;
+  
   if (zoomState.scale <= 1) return;
   
   zoomState.isPanning = true;
@@ -766,6 +879,9 @@ const startPan = (e) => {
 };
 
 const handlePan = (e) => {
+  // Don't pan if in edit mode
+  if (isEditMode.value) return;
+  
   if (!zoomState.isPanning || zoomState.scale <= 1) return;
   
   let clientX, clientY;
@@ -803,12 +919,18 @@ const stopPan = () => {
 watch(() => props.file, () => {
   resetZoom();
   isFullScreen.value = false;
+  isEditMode.value = false;
+  lines.value = [];
+  currentLine.value = null;
+  selectedLineIndex.value = -1;
   document.body.classList.remove('modal-fullscreen');
 });
 
 // Clean up full screen state when component is unmounted
 onBeforeUnmount(() => {
   document.body.classList.remove('modal-fullscreen');
+  // Reset edit mode
+  isEditMode.value = false;
 });
 
 // Watch for file prop changes
@@ -819,6 +941,11 @@ watch(() => props.file, async (newFile) => {
     clearPreview();
   }
 }, { immediate: true });
+
+// Watch for changes to lines and emit updates
+watch(lines, (newLines) => {
+  emit('lines-updated', newLines);
+}, { deep: true });
 
 const allowedTypes = computed(() => {
   const types = [
@@ -863,6 +990,164 @@ const getMimeTypeFromExtension = (filename) => {
   };
   return mimeTypes[extension] || 'application/octet-stream';
 };
+// Line editing functions
+const currentLineType = ref('horizontal'); // Can be 'horizontal', 'vertical', or 'border'
+
+const toggleEditMode = async () => {
+  console.log('toggleEditMode called. Current state:', {
+    isEditMode: isEditMode.value,
+    isFullScreen: isFullScreen.value,
+    currentLine: currentLine.value,
+    selectedLineIndex: selectedLineIndex.value
+  });
+
+  if (!isEditMode.value) {
+    // Entering edit mode - first ensure we're in fullscreen
+    console.log('Entering edit mode');
+    if (!isFullScreen.value) {
+      console.log('Not in fullscreen, toggling fullscreen first');
+      await toggleFullScreen();
+      // After fullscreen is enabled, update the edit mode
+      isEditMode.value = true;
+      console.log('Fullscreen enabled, edit mode activated');
+    } else {
+      console.log('Already in fullscreen, enabling edit mode');
+      isEditMode.value = true;
+    }
+    selectedLineIndex.value = -1; // Deselect any line
+  } else {
+    // Exiting edit mode
+    console.log('Exiting edit mode');
+    selectedLineIndex.value = -1; // Deselect any line
+    currentLine.value = null; // Clear any in-progress line
+    isEditMode.value = false;
+  }
+  
+  console.log('Final state after toggle:', {
+    isEditMode: isEditMode.value,
+    isFullScreen: isFullScreen.value
+  });
+};
+
+const setLineType = (type) => {
+  currentLineType.value = type;
+  // Deselect any selected line when changing line type
+  selectedLineIndex.value = -1;
+};
+
+// Get mouse position relative to SVG
+const getMousePosition = (event) => {
+  const svg = event.currentTarget;
+  const rect = svg.getBoundingClientRect();
+  const scaleX = svg.clientWidth / rect.width;
+  const scaleY = svg.clientHeight / rect.height;
+  
+  return {
+    x: (event.clientX - rect.left) * scaleX / zoomState.scale - zoomState.posX / zoomState.scale,
+    y: (event.clientY - rect.top) * scaleY / zoomState.scale - zoomState.posY / zoomState.scale
+  };
+};
+
+// Start drawing a new line
+const startDrawing = (event) => {
+  if (!isEditMode.value) return;
+  
+  // If a line is selected, check if we're clicking on it to deselect
+  if (selectedLineIndex.value !== -1) {
+    selectedLineIndex.value = -1;
+    return;
+  }
+  
+  const pos = getMousePosition(event);
+  currentLine.value = {
+    x1: pos.x,
+    y1: pos.y,
+    x2: pos.x,
+    y2: pos.y,
+    type: currentLineType.value
+  };
+};
+
+// Continue drawing the current line
+const continueDrawing = (event) => {
+  if (!isEditMode.value || !currentLine.value) return;
+  
+  const pos = getMousePosition(event);
+  
+  // Enforce line type constraints
+  if (currentLineType.value === 'horizontal') {
+    // For horizontal lines, only update x2
+    currentLine.value.x2 = pos.x;
+  } else if (currentLineType.value === 'vertical') {
+    // For vertical lines, only update y2
+    currentLine.value.y2 = pos.y;
+  } else {
+    // For border/free lines, update both coordinates
+    currentLine.value.x2 = pos.x;
+    currentLine.value.y2 = pos.y;
+  }
+};
+
+// Finish drawing the current line
+const finishDrawing = (event) => {
+  if (!isEditMode.value || !currentLine.value) return;
+  
+  const pos = getMousePosition(event);
+  
+  // Apply final position based on line type
+  if (currentLineType.value === 'horizontal') {
+    currentLine.value.x2 = pos.x;
+  } else if (currentLineType.value === 'vertical') {
+    currentLine.value.y2 = pos.y;
+  } else {
+    currentLine.value.x2 = pos.x;
+    currentLine.value.y2 = pos.y;
+  }
+  
+  // Only add the line if it has some length
+  const dx = currentLine.value.x2 - currentLine.value.x1;
+  const dy = currentLine.value.y2 - currentLine.value.y1;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  
+  if (length > 5) { // Minimum length threshold
+    lines.value.push({ ...currentLine.value });
+  }
+  
+  currentLine.value = null;
+};
+
+// Select a line for editing or deletion
+const selectLine = (index) => {
+  if (!isEditMode.value) return;
+  
+  if (selectedLineIndex.value === index) {
+    // If already selected, deselect it
+    selectedLineIndex.value = -1;
+  } else {
+    // Select the line
+    selectedLineIndex.value = index;
+  }
+};
+
+// Delete the selected line
+const deleteSelectedLine = (event) => {
+  if (!isEditMode.value || selectedLineIndex.value === -1) return;
+  
+  // If called from a button click (no event) or if Delete/Backspace key was pressed
+  if (!event || event.key === 'Delete' || event.key === 'Backspace') {
+    lines.value.splice(selectedLineIndex.value, 1);
+    selectedLineIndex.value = -1;
+  }
+};
+
+// Add keyboard event listener for deleting lines
+onMounted(() => {
+  window.addEventListener('keydown', deleteSelectedLine);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', deleteSelectedLine);
+});
 </script>
 
 <style scoped>
@@ -1169,6 +1454,266 @@ const getMimeTypeFromExtension = (filename) => {
   justify-content: center;
   width: 100%;
   height: 100%;
+  position: relative;
+}
+
+/* Line Editor Overlay */
+.line-editor-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.line-editor-overlay line {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.line-editor-overlay line.selected {
+  filter: drop-shadow(0 0 2px var(--accent-color, #3182ce));
+}
+
+/* Line Editor Controls - Matches Zoom Controls Styling */
+.line-editor-controls {
+  position: fixed !important;
+  bottom: 16px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  gap: 6px !important;
+  z-index: 9999 !important;
+  background: var(--card-bg) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  padding: 8px 12px !important;
+  border: 1px solid var(--border-color) !important;
+  backdrop-filter: blur(8px) !important;
+  background-color: rgba(var(--card-bg-rgb), 0.95) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+:root.dark .line-editor-controls {
+  background-color: rgba(40, 40, 40, 0.9);
+  border-color: var(--border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Debug class to force visibility */
+.line-editor-controls.debug-visible {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 9999 !important;
+  background-color: rgba(255, 0, 0, 0.5) !important;
+}
+
+.line-type-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--button-border, #d0d0d0);
+  border-radius: 6px;
+  background: var(--button-bg, #f0f0f0);
+  color: var(--button-text, #333);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.line-type-btn:hover:not(.active) {
+  background: var(--button-hover-bg, #e0e0e0);
+  border-color: var(--button-hover-border, #b0b0b0);
+  transform: translateY(-1px);
+}
+
+.line-type-btn.active {
+  background: var(--accent-color, #4f46e5);
+  border-color: var(--accent-color, #4f46e5);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.delete-line-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--error-color, #e53e3e);
+  border-radius: 6px;
+  background: var(--error-color, #e53e3e);
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  margin-left: 4px;
+}
+
+.delete-line-btn:not(:disabled):hover {
+  background: var(--error-hover-color, #c53030);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
+}
+
+.delete-line-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode adjustments */
+:root.dark .line-type-btn {
+  background: var(--button-bg-dark, #2d3748);
+  border-color: var(--button-border-dark, #4a5568);
+  color: var(--button-text-dark, #e2e8f0);
+}
+
+:root.dark .line-type-btn:hover:not(.active) {
+  background: var(--button-hover-bg-dark, #4a5568);
+  border-color: var(--button-hover-border-dark, #6b7280);
+}
+
+.line-type-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.line-type-btn:hover:not(.active) {
+  background: var(--button-hover-bg);
+  border-color: var(--button-hover-border);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.line-type-btn.active {
+  background: var(--accent-color, #4f46e5);
+  border-color: var(--accent-color, #4f46e5);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.delete-line-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--error-color, #e53e3e);
+  border-radius: 8px;
+  background: var(--error-color, #e53e3e);
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-left: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.delete-line-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.delete-line-btn:hover::before {
+  opacity: 1;
+}
+
+.delete-line-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.delete-line-btn:not(:disabled):hover {
+  background: var(--error-hover, #c53030);
+  border-color: var(--error-hover, #c53030);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode adjustments */
+:root.dark .line-editor-controls {
+  background-color: rgba(30, 30, 30, 0.9);
+  border-color: var(--border-color-dark, #4a5568);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root.dark .line-type-btn {
+  background: var(--button-bg-dark, #2d3748);
+  color: var(--text-primary-dark, #e2e8f0);
+  border-color: var(--border-color-dark, #4a5568);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+:root.dark .line-type-btn:hover:not(.active) {
+  background: var(--button-hover-bg-dark, #4a5568);
+  border-color: var(--button-hover-border-dark, #6b7280);
+}
+
+:root.dark .line-type-btn.active {
+  background: var(--accent-color-dark, #6366f1);
+  border-color: var(--accent-color-dark, #6366f1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+:root.dark .delete-line-btn {
+  background: var(--error-color-dark, #f56565);
+  border-color: var(--error-color-dark, #f56565);
+}
+
+:root.dark .delete-line-btn:not(:disabled):hover {
+  background: var(--error-hover-dark, #e53e3e);
+  border-color: var(--error-hover-dark, #e53e3e);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .line-editor-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 95%;
+    bottom: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .line-type-btn, .delete-line-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+  }
+  
+  .delete-line-btn {
+    margin-left: 0;
+    margin-top: 0.25rem;
+  }
+}
+
+/* Ensure zoom controls are above the line editor controls */
+.zoom-controls {
+  z-index: 1001;
 }
 
 .image-preview img {
@@ -1306,7 +1851,21 @@ const getMimeTypeFromExtension = (filename) => {
   border-color: var(--accent-color, #4f46e5);
 }
 
-:root.dark .fullscreen-button.active {
+/* Edit button active state */
+.zoom-button.edit-button.active {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+:root.dark .zoom-button.edit-button.active {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+:root.dark .fullscreen-button.active:hover,
+:root.dark .edit-button.active:hover {
   background: var(--accent-color-dark, #6366f1);
   border-color: var(--accent-color-dark, #6366f1);
 }
@@ -1476,17 +2035,191 @@ const getMimeTypeFromExtension = (filename) => {
   color: var(--uploader-error);
   font-size: 0.875rem;
 }
+/* Line editor overlay */
+.line-editor-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.line-editor-overlay line {
+  cursor: pointer;
+  stroke-linecap: round;
+}
+
+.line-editor-overlay line.selected {
+  stroke: var(--accent-color, #3182ce) !important;
+  stroke-width: 4px;
+}
+
+/* Line editing controls */
+.line-edit-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 90%;
+  width: auto;
+}
+
+:root.dark .line-edit-controls {
+  background-color: var(--card-bg-dark, #2d3748);
+  border-color: var(--border-color-dark, #4a5568);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.line-type-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.line-type-selector button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  background-color: var(--card-bg, #ffffff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 70px;
+}
+
+:root.dark .line-type-selector button {
+  background-color: var(--card-bg-dark, #2d3748);
+  border-color: var(--border-color-dark, #4a5568);
+}
+
+.line-type-selector button:hover {
+  background-color: var(--input-bg, #f7fafc);
+}
+
+:root.dark .line-type-selector button:hover {
+  background-color: var(--input-bg-dark, #4a5568);
+}
+
+.line-type-selector button.active {
+  background-color: var(--accent-color, #3182ce);
+  color: white;
+  border-color: var(--accent-color, #3182ce);
+}
+
+.line-type-selector button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.line-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+  position: relative;
+}
+
+.line-icon.horizontal::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: currentColor;
+}
+
+.line-icon.vertical::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: currentColor;
+}
+
+.line-icon.border::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+}
+
+.line-label {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.edit-instructions {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #718096);
+  text-align: center;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments for line editing */
+@media (max-width: 768px) {
+  .line-edit-controls {
+    padding: 8px;
+    bottom: 60px;
+  }
+  
+  .line-type-selector button {
+    min-width: 60px;
+    padding: 6px;
+  }
+  
+  .line-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .line-label {
+    font-size: 0.7rem;
+  }
+  
+  .edit-instructions {
+    font-size: 0.75rem;
+    max-width: 250px;
+  }
+}
+
 /* Theme variables */
 :root {
   --uploader-error: #dc3545;
   --img-filter: none;
   --preview-shadow: rgba(0, 0, 0, 0.1);
+  --line-color: #4299e1;
+  --border-line-color: #e53e3e;
 }
 
 :root.dark {
   --uploader-error: #ff6b6b;
   --img-filter: brightness(0.95);
   --preview-shadow: rgba(0, 0, 0, 0.3);
+  --line-color: #63b3ed;
+  --border-line-color: #fc8181;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1494,6 +2227,7 @@ const getMimeTypeFromExtension = (filename) => {
     --uploader-error: #ff6b6b;
     --img-filter: brightness(0.95);
     --preview-shadow: rgba(0, 0, 0, 0.3);
+    --line-color: #ff8585;
   }
 }
 
