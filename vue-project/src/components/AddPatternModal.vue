@@ -349,7 +349,7 @@ import RowEditModal from './pattern/RowEditModal.vue'
 import UnparsedContentSection from './pattern/UnparsedContentSection.vue'
 import PatternPreviewSection from './pattern/PatternPreviewSection.vue'
 import { useUserSettings } from '@/services/userSettings'
-import { stitchPatterns, normalizeStitchCode, extractStitchesFromText } from '@/utils/patternParser'
+import { stitchPatterns, normalizeStitchCode, extractStitchesFromText, extractRowSide } from '@/utils/patternParser'
 
 // Props and emits
 const props = defineProps({
@@ -871,25 +871,29 @@ const parseRows = () => {
         
         // Look for repeat patterns in the row text directly
         // Example: Round 3 (1sc, 1inc) x6 (18)
+        const { side: rowSide } = extractRowSide(rowText)
         foundRows.push({
           number: rowNum,
           text: rowText,
           color: extractColor(rowText),
-          stitches: extractStitches(rowText)
+          stitches: extractStitches(rowText),
+          side: rowSide
         });
       });
-    } 
+    }
     // Single round in line
     else if (matches.length === 1) {
       const match = matches[0];
       const rowNum = parseInt(match[1]);
-      
+
       // Look for repeat patterns in the row text directly
+      const { side: rowSide } = extractRowSide(line)
       foundRows.push({
         number: rowNum,
         text: line.trim(),
         color: extractColor(line),
-        stitches: extractStitches(line)
+        stitches: extractStitches(line),
+        side: rowSide
       });
     }
   });
@@ -926,19 +930,23 @@ const parseRows = () => {
       const rowText = normalizedText.substring(pos.start, pos.end).trim();
       
       try {
+        const { side: rowSide } = extractRowSide(rowText);
         const extractedStitches = extractStitches(rowText);
         return {
           number: pos.number,
           text: rowText,
           color: extractColor(rowText),
-          stitches: extractedStitches
+          stitches: extractedStitches,
+          side: rowSide
         };
       } catch (err) {
+        const { side: rowSide } = extractRowSide(rowText);
         return {
           number: pos.number,
           text: rowText,
           color: extractColor(rowText),
-          stitches: [] // Fallback to empty stitches
+          stitches: [], // Fallback to empty stitches
+          side: rowSide
         };
       }
     });
@@ -1007,15 +1015,16 @@ const extractStitches = (text) => {
     text = text.replace(/\b(FO|F\.O\.)\b\.*\s*/i, '').trim();
     
     // Special case for patterns like "Round 3 (1sc, 1inc) x6 (18)"
-    const directRepeatMatch = text.match(/(?:Round|Row)\s+\d+\s+\(([^)]+)\)\s*x(\d+)/i);
+    // Allow optional [RS]/[WS]/(RS)/(WS) between row number and repeat parens
+    const directRepeatMatch = text.match(/(?:Round|Row)\s+\d+\s*(?:\[(?:RS|WS)\]|\((?:RS|WS)\))?\s*:?\s*\(([^)]+)\)\s*x(\d+)/i);
     if (directRepeatMatch) {
       // Extract the repeated content and count directly from the row text
       const repeatedContent = directRepeatMatch[1].trim();
       const repeatCount = directRepeatMatch[2];
-      
+
       // Parse the repeated content to extract individual stitches
       const repeatedStitches = extractStitchesFromText(repeatedContent);
-      
+
       // Return the structured result with the repeat
       return {
         repeated: true,
@@ -1025,10 +1034,10 @@ const extractStitches = (text) => {
         repeatCount: repeatCount
       };
     }
-    
-    // Strip out the "Round X" or "Row X" prefix 
-    let cleanedText = text.replace(/^(?:Round|Row) \d+\s*:?\s*/, '').trim();
-    
+
+    // Strip out the "Round X" or "Row X" prefix, including optional [RS]/[WS]/(RS)/(WS) side indicator
+    let cleanedText = text.replace(/^(?:Round|Row)\s+\d+\s*(?:\[(?:RS|WS)\]|\((?:RS|WS)\)|\b(?:RS|WS)\b)?\s*:?\s*/i, '').trim();
+
     // Remove any "With Color X" prefix
     cleanedText = cleanedText.replace(/With\s+Color\s+[A-Za-z]+,?\s*/i, '').trim();
     

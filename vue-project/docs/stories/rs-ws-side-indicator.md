@@ -1,6 +1,6 @@
 # Story: RS/WS (Right Side / Wrong Side) Row Indicator
 
-**Status:** Planning
+**Status:** Done
 **Priority:** Medium
 **Depends on:** [Per-Stitch Yarn Color Support](./archive/per-stitch-color-support.md)
 **Estimated Scope:** ~8 files modified, 1 test file updated

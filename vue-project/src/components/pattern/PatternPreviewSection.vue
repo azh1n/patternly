@@ -15,6 +15,7 @@
       <div v-for="(row, index) in rows" :key="index" class="preview-row">
         <div class="preview-row-header">
           <span class="preview-row-number">Row {{ row.number }}</span>
+          <span v-if="row.side" class="row-side-tag" :class="'side-' + row.side.toLowerCase()">{{ row.side }}</span>
           <div v-if="row.color" class="color-indicator" :style="{ backgroundColor: getColorHex(row.color) }"></div>
           <button class="edit-row-button" @click="$emit('edit-row', index)">Edit</button>
         </div>
@@ -386,6 +387,36 @@ const shouldUseFullWidth = (stitches) => {
 .preview-row-number {
   font-weight: 600;
   color: var(--accent-color, #4f87ff);
+}
+
+.row-side-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+
+.side-rs {
+  background: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+}
+
+.side-ws {
+  background: rgba(206, 147, 216, 0.2);
+  color: #ce93d8;
+}
+
+:root.light .side-rs {
+  background: rgba(76, 175, 80, 0.12);
+  color: #2e7d32;
+}
+
+:root.light .side-ws {
+  background: rgba(156, 39, 176, 0.12);
+  color: #7b1fa2;
 }
 
 .color-indicator {

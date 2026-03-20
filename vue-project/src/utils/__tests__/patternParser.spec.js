@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeStitchCode, extractStitchesFromText } from '../patternParser'
+import { normalizeStitchCode, extractStitchesFromText, extractRowSide } from '../patternParser'
 
 describe('patternParser', () => {
 
@@ -124,6 +124,47 @@ describe('patternParser', () => {
     it('ignores stitch count parentheses', () => {
       const result = extractStitchesFromText('2sc, 1dc (stitch count: 3)')
       expect(result).toEqual(['2sc', '1dc'])
+    })
+  })
+
+  describe('extractRowSide', () => {
+    it('extracts [RS] from row text', () => {
+      const result = extractRowSide('Row 1 [RS]: 2sc, 3dc')
+      expect(result.side).toBe('RS')
+      expect(result.cleanedText).toBe('Row 1 : 2sc, 3dc')
+    })
+    it('extracts [WS] from row text', () => {
+      const result = extractRowSide('Row 2 [WS]: 1sc')
+      expect(result.side).toBe('WS')
+      expect(result.cleanedText).toBe('Row 2 : 1sc')
+    })
+    it('extracts (RS) from row text', () => {
+      const result = extractRowSide('Row 3 (RS): 1sc, 1inc')
+      expect(result.side).toBe('RS')
+      expect(result.cleanedText).toBe('Row 3 : 1sc, 1inc')
+    })
+    it('extracts (WS) from row text', () => {
+      const result = extractRowSide('Row 4 (WS): 22sc')
+      expect(result.side).toBe('WS')
+      expect(result.cleanedText).toBe('Row 4 : 22sc')
+    })
+    it('extracts bare RS', () => {
+      const result = extractRowSide('Row 1 RS: 2sc')
+      expect(result.side).toBe('RS')
+      expect(result.cleanedText).toBe('Row 1 : 2sc')
+    })
+    it('is case-insensitive', () => {
+      const result = extractRowSide('Row 1 [rs]: 2sc')
+      expect(result.side).toBe('RS')
+    })
+    it('returns null when no side indicator', () => {
+      const result = extractRowSide('Row 1: 2sc, 3dc')
+      expect(result.side).toBeNull()
+      expect(result.cleanedText).toBe('Row 1: 2sc, 3dc')
+    })
+    it('returns null for null/empty input', () => {
+      expect(extractRowSide(null).side).toBeNull()
+      expect(extractRowSide('').side).toBeNull()
     })
   })
 

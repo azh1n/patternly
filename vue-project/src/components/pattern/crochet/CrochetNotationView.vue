@@ -21,6 +21,7 @@
       <div v-for="(row, rowIndex) in rows" :key="`row-${rowIndex}`" class="notation-row">
         <div class="row-header">
           <span class="row-number">Row {{ row.number }}</span>
+          <span v-if="row.side" class="row-side-tag" :class="'side-' + row.side.toLowerCase()">{{ row.side }}</span>
           <div v-if="row.color" class="color-indicator" :style="{ backgroundColor: getColorHex(row.color) }"></div>
         </div>
         
@@ -906,6 +907,26 @@ const getRepeatCount = (stitch) => {
 .row-number {
   font-weight: 600;
   color: var(--accent-color, #4f87ff);
+}
+
+.row-side-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+
+.side-rs {
+  background: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+}
+
+.side-ws {
+  background: rgba(206, 147, 216, 0.2);
+  color: #ce93d8;
 }
 
 .color-indicator {

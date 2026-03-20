@@ -33,6 +33,22 @@ export const stitchPatterns = [
 ]
 
 /**
+ * Extract RS/WS side indicator from row text.
+ * Returns { side: 'RS' | 'WS' | null, cleanedText: string }
+ */
+export function extractRowSide(text) {
+  if (!text) return { side: null, cleanedText: text }
+
+  // Match [RS], [WS], (RS), (WS), or bare RS/WS near the row prefix
+  const sideMatch = text.match(/\[(RS|WS)\]|\((RS|WS)\)|\b(RS|WS)\b/i)
+  if (!sideMatch) return { side: null, cleanedText: text }
+
+  const side = (sideMatch[1] || sideMatch[2] || sideMatch[3]).toUpperCase()
+  const cleanedText = text.replace(sideMatch[0], '').replace(/\s{2,}/g, ' ').trim()
+  return { side, cleanedText }
+}
+
+/**
  * Known stitch type abbreviations. Used to distinguish stitch codes from
  * color-only tokens in the general pattern fallback.
  */

@@ -3,7 +3,7 @@
   <div v-if="modelValue" class="row-edit-modal-overlay" @click="closeModal">
     <div class="row-edit-modal" @click.stop>
       <div class="modal-header">
-        <h2>Edit Row {{ row ? row.number : '' }}</h2>
+        <h2>Edit Row {{ row ? row.number : '' }} <span v-if="row && row.side" class="row-side-tag" :class="'side-' + row.side.toLowerCase()">{{ row.side }}</span></h2>
         <button class="close-button" @click="closeModal">×</button>
       </div>
       
@@ -386,6 +386,26 @@ const saveRowEdit = () => {
   font-size: 1.5rem;
   color: var(--text-primary, #fff);
   font-weight: 600;
+}
+
+.row-side-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+
+.side-rs {
+  background: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+}
+
+.side-ws {
+  background: rgba(206, 147, 216, 0.2);
+  color: #ce93d8;
 }
 
 .close-button {
