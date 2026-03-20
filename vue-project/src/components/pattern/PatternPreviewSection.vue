@@ -118,11 +118,17 @@
                 <template v-else>
                   <div
                     class="preview-stitch"
-                    :class="getStitchClass(stitch)"
+                    :class="[getStitchClass(stitch), { 'has-color': getStitchColor(stitch) }]"
                     :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
                     :title="stitch"
                   >
-                    {{ getStitchType(stitch) }}
+                    <template v-if="getStitchColor(stitch)">
+                      <span class="stitch-color-label">{{ getStitchColor(stitch) }}</span>
+                      <span class="stitch-type-small">{{ getStitchType(stitch) }}</span>
+                    </template>
+                    <template v-else>
+                      {{ getStitchType(stitch) }}
+                    </template>
                   </div>
                 </template>
               </template>
@@ -596,6 +602,28 @@ const shouldUseFullWidth = (stitches) => {
   justify-content: center;
   background-color: var(--stitch-bg, rgba(255, 255, 255, 0.05));
   border: 1px solid var(--border-color, #444);
+}
+
+.preview-stitch.has-color {
+  flex-direction: column;
+  gap: 0;
+  padding: 2px 1px;
+}
+
+.stitch-color-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stitch-type-small {
+  font-size: 0.5rem;
+  opacity: 0.6;
+  line-height: 1;
 }
 
 /* Style for different stitch types */
