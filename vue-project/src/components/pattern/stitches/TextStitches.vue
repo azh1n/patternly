@@ -2,6 +2,7 @@
   <div class="text-stitches">
     <StitchVisualization
       :totalStitches="totalStitches"
+      :totalBlocks="totalBlocks"
       :initialStitchesPerView="initialStitchesPerView"
       :maxStitchesPerView="maxStitchesPerView"
       @update:currentStitchIndex="updateCurrentStitchIndex"
@@ -19,7 +20,7 @@
               :style="isRepeatPattern(stitch) ? 
                 {'--repeat-stitch-count': getRepeatStitches(stitch).length} : {}"
             >
-              <div class="stitch-symbol" :class="getStitchClass(stitch)"
+              <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'has-color': getStitchColor(stitch) }]"
                 :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
               >
                 <template v-if="isRepeatPattern(stitch)">
@@ -28,9 +29,9 @@
                       <span class="repeat-label">Repeat</span>
                       <span class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</span>
                     </div>
-                    <div class="repeat-content" 
+                    <div class="repeat-content"
                         :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
-                      <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
+                      <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)"
                           :key="`repeat-stitch-${rIndex}`"
                           class="repeat-stitch-item">
                         <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
@@ -41,8 +42,13 @@
                   </div>
                 </template>
                 <template v-else>
-                  <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
-                  <span v-if="getStitchColor(stitch)" class="yarn-color-tag">{{ getStitchColor(stitch) }}</span>
+                  <template v-if="getStitchColor(stitch)">
+                    <span class="stitch-color-label">{{ getStitchCount(stitch) > 1 ? getStitchCount(stitch) + ' ' : '' }}{{ getStitchColor(stitch) }}</span>
+                    <span class="stitch-type-small">{{ getStitchType(stitch) }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
+                  </template>
                 </template>
               </div>
             </div>
@@ -64,7 +70,7 @@
               'repeat-pattern': isRepeatPattern(stitch)
             }"
           >
-            <div class="stitch-symbol" :class="getStitchClass(stitch)">
+            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'has-color': getStitchColor(stitch) }]">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-card preview">
                   <div class="repeat-header">
@@ -85,7 +91,13 @@
                 </div>
               </template>
               <template v-else>
-                <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
+                <template v-if="getStitchColor(stitch)">
+                  <span class="stitch-color-label">{{ getStitchCount(stitch) > 1 ? getStitchCount(stitch) + ' ' : '' }}{{ getStitchColor(stitch) }}</span>
+                  <span class="stitch-type-small">{{ getStitchType(stitch) }}</span>
+                </template>
+                <template v-else>
+                  <span class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
+                </template>
               </template>
             </div>
           </div>
@@ -203,6 +215,12 @@ const totalStitches = computed(() => {
   };
   
   return calculateTotalStitches(props.currentRow.codes);
+});
+
+// Number of code entries (blocks) for navigation bounds
+const totalBlocks = computed(() => {
+  if (!props.currentRow || !props.currentRow.codes) return 0;
+  return processRowStitches(props.currentRow.codes, displayRepeatedStitchesSeparately.value).length;
 });
 
 // Filter stitches to only show those present in the current row
@@ -446,6 +464,29 @@ defineExpose({
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+}
+
+.stitch-symbol.has-color {
+  flex-direction: column;
+  gap: 0;
+  padding: 2px 1px;
+  overflow: hidden;
+}
+
+.stitch-color-label {
+  font-size: 0.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stitch-type-small {
+  font-size: 0.45rem;
+  opacity: 0.6;
+  line-height: 1;
 }
 
 .text-stitches :deep(.current-stitches) .stitch-symbol {

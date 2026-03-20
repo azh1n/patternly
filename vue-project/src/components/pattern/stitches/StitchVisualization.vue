@@ -45,7 +45,7 @@
       <button 
         @click="nextStitches" 
         class="nav-button"
-        :disabled="currentStitchIndex + stitchesPerView >= props.totalStitches"
+        :disabled="currentStitchIndex + stitchesPerView >= navigableBlocks"
       >
         <span class="arrow-icon next-arrow">→</span>
       </button>
@@ -69,6 +69,10 @@ const props = defineProps({
     type: Number,
     required: true
   },
+  totalBlocks: {
+    type: Number,
+    default: 0
+  },
   initialStitchesPerView: {
     type: Number,
     default: 3
@@ -80,6 +84,9 @@ const props = defineProps({
 });
 
 const emits = defineEmits(['update:currentStitchIndex', 'update:stitchesPerView']);
+
+// Number of navigable blocks (code entries), falls back to totalStitches for backwards compat
+const navigableBlocks = computed(() => props.totalBlocks > 0 ? props.totalBlocks : props.totalStitches);
 
 // Navigation state
 const currentStitchIndex = ref(0);
@@ -186,7 +193,7 @@ const stitchProgress = computed(() => {
 
 // Navigation methods
 const nextStitches = () => {
-  if (currentStitchIndex.value + stitchesPerView.value < props.totalStitches) {
+  if (currentStitchIndex.value + stitchesPerView.value < navigableBlocks.value) {
     // Move exactly by stitchesPerView blocks to avoid overlap
     currentStitchIndex.value += stitchesPerView.value;
     emits('update:currentStitchIndex', currentStitchIndex.value);
