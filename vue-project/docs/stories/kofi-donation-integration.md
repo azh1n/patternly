@@ -31,7 +31,7 @@ Several free (0% platform fee) donation platforms were evaluated. Only the payme
 
 ## Prerequisite (non-code)
 
-Create a Ko-fi account at https://ko-fi.com and note your Ko-fi username (the ID in your profile URL: `https://ko-fi.com/YOUR_USERNAME`).
+A Ko-fi account already exists at https://ko-fi.com/azh1n.
 
 ---
 
@@ -50,7 +50,7 @@ Replace the placeholder URL with the real Ko-fi username and upgrade the custom 
 At the top of `<script setup>`, add:
 
 ```js
-const KOFI_USERNAME = 'YOUR_USERNAME' // Replace with real Ko-fi username after account setup
+const KOFI_USERNAME = 'azh1n'
 ```
 
 This keeps the username in one place so it never needs to be hunted down in the template.
@@ -86,7 +86,6 @@ Remove the `.custom-kofi-btn`, `.kofi-img`, and `.kofi-text` rules from `<style 
 
 ## Edge Cases
 
-- **Username not yet set:** The `KOFI_USERNAME` constant serves as a clear TODO marker until the account is created. The link will be broken but visually the page looks correct — no runtime errors.
 - **Ko-fi CDN availability:** The official `kofi2.png` image is served from Ko-fi's own CDN. If Ko-fi is unreachable, the image won't load — this is acceptable for a donation button (it's not core app functionality).
 
 ---
@@ -101,7 +100,6 @@ Remove the `.custom-kofi-btn`, `.kofi-img`, and `.kofi-text` rules from `<style 
 
 ## Acceptance Criteria
 
-- [ ] A Ko-fi account exists and `KOFI_USERNAME` is set to the real username
-- [ ] Clicking the button on `/donate` opens `https://ko-fi.com/YOUR_USERNAME` in a new tab
+- [ ] Clicking the button on `/donate` opens `https://ko-fi.com/azh1n` in a new tab
 - [ ] The Ko-fi official button image renders correctly
 - [ ] No broken images or console errors on the donate page
