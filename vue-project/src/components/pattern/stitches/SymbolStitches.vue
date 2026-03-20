@@ -19,8 +19,8 @@
               :style="isRepeatPattern(stitch) ? 
                 {'--repeat-stitch-count': getRepeatStitches(stitch).length} : {}"
             >
-              <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]"
-                :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+              <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]"
+                :style="getStitchBoxStyle(stitch)"
               >
                 <template v-if="isRepeatPattern(stitch)">
                   <div class="repeat-card">
@@ -28,16 +28,17 @@
                       <span class="repeat-label">Repeat</span>
                       <span class="repeat-multiplier">{{ getRepeatMultiplier(stitch) }}</span>
                     </div>
-                    <div class="repeat-content" 
+                    <div class="repeat-content"
                         :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
-                      <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
+                      <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)"
                           :key="`current-repeat-stitch-${rIndex}`"
                           class="repeat-stitch-item">
-                        <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                        <div class="repeat-stitch" :class="getStitchBoxClass(repeatStitch)"
+                          :style="getStitchBoxStyle(repeatStitch)">
                           <template v-if="checkSymbolExists(repeatStitch)">
-                            <img 
-                              :src="getSymbolPath(repeatStitch)" 
-                              :alt="repeatStitch" 
+                            <img
+                              :src="getSymbolPath(repeatStitch)"
+                              :alt="repeatStitch"
                               class="stitch-svg medium stitch-svg-padded"
                             />
                           </template>
@@ -54,9 +55,9 @@
                 </template>
                 <template v-else>
                   <template v-if="checkSymbolExists(stitch)">
-                    <img 
-                      :src="getSymbolPath(stitch)" 
-                      :alt="stitch" 
+                    <img
+                      :src="getSymbolPath(stitch)"
+                      :alt="stitch"
                       class="stitch-svg stitch-svg-padded"
                     />
                   </template>
@@ -87,7 +88,8 @@
               'repeat-pattern': isRepeatPattern(stitch)
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
+            <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]"
+              :style="getStitchBoxStyle(stitch)">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-card preview">
                   <div class="repeat-header">
@@ -96,14 +98,15 @@
                   </div>
                   <div class="repeat-content"
                       :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
-                    <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
+                    <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)"
                         :key="`repeat-stitch-${rIndex}`"
                         class="repeat-stitch-item">
-                      <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                      <div class="repeat-stitch" :class="getStitchBoxClass(repeatStitch)"
+                        :style="getStitchBoxStyle(repeatStitch)">
                         <template v-if="checkSymbolExists(repeatStitch)">
-                          <img 
-                            :src="getSymbolPath(repeatStitch)" 
-                            :alt="repeatStitch" 
+                          <img
+                            :src="getSymbolPath(repeatStitch)"
+                            :alt="repeatStitch"
                             class="stitch-svg small stitch-svg-padded"
                           />
                         </template>
@@ -173,6 +176,7 @@ import { hasStitchSymbol, getStitchSymbolPath, stitchSymbolMapping } from '@/ass
 import { useTheme } from '@/services/theme';
 import StitchKeyTooltip from './StitchKeyTooltip.vue';
 import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex, expandStitch } from '@/composables/useStitchHelpers';
+import { getStitchBoxStyle, getStitchBoxClass } from '@/composables/useColorMode';
 
 // Get the theme state from the theme service
 const { isDarkMode } = useTheme();

@@ -1949,6 +1949,7 @@ const handleRowSave = (updatedRow) => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
+  margin-left: 4px;
   margin-right: 4px;
   border: 1px solid var(--border-color, #444);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);

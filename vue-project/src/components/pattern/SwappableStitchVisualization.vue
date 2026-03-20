@@ -115,9 +115,9 @@ defineExpose({
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .visualization-toggle {
     width: 100%;
   }
 }
-</style> 
+</style>

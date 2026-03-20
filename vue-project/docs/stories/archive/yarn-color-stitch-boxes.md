@@ -46,6 +46,20 @@ After the color-only stitch parsing story landed, colorwork patterns with repeat
 - The progress indicator still shows the accurate expanded count ("1-112 of 112 stitches").
 - `totalBlocks` respects the expand/collapse toggle.
 
+### Yarn Color Backgrounds (`useColorMode.js`, all stitch components)
+
+Previously descoped, now implemented. Stitch boxes with a yarn color annotation automatically use the yarn color as the box background instead of the stitch-type color.
+
+- **New composable: `composables/useColorMode.js`** — provides `getStitchBoxStyle(stitch)` and `getStitchBoxClass(stitch)`. When a stitch has a yarn color, the style sets `backgroundColor` to the yarn hex, `color` to a contrast-safe value (dark or light via WCAG luminance), and `borderColor` to a slightly darkened version of the yarn color. When no yarn color is present, the stitch-type CSS class handles coloring as before.
+- **`getContrastText(hex)`** — returns `#333` or `#fff` based on relative luminance for readable text on any background.
+- **All stitch visualization components** (`TextStitches.vue`, `ColorBlockStitches.vue`, `SymbolStitches.vue`) and `PatternPreviewSection.vue` now use `getStitchBoxStyle` / `getStitchBoxClass` instead of hardcoded border-left logic.
+- Stitch boxes still show the color label text and stitch type — the background color and the label reinforce each other.
+- Stitches without a yarn color fall back to stitch-type coloring unchanged.
+
+### Color chip spacing (`AddPatternModal.vue`)
+
+- Added `margin-left: 4px` to `.color-chip` in the pattern analysis section so color swatches have proper spacing from the "Colors:" label and after comma separators.
+
 ---
 
 ## Files Changed Summary
@@ -53,13 +67,11 @@ After the color-only stitch parsing story landed, colorwork patterns with repeat
 | File | Action |
 |------|--------|
 | `utils/patternParser.js` | Hardened `normalizeStitchCode` token cleaning |
-| `components/AddPatternModal.vue` | Repeat regex fix, per-line Row matching, prefix strip fix, single-token repeat expansion, per-stitch color detection |
-| `components/pattern/PatternPreviewSection.vue` | Color labels in stitch boxes, repeat regex fix |
-| `components/pattern/stitches/TextStitches.vue` | Color labels in stitch boxes, `totalBlocks` computed |
+| `composables/useColorMode.js` | New — yarn color background styles, contrast text, stitch box style/class helpers |
+| `components/AddPatternModal.vue` | Repeat regex fix, per-line Row matching, prefix strip fix, single-token repeat expansion, per-stitch color detection, color chip spacing |
+| `components/pattern/PatternPreviewSection.vue` | Yarn color backgrounds, color labels in stitch boxes, repeat regex fix |
+| `components/pattern/stitches/TextStitches.vue` | Yarn color backgrounds, color labels in stitch boxes, `totalBlocks` computed |
+| `components/pattern/stitches/ColorBlockStitches.vue` | Yarn color backgrounds |
+| `components/pattern/stitches/SymbolStitches.vue` | Yarn color backgrounds |
 | `components/pattern/stitches/StitchVisualization.vue` | `totalBlocks` prop, navigation bounds fix |
-
----
-
-## Future Work
-
-The original story planned a **Yarn Color Mode toggle** (stitch-type coloring vs yarn-color background) with `getContrastText`, `hasStandardColor`, and a `useColorMode` composable. This was descoped — the inline color labels provide sufficient color visibility for now. The toggle can be revisited as a separate story if users need a full yarn-color background mode.
+| `components/pattern/SwappableStitchVisualization.vue` | Cleaned up (toggle removed) |

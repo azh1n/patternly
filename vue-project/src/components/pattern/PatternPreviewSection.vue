@@ -33,8 +33,8 @@
                 <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
                   <div
                     class="preview-stitch"
-                    :class="getStitchClass(stitch)"
-                    :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+                    :class="getStitchBoxClass(stitch)"
+                    :style="getStitchBoxStyle(stitch)"
                     :title="stitch"
                   >
                     {{ getStitchType(stitch) }}
@@ -73,8 +73,8 @@
                 <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
                   <div
                     class="preview-stitch"
-                    :class="getStitchClass(stitch)"
-                    :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+                    :class="getStitchBoxClass(stitch)"
+                    :style="getStitchBoxStyle(stitch)"
                     :title="stitch"
                   >
                     {{ getStitchType(stitch) }}
@@ -118,8 +118,8 @@
                 <template v-else>
                   <div
                     class="preview-stitch"
-                    :class="[getStitchClass(stitch), { 'has-color': getStitchColor(stitch) }]"
-                    :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+                    :class="[getStitchBoxClass(stitch), { 'has-color': getStitchColor(stitch) }]"
+                    :style="getStitchBoxStyle(stitch)"
                     :title="stitch"
                   >
                     <template v-if="getStitchColor(stitch)">
@@ -152,6 +152,7 @@ import { ref } from 'vue';
 import PatternViewToggle from './PatternViewToggle.vue';
 import CrochetNotationView from './crochet/CrochetNotationView.vue';
 import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex } from '@/composables/useStitchHelpers';
+import { getStitchBoxStyle, getStitchBoxClass } from '@/composables/useColorMode';
 
 // Collapsed state for expand/collapse toggle
 const collapsed = ref(false);
@@ -610,6 +611,7 @@ const shouldUseFullWidth = (stitches) => {
   padding: 2px 1px;
 }
 
+
 .stitch-color-label {
   font-size: 0.6rem;
   font-weight: 600;
@@ -622,7 +624,7 @@ const shouldUseFullWidth = (stitches) => {
 
 .stitch-type-small {
   font-size: 0.5rem;
-  opacity: 0.6;
+  opacity: 0.8;
   line-height: 1;
 }
 
@@ -709,6 +711,7 @@ const shouldUseFullWidth = (stitches) => {
 :root.light .preview-content {
   background: #f9f9f9;
 }
+
 
 :root.light .repeat-card {
   background: rgba(240, 240, 240, 0.6);

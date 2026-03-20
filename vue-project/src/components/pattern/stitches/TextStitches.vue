@@ -20,8 +20,8 @@
               :style="isRepeatPattern(stitch) ? 
                 {'--repeat-stitch-count': getRepeatStitches(stitch).length} : {}"
             >
-              <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'has-color': getStitchColor(stitch) }]"
-                :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+              <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), { 'has-color': getStitchColor(stitch) }]"
+                :style="getStitchBoxStyle(stitch)"
               >
                 <template v-if="isRepeatPattern(stitch)">
                   <div class="repeat-card">
@@ -34,7 +34,8 @@
                       <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)"
                           :key="`repeat-stitch-${rIndex}`"
                           class="repeat-stitch-item">
-                        <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                        <div class="repeat-stitch" :class="getStitchBoxClass(repeatStitch)"
+                          :style="getStitchBoxStyle(repeatStitch)">
                           <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                         </div>
                       </div>
@@ -70,7 +71,8 @@
               'repeat-pattern': isRepeatPattern(stitch)
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'has-color': getStitchColor(stitch) }]">
+            <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), { 'has-color': getStitchColor(stitch) }]"
+              :style="getStitchBoxStyle(stitch)">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-card preview">
                   <div class="repeat-header">
@@ -79,10 +81,11 @@
                   </div>
                   <div class="repeat-content"
                       :style="{'--repeat-stitch-count': getRepeatStitches(stitch).length}">
-                    <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)" 
+                    <div v-for="(repeatStitch, rIndex) in getRepeatStitches(stitch)"
                         :key="`repeat-stitch-${rIndex}`"
                         class="repeat-stitch-item">
-                      <div class="repeat-stitch" :class="getStitchClass(repeatStitch)">
+                      <div class="repeat-stitch" :class="getStitchBoxClass(repeatStitch)"
+                        :style="getStitchBoxStyle(repeatStitch)">
                         <span class="stitch-count-inline">{{ getStitchCount(repeatStitch) }}</span>{{ getStitchType(repeatStitch) }}
                       </div>
                       <span v-if="rIndex < getRepeatStitches(stitch).length - 1" class="repeat-comma">,</span>
@@ -146,6 +149,7 @@ import { ref, computed, watch } from 'vue';
 import StitchVisualization from './StitchVisualization.vue';
 import { useTheme } from '@/services/theme';
 import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex, expandStitch } from '@/composables/useStitchHelpers';
+import { getStitchBoxStyle, getStitchBoxClass } from '@/composables/useColorMode';
 
 // Get the theme state from the theme service
 const { isDarkMode } = useTheme();
@@ -473,6 +477,7 @@ defineExpose({
   overflow: hidden;
 }
 
+
 .stitch-color-label {
   font-size: 0.5rem;
   font-weight: 600;
@@ -485,7 +490,7 @@ defineExpose({
 
 .stitch-type-small {
   font-size: 0.45rem;
-  opacity: 0.6;
+  opacity: 0.8;
   line-height: 1;
 }
 

@@ -15,8 +15,8 @@
             :key="`focused-stitch-${i}`" 
             class="stitch-wrapper"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch)]"
-              :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+            <div class="stitch-symbol" :class="[getStitchBoxClass(stitch)]"
+              :style="getStitchBoxStyle(stitch)"
             >
               <span v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
@@ -27,18 +27,18 @@
       <!-- Row preview slot -->
       <template #row-preview>
         <template v-if="currentRow && currentRow.codes && currentRow.codes.length">
-          <div 
-            v-for="(stitch, i) in processRowStitches(currentRow.codes, displayRepeatedStitchesSeparately)" 
-            :key="`preview-stitch-${i}`" 
+          <div
+            v-for="(stitch, i) in processRowStitches(currentRow.codes, displayRepeatedStitchesSeparately)"
+            :key="`preview-stitch-${i}`"
             class="stitch-wrapper"
-            :class="{ 
+            :class="{
               'preview-stitch': true,
               'current-stitch': i >= currentStitchIndex && i < currentStitchIndex + stitchesPerView,
-              'completed-stitch': i < currentStitchIndex 
+              'completed-stitch': i < currentStitchIndex
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch)]"
-              :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+            <div class="stitch-symbol" :class="[getStitchBoxClass(stitch)]"
+              :style="getStitchBoxStyle(stitch)"
             >
               <span v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
@@ -66,6 +66,7 @@
 import { ref, computed, watch } from 'vue';
 import StitchVisualization from './StitchVisualization.vue';
 import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex, expandStitch } from '@/composables/useStitchHelpers';
+import { getStitchBoxStyle, getStitchBoxClass } from '@/composables/useColorMode';
 
 const props = defineProps({
   currentRow: {
