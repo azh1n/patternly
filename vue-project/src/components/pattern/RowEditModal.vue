@@ -107,9 +107,10 @@
               <div class="preview-row-content">
                 <div v-if="!hasRepeatedStitches" class="preview-stitches">
                   <template v-for="(stitch, i) in previewEditedStitches" :key="i">
-                    <div 
-                      class="preview-stitch" 
+                    <div
+                      class="preview-stitch"
                       :class="getStitchClass(stitch)"
+                      :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
                       :title="stitch"
                     >
                       <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
@@ -120,9 +121,10 @@
                 <div v-else class="preview-stitches">
                   <!-- Show stitches before the repeat -->
                   <template v-for="(stitch, i) in previewBeforeRepeat" :key="`before-${i}`">
-                    <div 
-                      class="preview-stitch" 
+                    <div
+                      class="preview-stitch"
                       :class="getStitchClass(stitch)"
+                      :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
                       :title="stitch"
                     >
                       <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
@@ -151,9 +153,10 @@
                   
                   <!-- Show stitches after the repeat -->
                   <template v-for="(stitch, i) in previewAfterRepeat" :key="`after-${i}`">
-                    <div 
-                      class="preview-stitch" 
+                    <div
+                      class="preview-stitch"
                       :class="getStitchClass(stitch)"
+                      :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
                       :title="stitch"
                     >
                       <span class="stitch-count">{{ getStitchCount(stitch) }}</span>
@@ -178,6 +181,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex } from '@/composables/useStitchHelpers'
 
 // Props and emits
 const props = defineProps({
@@ -338,82 +342,7 @@ const saveRowEdit = () => {
   closeModal()
 }
 
-// Helper methods for stitch display
-const getStitchCount = (stitch) => {
-  // Extract the count from stitch notation (e.g., "3sc" -> "3")
-  const match = stitch.match(/^(\d+)/)
-  return match ? match[1] : '1'
-}
-
-const getStitchType = (stitch) => {
-  // Extract the stitch type from notation (e.g., "3sc" -> "sc")
-  const match = stitch.match(/\D+$/)
-  return match ? match[0] : stitch
-}
-
-const getStitchClass = (stitch) => {
-  // Return a CSS class based on stitch type
-  const type = getStitchType(stitch)
-  return {
-    'stitch-sc': type.includes('sc'),
-    'stitch-dc': type.includes('dc'),
-    'stitch-hdc': type.includes('hdc'),
-    'stitch-tr': type.includes('tr'),
-    'stitch-dtr': type.includes('dtr'),
-    'stitch-ch': type.includes('ch'),
-    'stitch-sl': type.includes('sl'),
-    'stitch-inc': type === 'inc',
-    'stitch-dec': type === 'dec',
-    'stitch-bs': type.includes('bs'),
-    'stitch-ns': type.includes('ns')
-  }
-}
-
-const getColorHex = (color) => {
-  // First check for exact color name matches
-  const colorMap = {
-    // Color names
-    'Red': '#ff5252',
-    'Green': '#4caf50',
-    'Blue': '#2196f3',
-    'Yellow': '#ffc107',
-    'Purple': '#9c27b0',
-    'Orange': '#ff9800',
-    'Pink': '#e91e63',
-    'Turquoise': '#00bcd4',
-    'Black': '#333333',
-    'White': '#ffffff',
-    'Brown': '#795548',
-    'Gray': '#607d8b',
-    
-    // Letter-based colors
-    'A': '#ff5252', // Red
-    'B': '#4caf50', // Green
-    'C': '#2196f3', // Blue
-    'D': '#ffc107', // Yellow
-    'E': '#9c27b0', // Purple
-    'F': '#ff9800', // Orange
-    'MC': '#333333', // Main Color (dark)
-    'CC': '#e91e63', // Contrast Color (pink)
-    'CC1': '#e91e63', // Contrast Color 1
-    'CC2': '#00bcd4'  // Contrast Color 2
-  }
-  
-  // First check for exact matches
-  if (colorMap[color]) {
-    return colorMap[color]
-  }
-  
-  // Then check for partial matches
-  for (const [key, value] of Object.entries(colorMap)) {
-    if (color.toLowerCase().includes(key.toLowerCase())) {
-      return value
-    }
-  }
-  
-  // If no match found, return default gray
-  return '#888888'
-}
+// getStitchCount, getStitchType, getStitchClass, getStitchColor, getColorHex imported from composable
 </script>
 
 <style scoped>

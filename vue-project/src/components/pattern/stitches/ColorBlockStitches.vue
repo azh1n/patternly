@@ -15,7 +15,9 @@
             :key="`focused-stitch-${i}`" 
             class="stitch-wrapper"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+            <div class="stitch-symbol" :class="[getStitchClass(stitch)]"
+              :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+            >
               <span v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
@@ -35,7 +37,9 @@
               'completed-stitch': i < currentStitchIndex 
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchClass(stitch)]">
+            <div class="stitch-symbol" :class="[getStitchClass(stitch)]"
+              :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+            >
               <span v-if="!displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1" class="stitch-count-inline">{{ getStitchCount(stitch) }}</span>{{ getStitchType(stitch) }}
             </div>
           </div>
@@ -61,6 +65,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import StitchVisualization from './StitchVisualization.vue';
+import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex, expandStitch } from '@/composables/useStitchHelpers';
 
 const props = defineProps({
   currentRow: {
@@ -163,78 +168,14 @@ watch([() => props.currentRow, displayRepeatedStitchesSeparately], () => {
 // Process stitches based on display mode
 function processRowStitches(codes, expandRepeated) {
   if (!codes || !Array.isArray(codes)) return [];
-  
-  if (!expandRepeated) {
-    // Just return the codes as is when not expanding
-    return codes;
-  } else {
-    // Expand repeated stitches (e.g., "3sc" becomes ["sc", "sc", "sc"])
-    const expandedStitches = [];
-    
-    codes.forEach(stitch => {
-      if (!stitch) return;
-      
-      const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-      if (match) {
-        const count = parseInt(match[1]);
-        const type = match[2];
-        
-        for (let i = 0; i < count; i++) {
-          expandedStitches.push(type);
-        }
-      } else {
-        // If no match (no number prefix), just add the stitch as is
-        expandedStitches.push(stitch);
-      }
-    });
-    
-    return expandedStitches;
-  }
-}
+  if (!expandRepeated) return codes;
 
-// Get stitch class for styling
-function getStitchClass(stitch) {
-  if (!stitch) return '';
-  
-  // Extract the stitch type (removing any number prefix)
-  const type = stitch.toString().replace(/^\d+/, '');
-  
-  // Map common stitch types to classes
-  const stitchClasses = {
-    'sc': 'stitch-sc',
-    'dc': 'stitch-dc',
-    'hdc': 'stitch-hdc',
-    'tr': 'stitch-tr',
-    'dtr': 'stitch-dtr',
-    'ch': 'stitch-ch',
-    'sl': 'stitch-sl',
-    'inc': 'stitch-inc',
-    'dec': 'stitch-dec',
-    'bs': 'stitch-bs',
-    'ns': 'stitch-ns'
-  };
-  
-  return stitchClasses[type] || '';
-}
-
-function getStitchCount(stitch) {
-  if (!stitch) return 1;
-  
-  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-  if (match) {
-    return parseInt(match[1]);
-  }
-  return 1;
-}
-
-function getStitchType(stitch) {
-  if (!stitch) return '';
-  
-  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-  if (match) {
-    return match[2];
-  }
-  return stitch;
+  const expandedStitches = [];
+  codes.forEach(stitch => {
+    if (!stitch) return;
+    expandedStitches.push(...expandStitch(stitch));
+  });
+  return expandedStitches;
 }
 
 // Expose some methods/properties to parent

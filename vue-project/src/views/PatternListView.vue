@@ -325,7 +325,10 @@ const handlePatternAdded = async (newPattern) => {
     const patternsRef = collection(db, 'patterns');
     
     // Add the document to Firestore
-    const docRef = await addDoc(patternsRef, newPattern);
+    const docRef = await addDoc(patternsRef, {
+      ...newPattern,
+      userId: user.value.uid,
+    });
     
     // Refresh the patterns list
     await fetchPatterns();

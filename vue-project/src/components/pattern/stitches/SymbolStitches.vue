@@ -19,7 +19,9 @@
               :style="isRepeatPattern(stitch) ? 
                 {'--repeat-stitch-count': getRepeatStitches(stitch).length} : {}"
             >
-              <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]">
+              <div class="stitch-symbol" :class="[getStitchClass(stitch), { 'with-count': !displayRepeatedStitchesSeparately && getStitchCount(stitch) > 1 }]"
+                :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
+              >
                 <template v-if="isRepeatPattern(stitch)">
                   <div class="repeat-card">
                     <div class="repeat-header">
@@ -170,6 +172,7 @@ import StitchVisualization from './StitchVisualization.vue';
 import { hasStitchSymbol, getStitchSymbolPath, stitchSymbolMapping } from '@/assets/crochet-symbols/stitch-mapping.js';
 import { useTheme } from '@/services/theme';
 import StitchKeyTooltip from './StitchKeyTooltip.vue';
+import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex, expandStitch } from '@/composables/useStitchHelpers';
 
 // Get the theme state from the theme service
 const { isDarkMode } = useTheme();
@@ -333,107 +336,26 @@ function getSymbolPath(stitch) {
 // Process stitches based on display mode
 function processRowStitches(codes, expandRepeated) {
   if (!codes || !Array.isArray(codes)) return [];
-  
-  if (!expandRepeated) {
-    // Just return the codes as is when not expanding
-    return codes;
-  } else {
-    // Expand repeated stitches (e.g., "3sc" becomes ["sc", "sc", "sc"])
-    const expandedStitches = [];
-    
-    codes.forEach(stitch => {
-      if (!stitch) return;
-      
-      // Handle repeat patterns like "(1sc, 1inc) x6"
-      if (typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')) {
-        const repeatMatch = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
-        if (repeatMatch) {
-          const repeatedContent = repeatMatch[1];
-          const repeatCount = parseInt(repeatMatch[2], 10);
-          
-          // Split the repeated content by commas
-          const stitches = repeatedContent.split(',').map(s => s.trim());
-          
-          // Repeat the pattern
-          for (let i = 0; i < repeatCount; i++) {
-            stitches.forEach(s => {
-              const match = s.match(/^(\d+)([a-zA-Z]+)/);
-              if (match) {
-                const count = parseInt(match[1]);
-                const type = match[2];
-                
-                for (let j = 0; j < count; j++) {
-                  expandedStitches.push(type);
-                }
-              } else {
-                expandedStitches.push(s);
-              }
-            });
-          }
-        }
-      } else {
-        const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-        if (match) {
-          const count = parseInt(match[1]);
-          const type = match[2];
-          
-          for (let i = 0; i < count; i++) {
-            expandedStitches.push(type);
-          }
-        } else {
-          // If no match (no number prefix), just add the stitch as is
-          expandedStitches.push(stitch);
+  if (!expandRepeated) return codes;
+
+  const expandedStitches = [];
+  codes.forEach(stitch => {
+    if (!stitch) return;
+    // Handle inline repeat patterns like "(2sc:green, 1dc) x6"
+    if (typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x')) {
+      const repeatMatch = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+      if (repeatMatch) {
+        const stitches = repeatMatch[1].split(',').map(s => s.trim());
+        const repeatCount = parseInt(repeatMatch[2], 10);
+        for (let i = 0; i < repeatCount; i++) {
+          stitches.forEach(s => expandedStitches.push(...expandStitch(s)));
         }
       }
-    });
-    
-    return expandedStitches;
-  }
-}
-
-// Get stitch class for styling
-function getStitchClass(stitch) {
-  if (!stitch) return '';
-  
-  // Extract the stitch type (removing any number prefix)
-  const type = stitch.toString().replace(/^\d+/, '');
-  
-  // Map common stitch types to classes
-  const stitchClasses = {
-    'sc': 'stitch-sc',
-    'dc': 'stitch-dc',
-    'hdc': 'stitch-hdc',
-    'tr': 'stitch-tr',
-    'dtr': 'stitch-dtr',
-    'ch': 'stitch-ch',
-    'sl': 'stitch-sl',
-    'inc': 'stitch-inc',
-    'dec': 'stitch-dec',
-    'bs': 'stitch-bs',
-    'ns': 'stitch-ns'
-  };
-  
-  return stitchClasses[type] || '';
-}
-
-function getStitchCount(stitch) {
-  if (!stitch) return 1;
-  
-  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-  if (match) {
-    return parseInt(match[1]);
-  }
-  return 1;
-}
-
-function getStitchType(stitch) {
-  if (!stitch) return '';
-  
-  const match = stitch.toString().match(/^(\d+)([a-zA-Z]+)/);
-  if (match) {
-    return match[2];
-  }
-  return stitch;
+    } else {
+      expandedStitches.push(...expandStitch(stitch));
+    }
+  });
+  return expandedStitches;
 }
 
 // Check if a stitch is a repeat pattern

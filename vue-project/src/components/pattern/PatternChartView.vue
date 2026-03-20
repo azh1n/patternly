@@ -176,6 +176,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import SwappableStitchVisualization from './SwappableStitchVisualization.vue';
+import { getStitchClass } from '@/composables/useStitchHelpers';
 
 // Component state
 const mounted = ref(false);

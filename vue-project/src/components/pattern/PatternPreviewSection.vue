@@ -30,12 +30,13 @@
               <!-- Stitches before repeat -->
               <div class="stitch-group">
                 <template v-for="(stitch, i) in row.stitches.beforeRepeat" :key="`before-${i}`">
-                  <div 
-                    class="preview-stitch" 
+                  <div
+                    class="preview-stitch"
                     :class="getStitchClass(stitch)"
+                    :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
                     :title="stitch"
                   >
-                    {{ stitch }}
+                    {{ getStitchType(stitch) }}
                   </div>
                 </template>
               </div>
@@ -69,12 +70,13 @@
               <!-- Stitches after repeat -->
               <div class="stitch-group">
                 <template v-for="(stitch, i) in row.stitches.afterRepeat" :key="`after-${i}`">
-                  <div 
-                    class="preview-stitch" 
+                  <div
+                    class="preview-stitch"
                     :class="getStitchClass(stitch)"
+                    :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
                     :title="stitch"
                   >
-                    {{ stitch }}
+                    {{ getStitchType(stitch) }}
                   </div>
                 </template>
               </div>
@@ -113,12 +115,13 @@
                   <div v-if="shouldUseFullWidth(getRepeatedStitches(stitch))" class="line-break"></div>
                 </template>
                 <template v-else>
-                  <div 
-                    class="preview-stitch" 
+                  <div
+                    class="preview-stitch"
                     :class="getStitchClass(stitch)"
+                    :style="getStitchColor(stitch) ? { borderLeft: '3px solid ' + getColorHex(getStitchColor(stitch)) } : {}"
                     :title="stitch"
                   >
-                    {{ stitch }}
+                    {{ getStitchType(stitch) }}
                   </div>
                 </template>
               </template>
@@ -141,6 +144,7 @@
 import { ref } from 'vue';
 import PatternViewToggle from './PatternViewToggle.vue';
 import CrochetNotationView from './crochet/CrochetNotationView.vue';
+import { getStitchClass, getStitchCount, getStitchType, getStitchColor, getColorHex } from '@/composables/useStitchHelpers';
 
 // Collapsed state for expand/collapse toggle
 const collapsed = ref(false);
@@ -188,58 +192,7 @@ function getRowSummary(row) {
   return Object.entries(summary).map(([type, count]) => `${count} ${type}`).join(', ');
 }
 
-// Helper functions for stitch display
-const getStitchCount = (stitch) => {
-  const match = stitch.match(/^(\d+)/);
-  return match ? match[1] : '1';
-};
-
-const getStitchType = (stitch) => {
-  const match = stitch.match(/^(\d+)([a-zA-Z]+)/);
-  return match ? match[2] : stitch;
-};
-
-const getStitchClass = (stitch) => {
-  const type = getStitchType(stitch);
-  const lowerType = type.toLowerCase();
-  
-  // Map common stitch types to classes
-  const stitchClasses = {
-    'sc': 'stitch-sc',
-    'dc': 'stitch-dc',
-    'hdc': 'stitch-hdc',
-    'tr': 'stitch-tr',
-    'dtr': 'stitch-dtr',
-    'ch': 'stitch-ch',
-    'sl': 'stitch-sl',
-    'inc': 'stitch-inc',
-    'dec': 'stitch-dec',
-    'bs': 'stitch-bs',
-    'ns': 'stitch-ns'
-  };
-  
-  return stitchClasses[lowerType] || '';
-};
-
-// Helper function to get color hex
-const getColorHex = (colorName) => {
-  const colorMap = {
-    'red': '#ff5252',
-    'blue': '#4f87ff',
-    'green': '#4caf50',
-    'yellow': '#ffc107',
-    'purple': '#9c27b0',
-    'pink': '#e91e63',
-    'orange': '#ff9800',
-    'teal': '#009688',
-    'brown': '#795548',
-    'gray': '#9e9e9e',
-    'black': '#000000',
-    'white': '#ffffff'
-  };
-  
-  return colorMap[colorName?.toLowerCase()] || colorName;
-};
+// getStitchCount, getStitchType, getStitchClass, getStitchColor, getColorHex imported from composable
 
 // Helper function to check if a stitch is a repeat pattern
 const isRepeatPattern = (stitch) => {

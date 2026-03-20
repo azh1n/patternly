@@ -1,8 +1,12 @@
 # Story: Per-Stitch Yarn Color Support
 
-**Status:** Planning
+**Status:** Done
 **Priority:** Medium
 **Estimated Scope:** ~15 files modified, ~2 new test files
+
+**Split-out stories:**
+- [Color-Only Stitch Parsing](./color-only-stitch-parsing.md) — freeform color labels, implicit single crochet, hex color support
+- [RS/WS Side Indicator](../rs-ws-side-indicator.md) — right side / wrong side row parsing and display
 
 ---
 

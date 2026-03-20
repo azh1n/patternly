@@ -2,7 +2,7 @@
 
 **Status:** Planning
 **Priority:** Low
-**Depends on:** [Per-Stitch Yarn Color Support](./per-stitch-color-support.md)
+**Depends on:** [Per-Stitch Yarn Color Support](./archive/per-stitch-color-support.md)
 **Estimated Scope:** ~6 files modified, 1 new test file
 
 ---

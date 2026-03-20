@@ -68,9 +68,12 @@ export const usePatternStore = defineStore('pattern', {
           updatedAt: new Date().toISOString()
         })
         
+        const now = new Date().toISOString()
         const newPattern = {
           id: docRef.id,
-          ...pattern
+          ...pattern,
+          createdAt: now,
+          updatedAt: now
         }
         
         this.patterns.unshift(newPattern)

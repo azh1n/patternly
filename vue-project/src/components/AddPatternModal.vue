@@ -349,6 +349,7 @@ import RowEditModal from './pattern/RowEditModal.vue'
 import UnparsedContentSection from './pattern/UnparsedContentSection.vue'
 import PatternPreviewSection from './pattern/PatternPreviewSection.vue'
 import { useUserSettings } from '@/services/userSettings'
+import { stitchPatterns, normalizeStitchCode, extractStitchesFromText } from '@/utils/patternParser'
 
 // Props and emits
 const props = defineProps({
@@ -548,36 +549,7 @@ const commonColorPatterns = [
   { pattern: /\bcolor\s+([A-Za-z])\b/i, format: 'color' }
 ]
 
-// Common crochet stitch patterns
-const stitchPatterns = [
-  { pattern: /\b(\d+)sc\b/i, name: 'sc' },  // single crochet with no space
-  { pattern: /\b(\d+)\s*sc\b/i, name: 'sc' },  // single crochet
-  { pattern: /\b(\d+)inc\b/i, name: 'inc' },  // increase with no space
-  { pattern: /\b(\d+)\s*inc\b/i, name: 'inc' },  // increase
-  { pattern: /\binc\b/i, name: 'inc' },        // increase without number
-  { pattern: /\b(\d+)dec\b/i, name: 'dec' },  // decrease with no space
-  { pattern: /\b(\d+)\s*dec\b/i, name: 'dec' },  // decrease
-  { pattern: /\bdec\b/i, name: 'dec' },        // decrease without number
-  { pattern: /\b(\d+)\s*dc\b/i, name: 'dc' },  // double crochet
-  { pattern: /\b(\d+)dc\b/i, name: 'dc' },     // double crochet with no space
-  { pattern: /\b(\d+)\s*hdc\b/i, name: 'hdc' }, // half double crochet
-  { pattern: /\b(\d+)hdc\b/i, name: 'hdc' },    // half double crochet with no space
-  { pattern: /\b(\d+)\s*tr\b/i, name: 'tr' },  // treble crochet
-  { pattern: /\b(\d+)tr\b/i, name: 'tr' },     // treble crochet with no space
-  { pattern: /\b(\d+)\s*dtr\b/i, name: 'dtr' }, // double treble crochet
-  { pattern: /\b(\d+)dtr\b/i, name: 'dtr' },    // double treble crochet with no space
-  { pattern: /\b(\d+)\s*sl\s*st\b/i, name: 'sl st' }, // slip stitch
-  { pattern: /\bch\s*(\d+)\b/i, name: 'ch' },  // chain
-  { pattern: /\b(\d+)ch\b/i, name: 'ch' },     // chain with no space
-  { pattern: /\bsk\s*(\d+)\b/i, name: 'sk' },  // skip
-  { pattern: /\bst\b/i, name: 'st' },          // stitch
-  { pattern: /\bsts\b/i, name: 'sts' },        // stitches
-  { pattern: /\bsp\b/i, name: 'sp' },          // space
-  { pattern: /\b(\d+)bs\b/i, name: 'bs' },     // bobble stitch with no space
-  { pattern: /\b(\d+)\s*bs\b/i, name: 'bs' },  // bobble stitch
-  { pattern: /\b(\d+)ns\b/i, name: 'ns' },     // net stitch with no space
-  { pattern: /\b(\d+)\s*ns\b/i, name: 'ns' }   // net stitch
-]
+// stitchPatterns imported from @/utils/patternParser
 
 // Watch for changes in parsed rows to update color detection and pattern shape
 watch(parsedRows, () => {
@@ -1171,62 +1143,7 @@ const parseRepeatedPatterns = (text) => {
   return processedParts;
 }
 
-// Helper function to normalize a stitch code
-const normalizeStitchCode = (code) => {
-  if (!code) return null;
-  
-  // Clean the code
-  const cleanCode = code.replace(/[.,;:!?]+$/, '').trim();
-  
-  // Try all stitch patterns
-  for (const pattern of stitchPatterns) {
-    const match = cleanCode.match(pattern.pattern);
-    if (match) {
-      const count = match[1] || '1';
-      return `${count}${pattern.name}`;
-    }
-  }
-  
-  // If no specific pattern matched, try a general pattern
-  const generalMatch = cleanCode.match(/(\d+)([a-zA-Z]+)/);
-  if (generalMatch) {
-    return `${generalMatch[1]}${generalMatch[2].toLowerCase()}`;
-  }
-  
-  return null;
-}
-
-// Helper function to extract stitch patterns from a given text
-const extractStitchesFromText = (text) => {
-  try {
-    const foundStitches = [];
-    
-    // First remove any stitch count information in parentheses
-    const cleanedText = text.replace(/\([^)]*stitch count[^)]*\)/i, '').trim();
-  
-    // Split by all commas first
-    const allParts = cleanedText.split(',').map(p => p.trim()).filter(Boolean);
-    
-    for (const part of allParts) {
-      // Skip empty parts
-      if (!part) continue;
-      
-      // Remove any trailing punctuation
-      const cleanPart = part.replace(/[.,;:!?]+$/, '').trim();
-      
-      // Normalize the stitch code
-      const normalizedStitch = normalizeStitchCode(cleanPart);
-      if (normalizedStitch) {
-        foundStitches.push(normalizedStitch);
-      }
-    }
-    
-    return foundStitches;
-  } catch (error) {
-    console.error("Error in extractStitchesFromText:", error);
-    return [];
-  }
-}
+// normalizeStitchCode and extractStitchesFromText imported from @/utils/patternParser
 
 // Apply user-defined row format
 const applyRowFormat = () => {

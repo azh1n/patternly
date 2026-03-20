@@ -348,6 +348,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { getStitchCount, getStitchType, expandStitch } from '@/composables/useStitchHelpers';
 
 // Local state for expand/collapse stitches
 const displayRepeatedStitchesSeparately = ref(true);
@@ -512,17 +513,7 @@ const endPan = () => {
   isPanning.value = false;
 };
 
-// Extract count from stitch string (e.g., "3dc" -> 3)
-const getStitchCount = (stitch) => {
-  const match = stitch.match(/^(\d+)/);
-  return match ? parseInt(match[1]) : 1;
-};
-
-// Extract stitch type from stitch string (e.g., "3dc" -> "dc")
-const getStitchType = (stitch) => {
-  const match = stitch.match(/^(\d+)?([a-zA-Z]+)/);
-  return match ? match[2] : stitch;
-};
+// getStitchCount, getStitchType imported from composable
 
 // Get radius for a specific row
 const getRowRadius = (rowIndex) => {
@@ -647,35 +638,19 @@ const getStitchConnectionPath = (stitches, rowIndex) => {
 // Get all stitches for a row, handling both regular and repeated stitch formats
 const getRowStitches = (row) => {
   if (!row || !row.stitches) return [];
-  
+
   if (Array.isArray(row.stitches)) {
-    if (displayRepeatedStitchesSeparately) {
-      // Expand repeated stitches into individual stitches
+    if (displayRepeatedStitchesSeparately.value) {
       const expandedStitches = [];
       row.stitches.forEach(stitch => {
-        // Check if this is a repeat pattern
         if (isRepeatPattern(stitch)) {
-          // Get the repeated stitches and repeat count
           const repeatedStitches = getRepeatedStitches(stitch);
           const repeatCount = getRepeatCount(stitch);
-          
-          // Add each repeat
           for (let i = 0; i < repeatCount; i++) {
-            repeatedStitches.forEach(repeatedStitch => {
-              const count = getStitchCount(repeatedStitch);
-              const type = getStitchType(repeatedStitch);
-              for (let j = 0; j < count; j++) {
-                expandedStitches.push(type);
-              }
-            });
+            repeatedStitches.forEach(s => expandedStitches.push(...expandStitch(s)));
           }
         } else {
-          // Regular stitch
-          const count = getStitchCount(stitch);
-          const type = getStitchType(stitch);
-          for (let i = 0; i < count; i++) {
-            expandedStitches.push(type);
-          }
+          expandedStitches.push(...expandStitch(stitch));
         }
       });
       return expandedStitches;
@@ -684,7 +659,7 @@ const getRowStitches = (row) => {
   } else if (row.stitches.repeated) {
     return getExpandedStitches(row.stitches);
   }
-  
+
   return [];
 };
 
