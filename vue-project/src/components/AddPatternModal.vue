@@ -350,6 +350,7 @@ import UnparsedContentSection from './pattern/UnparsedContentSection.vue'
 import PatternPreviewSection from './pattern/PatternPreviewSection.vue'
 import { useUserSettings } from '@/services/userSettings'
 import { stitchPatterns, normalizeStitchCode, extractStitchesFromText, extractRowSide } from '@/utils/patternParser'
+import { getStitchColor } from '@/composables/useStitchHelpers'
 
 // Props and emits
 const props = defineProps({
@@ -663,10 +664,11 @@ const detectColors = () => {
     // If user has specified a color format, we'll use that later
     return
   }
-  
+
   const text = patternText.value
   const colors = new Set()
-  
+
+  // Detect row-level colors from pattern text (MC, CC, Color A, etc.)
   for (const pattern of commonColorPatterns) {
     const matches = text.match(new RegExp(pattern.pattern, 'gi'))
       if (matches) {
@@ -680,7 +682,20 @@ const detectColors = () => {
       })
     }
   }
-  
+
+  // Collect per-stitch colors from parsed rows
+  for (const row of parsedRows.value) {
+    if (!row.stitches) continue
+    const stitchList = Array.isArray(row.stitches)
+      ? row.stitches
+      : [...(row.stitches.beforeRepeat || []), ...(row.stitches.repeatedStitches || []), ...(row.stitches.afterRepeat || [])]
+    for (const stitch of stitchList) {
+      if (typeof stitch !== 'string') continue
+      const color = getStitchColor(stitch)
+      if (color) colors.add(color)
+    }
+  }
+
   detectedColors.value = Array.from(colors)
 }
 
