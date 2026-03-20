@@ -841,19 +841,19 @@ const parseRows = () => {
     }
   }
   
-  // First, preprocess the text to handle multiple rounds on the same line
+  // First, preprocess the text to handle multiple rounds/rows on the same line
   const text = patternText.value.trim();
-  
-  // Replace "Round X" with a newline before it if it's not at the beginning of a line
-  // This separates rounds that are on the same line
-  const preprocessedText = text.replace(/(\S)(Round \d+)/g, '$1\n$2');
-  
+
+  // Insert newline before "Round X" or "Row X" when preceded by non-whitespace
+  // This separates rounds/rows that are on the same line
+  const preprocessedText = text.replace(/(\S)(?=(?:Round|Row)\s+\d+)/gi, '$1\n');
+
   const lines = preprocessedText.split('\n');
-  
-  // Try a simpler approach - match "Round X" directly
-  const rowRegex = /Round (\d+)/i;
-  
-  // Find all rows with "Round X" format
+
+  // Match both "Round X" and "Row X" formats
+  const rowRegex = /(?:Round|Row)\s+(\d+)/i;
+
+  // Find all rows
   const foundRows = [];
   
   lines.forEach(line => {
@@ -902,8 +902,8 @@ const parseRows = () => {
     // Fallback to the more complex regex approach
     const rowPattern = createRowRegex(detectedRowFormat.value || userRowFormat.value);
     
-    // Get all text content, normalize line breaks and spaces for regex
-    const normalizedText = text.replace(/\s+/g, ' ').trim();
+    // Get all text content, strip direction arrows and normalize whitespace for regex
+    const normalizedText = text.replace(/[←→]/g, '').replace(/\s+/g, ' ').trim();
     
     // Find all row patterns in the entire text
     const allRowMatches = [...normalizedText.matchAll(new RegExp(rowPattern, 'gi'))];
@@ -1016,7 +1016,7 @@ const extractStitches = (text) => {
     
     // Special case for patterns like "Round 3 (1sc, 1inc) x6 (18)"
     // Allow optional [RS]/[WS]/(RS)/(WS) between row number and repeat parens
-    const directRepeatMatch = text.match(/(?:Round|Row)\s+\d+\s*(?:\[(?:RS|WS)\]|\((?:RS|WS)\))?\s*:?\s*\(([^)]+)\)\s*x(\d+)/i);
+    const directRepeatMatch = text.match(/^.*?(?:Round|Row)\s+\d+\s*(?:\[(?:RS|WS)\]|\((?:RS|WS)\))?\s*:?\s*\(([^)]+)\)\s*x\s*(\d+)/i);
     if (directRepeatMatch) {
       // Extract the repeated content and count directly from the row text
       const repeatedContent = directRepeatMatch[1].trim();
@@ -1035,8 +1035,8 @@ const extractStitches = (text) => {
       };
     }
 
-    // Strip out the "Round X" or "Row X" prefix, including optional [RS]/[WS]/(RS)/(WS) side indicator
-    let cleanedText = text.replace(/^(?:Round|Row)\s+\d+\s*(?:\[(?:RS|WS)\]|\((?:RS|WS)\)|\b(?:RS|WS)\b)?\s*:?\s*/i, '').trim();
+    // Strip out any leading junk + "Round X" or "Row X" prefix, including optional [RS]/[WS]/(RS)/(WS) side indicator
+    let cleanedText = text.replace(/^.*?(?:Round|Row)\s+\d+\s*(?:\[(?:RS|WS)\]|\((?:RS|WS)\)|\b(?:RS|WS)\b)?\s*:?\s*/i, '').trim();
 
     // Remove any "With Color X" prefix
     cleanedText = cleanedText.replace(/With\s+Color\s+[A-Za-z]+,?\s*/i, '').trim();
@@ -1053,12 +1053,12 @@ const extractStitches = (text) => {
 const parseRepeatedPatterns = (text) => {
   // Remove stitch count at the end like "(18)"
   text = text.replace(/\(\d+\)$/, '').trim();
-  
+
   // Find all repeat pattern matches
-  const repeatRegex = /\(([^)]+)\)\s*x(\d+)/g;
+  const repeatRegex = /\(([^)]+)\)\s*x\s*(\d+)/g;
   let matches = [];
   let match;
-  
+
   while ((match = repeatRegex.exec(text)) !== null) {
     matches.push({
       fullMatch: match[0],
@@ -1068,25 +1068,45 @@ const parseRepeatedPatterns = (text) => {
       endIndex: match.index + match[0].length
     });
   }
-  
+
   // If no repeat patterns found, return regular stitches
   if (matches.length === 0) {
     return extractStitchesFromText(text);
   }
-  
-  // If exactly one repeat pattern and it covers most of the content, use the simplified structure
+
+  // Check if a repeat contains a single token (e.g. "(Green) x 104").
+  // If so, expand it inline as a color-only stitch: "104sc:Green".
+  const expandSingleTokenRepeat = (repeatMatch) => {
+    const tokens = repeatMatch.repeatedContent.split(',').map(t => t.trim()).filter(Boolean);
+    if (tokens.length !== 1) return null;
+    const normalized = normalizeStitchCode(tokens[0]);
+    if (!normalized || !normalized.includes(':')) return null;
+    // It's a single color-only stitch like "1sc:Green" — use the repeat count as the stitch count
+    const color = normalized.split(':')[1];
+    return `${repeatMatch.repeatCount}sc:${color}`;
+  };
+
+  // If exactly one repeat pattern, check if it can be expanded inline
   if (matches.length === 1) {
     const repeatMatch = matches[0];
-    
+    const expanded = expandSingleTokenRepeat(repeatMatch);
+
     // Extract parts before and after the repeat
     const beforeText = text.substring(0, repeatMatch.startIndex).trim();
     const afterText = text.substring(repeatMatch.endIndex).trim();
-    
-    // Extract stitches from each part
+
+    if (expanded) {
+      // Expand into a flat stitch array
+      const beforeStitches = beforeText ? extractStitchesFromText(beforeText) : [];
+      const afterStitches = afterText ? extractStitchesFromText(afterText) : [];
+      return [...beforeStitches, expanded, ...afterStitches];
+    }
+
+    // Multi-stitch repeat — keep the structured format
     const beforeStitches = beforeText ? extractStitchesFromText(beforeText) : [];
     const repeatedStitches = extractStitchesFromText(repeatMatch.repeatedContent);
     const afterStitches = afterText ? extractStitchesFromText(afterText) : [];
-    
+
     return {
       repeated: true,
       beforeRepeat: beforeStitches,
@@ -1095,59 +1115,56 @@ const parseRepeatedPatterns = (text) => {
       repeatCount: repeatMatch.repeatCount
     };
   }
-  
-  // For multiple repeat patterns, we need a different approach
-  // We'll treat it as a flat array of stitches but preserve the repeat patterns
-  
+
+  // For multiple repeat patterns, build a flat array
+  // Single-token repeats are expanded inline; multi-stitch repeats are kept as raw strings
+
   // Sort matches by their starting position in the text
   matches.sort((a, b) => a.startIndex - b.startIndex);
-  
+
   // Split the text into parts: regular stitches and repeat patterns
   let parts = [];
   let lastIndex = 0;
-  
+
   for (const repeatMatch of matches) {
     // Add any text before this repeat pattern
     if (repeatMatch.startIndex > lastIndex) {
       const beforeText = text.substring(lastIndex, repeatMatch.startIndex).trim();
       if (beforeText) {
-        // Split by commas and extract individual stitches
         const beforeParts = beforeText.split(',').map(part => part.trim()).filter(Boolean);
         for (const part of beforeParts) {
-          parts.push(part);
+          const normalized = normalizeStitchCode(part);
+          if (normalized) parts.push(normalized);
         }
       }
     }
-    
-    // Add the repeat pattern as is
-    parts.push(repeatMatch.fullMatch);
-    
+
+    // Try to expand single-token repeats inline
+    const expanded = expandSingleTokenRepeat(repeatMatch);
+    if (expanded) {
+      parts.push(expanded);
+    } else {
+      // Multi-stitch repeat — keep as raw string for repeat card rendering
+      parts.push(repeatMatch.fullMatch);
+    }
+
     // Update the last index
     lastIndex = repeatMatch.endIndex;
   }
-  
+
   // Add any text after the last repeat pattern
   if (lastIndex < text.length) {
     const afterText = text.substring(lastIndex).trim();
     if (afterText) {
-      // Split by commas and extract individual stitches
       const afterParts = afterText.split(',').map(part => part.trim()).filter(Boolean);
       for (const part of afterParts) {
-        parts.push(part);
+        const normalized = normalizeStitchCode(part);
+        if (normalized) parts.push(normalized);
       }
     }
   }
-  
-  // Process each part and convert to standard stitch format
-  const processedParts = parts.map(part => {
-    // If this is a repeat pattern, keep it as is
-    if (part.match(/\([^)]+\)\s*x\d+/)) {
-      return part;
-    }
-    
-    // Otherwise normalize the stitch code
-    return normalizeStitchCode(part);
-  }).filter(Boolean);
+
+  const processedParts = parts;
   
   return processedParts;
 }

@@ -205,7 +205,7 @@ const getRepeatedStitches = (stitch) => {
   if (!isRepeatPattern(stitch)) return [];
   
   // Extract the part inside parentheses
-  const match = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+  const match = stitch.match(/\(([^)]+)\)\s*x\s*(\d+)/);
   if (!match) return [];
   
   const repeatedContent = match[1];
@@ -217,7 +217,7 @@ const getRepeatedStitches = (stitch) => {
 const getRepeatCount = (stitch) => {
   if (!isRepeatPattern(stitch)) return 1;
   
-  const match = stitch.match(/\(([^)]+)\)\s*x(\d+)/);
+  const match = stitch.match(/\(([^)]+)\)\s*x\s*(\d+)/);
   if (!match) return 1;
   
   return parseInt(match[2], 10);

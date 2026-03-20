@@ -70,7 +70,7 @@ const knownStitchTypes = [
 export const normalizeStitchCode = (code) => {
   if (!code) return null
 
-  const cleanCode = code.replace(/[.,;:!?]+$/, '').trim()
+  const cleanCode = code.replace(/^[^a-zA-Z0-9#]+/, '').replace(/[^a-zA-Z0-9]+$/, '').trim()
 
   // Step 1: Check for trailing color word: "2bs green" → stitch="2bs", color="green"
   const colorSuffixMatch = cleanCode.match(
