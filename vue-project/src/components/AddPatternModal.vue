@@ -385,21 +385,8 @@ const uploadedImage = ref(null)
 const handleFileUpload = async (fileData) => {
   try {
     // Store the uploaded file for processing
+    // Actual chart processing is handled by FileUploader via FileUploadContainer
     uploadedImage.value = fileData
-    
-    // If it's an image, we'll need to process it with OCR or other methods
-    if (fileData.type.startsWith('image/')) {
-      // TODO: Process image with OCR or other methods
-      console.log('Processing image:', fileData)
-      // For now, we'll just show a message
-      errorMessage.value = 'Image processing coming soon! For now, please paste your pattern text below.'
-    } 
-    // If it's a PDF or DOCX, we can extract text
-    else if (fileData.type === 'application/pdf' || 
-             fileData.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // TODO: Extract text from PDF/DOCX
-      errorMessage.value = 'Document processing coming soon! For now, please paste your pattern text below.'
-    }
   } catch (error) {
     console.error('Error processing uploaded file:', error)
     errorMessage.value = 'Error processing uploaded file. Please try again or paste your pattern text below.'

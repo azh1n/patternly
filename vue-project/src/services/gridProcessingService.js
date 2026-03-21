@@ -2,7 +2,7 @@
  * Grid Processing Service
  * Provides functions for detecting and processing grid patterns in images
  */
-import { ref } from 'vue';
+import { findPeaks, computeMedianSpacing, interpolateMissingLines, scoreLineConfidence, deduplicateLines, filterComponentsByArea, buildCellGrid } from '@/utils/gridAnalysis';
 
 /**
  * Vue composable for grid processing functionality
@@ -15,12 +15,17 @@ export function useGridProcessing() {
    * @param {cv.Mat} grayImage - Grayscale image as OpenCV Mat
    * @returns {Object} - Grid detection result with lines and cells
    */
-  const detectGrid = (cv, grayImage) => {
-    console.log('[GridProcessing] Detecting grid structure...');
+  /**
+   * @param {Object} cv - OpenCV instance
+   * @param {cv.Mat} grayImage - Grayscale image as OpenCV Mat
+   * @param {Object} [options]
+   * @param {boolean} [options.assumeFullGrid] - Skip border detection and treat the entire image as the grid ROI (used for tiled processing)
+   */
+  const detectGrid = (cv, grayImage, options = {}) => {
+    console.log('[GridProcessing] Detecting grid structure...', options.assumeFullGrid ? '(tile mode — assuming full grid)' : '');
 
     // Wrap the detection in a timeout to prevent hanging
     return new Promise((resolve, reject) => {
-      // Set a timeout to prevent hanging (10 seconds for faster feedback)
       const timeout = setTimeout(() => {
         console.warn('[GridProcessing] Grid detection timed out after 10 seconds, returning basic result');
         resolve({
@@ -33,7 +38,7 @@ export function useGridProcessing() {
       }, 10000);
 
       try {
-        const result = detectGridSync(cv, grayImage);
+        const result = detectGridSync(cv, grayImage, options);
         clearTimeout(timeout);
         console.log('[GridProcessing] Grid detection completed successfully');
         resolve(result);
@@ -52,9 +57,70 @@ export function useGridProcessing() {
   };
 
   /**
+   * Computes the deskew angle from a contour using minAreaRect.
+   * Returns the angle in degrees needed to straighten the image,
+   * or 0 if the image is already aligned (below threshold).
+   * OpenCV's minAreaRect returns angles in [-90, 0).
+   */
+  const computeDeskewAngle = (cv, contour) => {
+    // Only trust minAreaRect angle if the contour is sufficiently rectangular.
+    // Non-rectangular contours (jagged edges, merged fragments) produce misleading angles.
+    const contourArea = cv.contourArea(contour);
+    const boundingRect = cv.boundingRect(contour);
+    const boundingArea = boundingRect.width * boundingRect.height;
+    const rectangularity = boundingArea > 0 ? contourArea / boundingArea : 0;
+
+    if (rectangularity < 0.7) {
+      console.log(`[GridProcessing] Contour rectangularity ${rectangularity.toFixed(2)} too low for reliable deskew, skipping`);
+      return 0;
+    }
+
+    const rotatedRect = cv.minAreaRect(contour);
+    let angle = rotatedRect.angle;
+
+    // OpenCV minAreaRect angle convention:
+    // Returns angle in [-90, 0). We need to normalize:
+    // - Angle near 0 or near -90 means nearly aligned
+    // - Angle near -45 means ~45 degree rotation
+    if (angle < -45) {
+      angle = 90 + angle; // Convert to positive small angle
+    }
+
+    // Clamp to ±15 degrees — beyond that, contour detection itself is unreliable
+    angle = Math.max(-15, Math.min(15, angle));
+
+    // Below 0.5 degrees, don't bother deskewing (avoids interpolation artifacts)
+    if (Math.abs(angle) < 0.5) {
+      return 0;
+    }
+
+    return angle;
+  };
+
+  /**
+   * Applies rotation correction to a grayscale image.
+   * Returns the deskewed image (caller must delete it).
+   */
+  const deskewImage = (cv, grayImage, angleDegrees) => {
+    const center = new cv.Point(grayImage.cols / 2, grayImage.rows / 2);
+    const rotationMatrix = cv.getRotationMatrix2D(center, angleDegrees, 1.0);
+    const deskewed = new cv.Mat();
+    cv.warpAffine(
+      grayImage,
+      deskewed,
+      rotationMatrix,
+      new cv.Size(grayImage.cols, grayImage.rows),
+      cv.INTER_LINEAR,
+      cv.BORDER_REPLICATE
+    );
+    rotationMatrix.delete();
+    return deskewed;
+  };
+
+  /**
    * Synchronous grid detection function (wrapped by timeout)
    */
-  const detectGridSync = (cv, grayImage) => {
+  const detectGridSync = (cv, grayImage, options = {}) => {
     // Create result object
     const result = {
       horizontalLines: [],
@@ -63,154 +129,154 @@ export function useGridProcessing() {
       gridFound: false
     };
 
-    console.log("Step 1");
-    // Step 1: Apply adaptive threshold to enhance grid lines
-    console.log('[GridProcessing] Step 1: Applying adaptive threshold...');
-    const binary = new cv.Mat();
-    cv.adaptiveThreshold(
-      grayImage,
-      binary,
-      255,
-      cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-      cv.THRESH_BINARY_INV,
-      11,  // Block size
-      2    // Constant subtracted from mean
-    );
+    // Deskewed image reference (set later if rotation correction is needed)
+    let deskewedImage = null;
 
-    console.log("Step 2");
-    // Step 2: Find grid patterns by detecting regular patterns of lines (SIMPLIFIED)
-    console.log('[GridProcessing] Step 2: Creating morphological kernels...');
-    // Create kernels for horizontal and vertical line detection
-    const horizontalKernelSize = new cv.Size(Math.floor(grayImage.cols * 0.1), 1);
-    const verticalKernelSize = new cv.Size(1, Math.floor(grayImage.rows * 0.1));
+    // Mats used by the border detection path (declared here so cleanup works for both paths)
+    let binary = null;
+    let horizontalKernel = null;
+    let verticalKernel = null;
+    let horizontalLines = null;
+    let verticalLinesMat = null;
+    let gridStructure = null;
+    let morphedGrid = null;
+    let closeKernel = null;
+    let contours = null;
+    let hierarchy = null;
 
-    const horizontalKernel = cv.getStructuringElement(cv.MORPH_RECT, horizontalKernelSize);
-    const verticalKernel = cv.getStructuringElement(cv.MORPH_RECT, verticalKernelSize);
+    if (options.assumeFullGrid) {
+      // ── TILE MODE: skip border detection, treat entire image as grid ──
+      console.log('[GridProcessing] Tile mode: using full image as grid area');
+      result.gridFound = true;
+      result.gridArea = {
+        x: 0,
+        y: 0,
+        width: grayImage.cols,
+        height: grayImage.rows
+      };
 
-    console.log('[GridProcessing] Step 2: Detecting horizontal and vertical lines...');
-    // Detect horizontal and vertical lines separately
-    const horizontalLines = new cv.Mat();
-    const verticalLinesMat = new cv.Mat();
+      // Add border lines at image edges
+      result.horizontalLines.push(
+        { x1: 0, y1: 0, x2: grayImage.cols, y2: 0, isGridBorder: true },
+        { x1: 0, y1: grayImage.rows, x2: grayImage.cols, y2: grayImage.rows, isGridBorder: true }
+      );
+      result.verticalLines.push(
+        { x1: 0, y1: 0, x2: 0, y2: grayImage.rows, isGridBorder: true },
+        { x1: grayImage.cols, y1: 0, x2: grayImage.cols, y2: grayImage.rows, isGridBorder: true }
+      );
 
-    // Morphological operations to extract horizontal lines
-    cv.morphologyEx(binary, horizontalLines, cv.MORPH_OPEN, horizontalKernel);
+    } else {
+      // ── NORMAL MODE: detect grid border via contours ──
 
-    // Morphological operations to extract vertical lines
-    cv.morphologyEx(binary, verticalLinesMat, cv.MORPH_OPEN, verticalKernel);
+      // Step 1: Apply adaptive threshold to enhance grid lines
+      console.log('[GridProcessing] Step 1: Applying adaptive threshold...');
+      binary = new cv.Mat();
+      cv.adaptiveThreshold(
+        grayImage,
+        binary,
+        255,
+        cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv.THRESH_BINARY_INV,
+        11,  // Block size
+        2    // Constant subtracted from mean
+      );
 
-    console.log('[GridProcessing] Step 2: Combining line structures...');
-    // Combine horizontal and vertical lines to get grid structure
-    const gridStructure = new cv.Mat();
-    cv.add(horizontalLines, verticalLinesMat, gridStructure);
+      // Step 2: Find grid patterns by detecting regular patterns of lines (SIMPLIFIED)
+      console.log('[GridProcessing] Step 2: Creating morphological kernels...');
+      const horizontalKernelSize = new cv.Size(Math.floor(grayImage.cols * 0.1), 1);
+      const verticalKernelSize = new cv.Size(1, Math.floor(grayImage.rows * 0.1));
 
-    // Apply morphological closing to connect nearby lines
-    const morphedGrid = new cv.Mat();
-    const closeKernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
-    cv.morphologyEx(gridStructure, morphedGrid, cv.MORPH_CLOSE, closeKernel);
+      horizontalKernel = cv.getStructuringElement(cv.MORPH_RECT, horizontalKernelSize);
+      verticalKernel = cv.getStructuringElement(cv.MORPH_RECT, verticalKernelSize);
 
-    console.log("Step 3");
-    // Step 3: Find contours to detect the grid structure
-    console.log('[GridProcessing] Step 3: Finding contours...');
-    const contours = new cv.MatVector();
-    const hierarchy = new cv.Mat();
-    cv.findContours(morphedGrid, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+      console.log('[GridProcessing] Step 2: Detecting horizontal and vertical lines...');
+      horizontalLines = new cv.Mat();
+      verticalLinesMat = new cv.Mat();
 
-    console.log(`[GridProcessing] Step 3: Found ${contours.size()} contours, analyzing...`);
-    // Find the largest rectangular-like contour which is likely the grid
-    let maxGridScore = 0;
-    let maxContourIndex = -1;
+      cv.morphologyEx(binary, horizontalLines, cv.MORPH_OPEN, horizontalKernel);
+      cv.morphologyEx(binary, verticalLinesMat, cv.MORPH_OPEN, verticalKernel);
 
-    for (let i = 0; i < contours.size(); i++) {
-      const contour = contours.get(i);
-      const area = cv.contourArea(contour);
+      console.log('[GridProcessing] Step 2: Combining line structures...');
+      gridStructure = new cv.Mat();
+      cv.add(horizontalLines, verticalLinesMat, gridStructure);
 
-      // Skip very small contours
-      if (area < (grayImage.cols * grayImage.rows * 0.05)) {
-        continue;
+      morphedGrid = new cv.Mat();
+      closeKernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+      cv.morphologyEx(gridStructure, morphedGrid, cv.MORPH_CLOSE, closeKernel);
+
+      // Step 3: Find contours to detect the grid structure
+      console.log('[GridProcessing] Step 3: Finding contours...');
+      contours = new cv.MatVector();
+      hierarchy = new cv.Mat();
+      cv.findContours(morphedGrid, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      console.log(`[GridProcessing] Step 3: Found ${contours.size()} contours, analyzing...`);
+      let maxGridScore = 0;
+      let maxContourIndex = -1;
+
+      for (let i = 0; i < contours.size(); i++) {
+        const contour = contours.get(i);
+        const area = cv.contourArea(contour);
+
+        if (area < (grayImage.cols * grayImage.rows * 0.05)) {
+          continue;
+        }
+
+        const rect = cv.boundingRect(contour);
+        const rectArea = rect.width * rect.height;
+        const rectangularity = area / rectArea;
+        const aspectRatio = Math.max(rect.width / rect.height, rect.height / rect.width);
+        const gridScore = area * rectangularity * (1 / aspectRatio);
+
+        if (gridScore > maxGridScore) {
+          maxGridScore = gridScore;
+          maxContourIndex = i;
+        }
       }
 
-      // Calculate rectangularity - how rectangular is this contour?
-      const rect = cv.boundingRect(contour);
-      const rectArea = rect.width * rect.height;
-      const rectangularity = area / rectArea;
+      if (maxContourIndex >= 0) {
+        result.gridFound = true;
+        const gridContour = contours.get(maxContourIndex);
+        const rect = cv.boundingRect(gridContour);
 
-      // Calculate aspect ratio - grids are typically more square-like
-      const aspectRatio = Math.max(rect.width / rect.height, rect.height / rect.width);
+        result.gridArea = {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height
+        };
 
-      // Score based on size, rectangularity and aspect ratio
-      // Higher score for larger, more rectangular contours with aspect ratio closer to 1
-      const gridScore = area * rectangularity * (1 / aspectRatio);
+        result.horizontalLines.push(
+          { x1: rect.x, y1: rect.y, x2: rect.x + rect.width, y2: rect.y, isGridBorder: true },
+          { x1: rect.x, y1: rect.y + rect.height, x2: rect.x + rect.width, y2: rect.y + rect.height, isGridBorder: true }
+        );
+        result.verticalLines.push(
+          { x1: rect.x, y1: rect.y, x2: rect.x, y2: rect.y + rect.height, isGridBorder: true },
+          { x1: rect.x + rect.width, y1: rect.y, x2: rect.x + rect.width, y2: rect.y + rect.height, isGridBorder: true }
+        );
 
-      if (gridScore > maxGridScore) {
-        maxGridScore = gridScore;
-        maxContourIndex = i;
+        console.log('[GridProcessing] Grid border detected, starting internal line detection');
+
+        // Deskew: check if the grid contour is rotated and straighten the image
+        const deskewAngle = computeDeskewAngle(cv, gridContour);
+        if (deskewAngle !== 0) {
+          console.log(`[GridProcessing] Deskewing image by ${deskewAngle.toFixed(2)} degrees`);
+          deskewedImage = deskewImage(cv, grayImage, deskewAngle);
+        } else {
+          console.log('[GridProcessing] Image is already aligned, skipping deskew');
+        }
       }
     }
 
-    console.log("SignificantContour");
-    // If we found a significant contour
-    if (maxContourIndex >= 0) {
-      result.gridFound = true;
-      const gridContour = contours.get(maxContourIndex);
-
-      // Get bounding rectangle of the grid
-      const rect = cv.boundingRect(gridContour);
-
-      // Add gridArea property needed by drawGridLines
-      result.gridArea = {
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height
-      };
-
-      // Store the grid border as lines
-      // Top horizontal line
-      result.horizontalLines.push({
-        x1: rect.x,
-        y1: rect.y,
-        x2: rect.x + rect.width,
-        y2: rect.y,
-        isGridBorder: true
-      });
-
-      // Bottom horizontal line
-      result.horizontalLines.push({
-        x1: rect.x,
-        y1: rect.y + rect.height,
-        x2: rect.x + rect.width,
-        y2: rect.y + rect.height,
-        isGridBorder: true
-      });
-
-      // Left vertical line
-      result.verticalLines.push({
-        x1: rect.x,
-        y1: rect.y,
-        x2: rect.x,
-        y2: rect.y + rect.height,
-        isGridBorder: true
-      });
-
-      // Right vertical line
-      result.verticalLines.push({
-        x1: rect.x + rect.width,
-        y1: rect.y,
-        x2: rect.x + rect.width,
-        y2: rect.y + rect.height,
-        isGridBorder: true
-      });
-
-      console.log('[GridProcessing] Grid border detected, starting internal line detection');
-      
-      // If we found a grid, detect vertical lines within it
-      if (result.gridFound && result.gridArea) {
+    // Internal line detection (runs for both normal and tile mode when grid is found)
+    if (result.gridFound && result.gridArea) {
+      let workingImage = deskewedImage || grayImage;
         try {
           // Create a region of interest (ROI) for the grid area
           const { x, y, width, height } = result.gridArea;
           const roiRect = new cv.Rect(x, y, width, height);
           const gridROI = new cv.Mat();
-          grayImage.roi(roiRect).copyTo(gridROI);
+          workingImage.roi(roiRect).copyTo(gridROI);
 
           console.log('[GridProcessing] Starting multi-step vertical line detection...');
           console.log(`[GridProcessing] Grid ROI dimensions: ${width}x${height} pixels`);
@@ -530,7 +596,7 @@ export function useGridProcessing() {
               }
             } else {
               // Use dynamic criteria for medium/high resolution
-              if (dy < params.verticalLineTolerance && dx > width * params.houghMinLengthRatio) {
+              if (dy < params.verticalLineTolerance && dx > params.houghMinLength) {
                 // Check if we already have a line at similar y position
                 const yPosition = Math.round((y1 + y2) / 2);
                 const existingLineIndex = horizontalLinePositions.findIndex(
@@ -638,8 +704,14 @@ export function useGridProcessing() {
           console.log(`[GridProcessing] Found ${lightGrayPositions.length} potential light gray column positions`);
           
           // Edge detection for better line boundary detection of light gray lines
+          // Use adaptive Canny thresholds derived from image brightness
+          const roiMean = cv.mean(gridROI);
+          const roiMedian = roiMean[0]; // grayscale mean as proxy for median
+          const cannyLower = Math.max(0, Math.floor(0.67 * roiMedian));
+          const cannyUpper = Math.min(255, Math.floor(1.33 * roiMedian));
           const edges = new cv.Mat();
-          cv.Canny(gridROI, edges, 30, 90, 3, false);
+          cv.Canny(gridROI, edges, cannyLower, cannyUpper, 3, false);
+          console.log(`[GridProcessing] Adaptive Canny thresholds: lower=${cannyLower}, upper=${cannyUpper} (mean brightness=${roiMedian.toFixed(1)})`);
           
           // Apply vertical morphological operation to enhance vertical edges
           const verticalKernel = cv.getStructuringElement(
@@ -990,12 +1062,429 @@ export function useGridProcessing() {
 
           console.log(`[GridProcessing] Total internal vertical lines detected: ${result.verticalLines.filter(line => !line.isGridBorder).length}`);
 
+          // STEP 3b: Horizontal medium gray line detection via row-wise pixel scanning
+          // Mirrors the vertical column scan from Step 3 but scans rows instead of columns.
+          console.log('[GridProcessing] Step 3b: Detecting horizontal medium gray lines with row pixel analysis...');
+
+          const horizontalGrayPositions = [];
+
+          if (isStandardRes) {
+            const hGrayRange = [60, 180];
+            const minHLineWidth = width * 0.15;
+
+            for (let row = 0; row < height; row++) {
+              let grayPixels = 0;
+              let totalPixels = 0;
+              let consecutiveGray = 0;
+              let maxConsecutiveGray = 0;
+
+              for (let col = 0; col < width; col++) {
+                const pixelValue = gridROI.ucharPtr(row, col)[0];
+                totalPixels++;
+
+                if (pixelValue >= hGrayRange[0] && pixelValue <= hGrayRange[1]) {
+                  grayPixels++;
+                  consecutiveGray++;
+                  maxConsecutiveGray = Math.max(maxConsecutiveGray, consecutiveGray);
+                } else {
+                  consecutiveGray = 0;
+                }
+              }
+
+              const grayRatio = grayPixels / totalPixels;
+              const consistencyScore = maxConsecutiveGray / width;
+
+              if (grayRatio > 0.2 && grayPixels > minHLineWidth &&
+                  consistencyScore > 0.1 && maxConsecutiveGray > width * 0.1) {
+                horizontalGrayPositions.push({
+                  position: row,
+                  strength: grayRatio,
+                  consistency: consistencyScore,
+                  maxConsecutive: maxConsecutiveGray,
+                  grayPixels: grayPixels
+                });
+              }
+            }
+          } else {
+            const hGrayRange = params.mediumGrayRange;
+            const minHLineWidth = params.mediumGrayMinHeight; // reuse same scale factor
+
+            for (let row = 0; row < height; row++) {
+              let grayPixels = 0;
+              let totalPixels = 0;
+              let consecutiveGray = 0;
+              let maxConsecutiveGray = 0;
+
+              for (let col = 0; col < width; col++) {
+                const pixelValue = gridROI.ucharPtr(row, col)[0];
+                totalPixels++;
+
+                if (pixelValue >= hGrayRange[0] && pixelValue <= hGrayRange[1]) {
+                  grayPixels++;
+                  consecutiveGray++;
+                  maxConsecutiveGray = Math.max(maxConsecutiveGray, consecutiveGray);
+                } else {
+                  consecutiveGray = 0;
+                }
+              }
+
+              const grayRatio = grayPixels / totalPixels;
+              const consistencyScore = maxConsecutiveGray / width;
+              const minGrayRatio = params.mediumGrayMinRatio;
+              const minConsistency = params.mediumGrayMinConsistency;
+              const minConsecutiveRatio = params.mediumGrayMinConsecutiveRatio;
+
+              if (grayRatio > minGrayRatio && grayPixels > minHLineWidth &&
+                  consistencyScore > minConsistency && maxConsecutiveGray > width * minConsecutiveRatio) {
+                horizontalGrayPositions.push({
+                  position: row,
+                  strength: grayRatio,
+                  consistency: consistencyScore,
+                  maxConsecutive: maxConsecutiveGray,
+                  grayPixels: grayPixels
+                });
+              }
+            }
+          }
+
+          console.log(`[GridProcessing] Found ${horizontalGrayPositions.length} potential horizontal gray row positions`);
+
+          // Group adjacent rows into single lines and find their centers
+          const hGroupedLines = [];
+          const hProcessedRows = new Set();
+
+          horizontalGrayPositions.sort((a, b) => a.position - b.position);
+
+          for (let i = 0; i < horizontalGrayPositions.length; i++) {
+            if (hProcessedRows.has(i)) continue;
+
+            const startPos = horizontalGrayPositions[i];
+            const group = [startPos];
+            hProcessedRows.add(i);
+
+            for (let j = i + 1; j < horizontalGrayPositions.length; j++) {
+              if (hProcessedRows.has(j)) continue;
+
+              const nextPos = horizontalGrayPositions[j];
+              const lastInGroup = group[group.length - 1];
+
+              if (Math.abs(nextPos.position - lastInGroup.position) <= 2) {
+                group.push(nextPos);
+                hProcessedRows.add(j);
+              } else {
+                break;
+              }
+            }
+
+            const minPos = group[0].position;
+            const maxPos = group[group.length - 1].position;
+            const centerPos = Math.round((minPos + maxPos) / 2);
+            const combinedConfidence = group.reduce((sum, pos) => sum + pos.strength, 0) / group.length;
+
+            hGroupedLines.push({
+              position: centerPos,
+              confidence: combinedConfidence,
+              groupSize: group.length,
+              minPosition: minPos,
+              maxPosition: maxPos
+            });
+          }
+
+          console.log(`[GridProcessing] Reduced ${horizontalGrayPositions.length} rows to ${hGroupedLines.length} center lines`);
+
+          // Add horizontal lines that don't conflict with existing ones
+          const existingHPositions = result.horizontalLines
+            .filter(line => !line.isGridBorder)
+            .map(line => line.y1 - y);
+          const hMinDistance = isStandardRes ? 3 : params.mediumGrayMinDistance;
+          const hEdgeMargin = isStandardRes ? 5 : params.mediumGrayEdgeMargin;
+
+          for (const groupedLine of hGroupedLines) {
+            const isNewLine = !existingHPositions.some(pos => Math.abs(pos - groupedLine.position) < hMinDistance);
+
+            if (isNewLine && groupedLine.position > hEdgeMargin && groupedLine.position < height - hEdgeMargin) {
+              result.horizontalLines.push({
+                x1: x,
+                y1: groupedLine.position + y,
+                x2: x + width,
+                y2: groupedLine.position + y,
+                isGridBorder: false,
+                isHorizontalGridLine: true,
+                detectionMethod: 'medium-gray-pixel-analysis-grouped',
+                confidence: groupedLine.confidence
+              });
+            }
+          }
+
+          console.log(`[GridProcessing] Total internal horizontal lines detected: ${result.horizontalLines.filter(line => !line.isGridBorder).length}`);
+
+          // STEP 4: Projection profile analysis + regularity enforcement
+          // Use morphologically-filtered images (which isolate long lines and suppress content)
+          // for projection profiles, then use median spacing to interpolate missing lines.
+          console.log('[GridProcessing] Step 4: Projection profile analysis + regularity enforcement...');
+
+          // Compute projection profiles on morphologically-filtered images (not raw binary)
+          // verticalLinesMat has vertical lines isolated, horizontalLinesMat has horizontal lines isolated
+          const verticalProjection = new cv.Mat();
+          cv.reduce(verticalLinesMat, verticalProjection, 0, cv.REDUCE_SUM, cv.CV_32S);
+
+          const horizontalProjection = new cv.Mat();
+          cv.reduce(horizontalLinesMat, horizontalProjection, 1, cv.REDUCE_SUM, cv.CV_32S);
+
+          // Extract profiles as plain arrays for pure-function analysis
+          const vProfile = [];
+          for (let col = 0; col < verticalProjection.cols; col++) {
+            vProfile.push(verticalProjection.intAt(0, col));
+          }
+          const hProfile = [];
+          for (let row = 0; row < horizontalProjection.rows; row++) {
+            hProfile.push(horizontalProjection.intAt(row, 0));
+          }
+
+          // Find peaks in the projection profiles
+          const vPeaks = findPeaks(vProfile, 0.25);
+          const hPeaks = findPeaks(hProfile, 0.25);
+          console.log(`[GridProcessing] Projection profile found ${vPeaks.length} vertical peaks, ${hPeaks.length} horizontal peaks`);
+
+          // Get existing detected line positions (ROI-relative)
+          const existingVerticalPositions = result.verticalLines
+            .filter(l => !l.isGridBorder)
+            .map(l => l.x1 - x)
+            .sort((a, b) => a - b);
+          const existingHorizontalPositions = result.horizontalLines
+            .filter(l => !l.isGridBorder)
+            .map(l => l.y1 - y)
+            .sort((a, b) => a - b);
+
+          const vPeakPositions = vPeaks.map(p => p.index);
+          const hPeakPositions = hPeaks.map(p => p.index);
+
+          // Compute median spacing primarily from detected line positions (ground truth from Steps 1-3).
+          // Fall back to projection peaks only if detection found too few lines.
+          let medianVerticalSpacing = computeMedianSpacing(existingVerticalPositions);
+          let medianHorizontalSpacing = computeMedianSpacing(existingHorizontalPositions);
+
+          // If detection found fewer than 3 lines, use projection peaks as fallback
+          if (existingVerticalPositions.length < 3 && vPeakPositions.length >= 3) {
+            medianVerticalSpacing = computeMedianSpacing(vPeakPositions);
+            console.log(`[GridProcessing] Using projection peaks for vertical spacing (only ${existingVerticalPositions.length} detected lines)`);
+          }
+          if (existingHorizontalPositions.length < 3 && hPeakPositions.length >= 3) {
+            medianHorizontalSpacing = computeMedianSpacing(hPeakPositions);
+            console.log(`[GridProcessing] Using projection peaks for horizontal spacing (only ${existingHorizontalPositions.length} detected lines)`);
+          }
+
+          console.log(`[GridProcessing] Median spacing: vertical=${medianVerticalSpacing.toFixed(1)}px, horizontal=${medianHorizontalSpacing.toFixed(1)}px`);
+
+          // Interpolate missing vertical lines using detected positions (not noisy peaks)
+          if (medianVerticalSpacing > 0 && existingVerticalPositions.length >= 2) {
+            const interpolated = interpolateMissingLines(existingVerticalPositions, medianVerticalSpacing, 0.25);
+            const newPositions = interpolated.filter(
+              pos => !existingVerticalPositions.some(existing => Math.abs(existing - pos) < medianVerticalSpacing * 0.2)
+            );
+
+            for (const pos of newPositions) {
+              if (pos > 5 && pos < width - 5) {
+                console.log(`[GridProcessing] Interpolated missing vertical line at column ${pos}`);
+                result.verticalLines.push({
+                  x1: pos + x,
+                  y1: y,
+                  x2: pos + x,
+                  y2: y + height,
+                  isGridBorder: false,
+                  isVerticalGridLine: true,
+                  detectionMethod: 'projection-interpolated',
+                  confidence: scoreLineConfidence({ interpolated: true })
+                });
+              }
+            }
+          }
+
+          // Interpolate missing horizontal lines using detected positions (not noisy peaks)
+          if (medianHorizontalSpacing > 0 && existingHorizontalPositions.length >= 2) {
+            const interpolated = interpolateMissingLines(existingHorizontalPositions, medianHorizontalSpacing, 0.25);
+            const newPositions = interpolated.filter(
+              pos => !existingHorizontalPositions.some(existing => Math.abs(existing - pos) < medianHorizontalSpacing * 0.2)
+            );
+
+            for (const pos of newPositions) {
+              if (pos > 5 && pos < height - 5) {
+                console.log(`[GridProcessing] Interpolated missing horizontal line at row ${pos}`);
+                result.horizontalLines.push({
+                  x1: x,
+                  y1: pos + y,
+                  x2: x + width,
+                  y2: pos + y,
+                  isGridBorder: false,
+                  isHorizontalGridLine: true,
+                  detectionMethod: 'projection-interpolated',
+                  confidence: scoreLineConfidence({ interpolated: true })
+                });
+              }
+            }
+          }
+
+          // Update confidence scores on existing lines based on projection support
+          const projectionTolerance = Math.max(3, Math.floor(medianVerticalSpacing * 0.1));
+          for (const line of result.verticalLines) {
+            if (line.isGridBorder || line.detectionMethod === 'projection-interpolated') continue;
+            const roiPos = line.x1 - x;
+            const hasProjectionSupport = vPeakPositions.some(p => Math.abs(p - roiPos) <= projectionTolerance);
+            const sources = {
+              hough: line.detectionMethod === 'adaptive-threshold',
+              projection: hasProjectionSupport,
+              pixelScan: line.detectionMethod === 'light-gray-analysis' || line.detectionMethod === 'medium-gray-pixel-analysis-grouped'
+            };
+            line.confidence = scoreLineConfidence(sources);
+          }
+          for (const line of result.horizontalLines) {
+            if (line.isGridBorder || line.detectionMethod === 'projection-interpolated') continue;
+            const roiPos = line.y1 - y;
+            const hasProjectionSupport = hPeakPositions.some(p => Math.abs(p - roiPos) <= projectionTolerance);
+            const sources = {
+              hough: line.detectionMethod === 'adaptive-threshold',
+              projection: hasProjectionSupport,
+              pixelScan: line.detectionMethod === 'medium-gray-pixel-analysis-grouped'
+            };
+            line.confidence = scoreLineConfidence(sources);
+          }
+
+          // Store median spacing for downstream use (cell extraction)
+          result.medianCellWidth = medianVerticalSpacing;
+          result.medianCellHeight = medianHorizontalSpacing;
+
+          const totalVertical = result.verticalLines.filter(l => !l.isGridBorder).length;
+          const totalHorizontal = result.horizontalLines.filter(l => !l.isGridBorder).length;
+          console.log(`[GridProcessing] After regularity enforcement: ${totalVertical} vertical lines, ${totalHorizontal} horizontal lines`);
+
+          // Clean up projection Mats
+          verticalProjection.delete();
+          horizontalProjection.delete();
+
+          // STEP 5: Connected component fallback
+          // If line detection found significantly fewer lines than expected, try detecting
+          // cells directly via connected components as an alternative strategy.
+          if (medianVerticalSpacing > 0 && medianHorizontalSpacing > 0) {
+            const expectedCols = Math.round(width / medianVerticalSpacing);
+            const expectedRows = Math.round(height / medianHorizontalSpacing);
+            const detectedCols = result.verticalLines.filter(l => !l.isGridBorder).length;
+            const detectedRows = result.horizontalLines.filter(l => !l.isGridBorder).length;
+            const colRatio = expectedCols > 0 ? detectedCols / expectedCols : 1;
+            const rowRatio = expectedRows > 0 ? detectedRows / expectedRows : 1;
+
+            if (colRatio < 0.7 || rowRatio < 0.7) {
+              console.log(`[GridProcessing] Step 5: Connected component fallback (detected ${detectedCols}/${expectedCols} cols, ${detectedRows}/${expectedRows} rows)`);
+
+              try {
+                // Close small gaps in grid lines
+                const ccCloseKernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+                const ccClosed = new cv.Mat();
+                cv.morphologyEx(binaryLight, ccClosed, cv.MORPH_CLOSE, ccCloseKernel);
+
+                // Invert so cells become white blobs on black background
+                const ccInverted = new cv.Mat();
+                cv.bitwise_not(ccClosed, ccInverted);
+
+                // Find connected components
+                const labels = new cv.Mat();
+                const stats = new cv.Mat();
+                const centroids = new cv.Mat();
+                const numComponents = cv.connectedComponentsWithStats(ccInverted, labels, stats, centroids);
+
+                // Extract component stats into plain objects
+                const expectedCellArea = medianVerticalSpacing * medianHorizontalSpacing;
+                const componentStats = [];
+                for (let i = 1; i < numComponents; i++) { // Skip background (0)
+                  componentStats.push({
+                    area: stats.intAt(i, cv.CC_STAT_AREA),
+                    x: stats.intAt(i, cv.CC_STAT_LEFT),
+                    y: stats.intAt(i, cv.CC_STAT_TOP),
+                    width: stats.intAt(i, cv.CC_STAT_WIDTH),
+                    height: stats.intAt(i, cv.CC_STAT_HEIGHT)
+                  });
+                }
+
+                // Filter to cell-sized components
+                const validCells = filterComponentsByArea(componentStats, expectedCellArea, 0.5);
+                console.log(`[GridProcessing] CC fallback found ${validCells.length} cell-sized components out of ${numComponents - 1} total`);
+
+                if (validCells.length > 0) {
+                  // Derive line positions from cell boundaries
+                  const ccVerticalEdges = new Set();
+                  const ccHorizontalEdges = new Set();
+                  for (const cell of validCells) {
+                    ccVerticalEdges.add(cell.x);
+                    ccVerticalEdges.add(cell.x + cell.width);
+                    ccHorizontalEdges.add(cell.y);
+                    ccHorizontalEdges.add(cell.y + cell.height);
+                  }
+
+                  // Add CC-derived lines that don't conflict with existing ones
+                  const existingVSet = result.verticalLines.map(l => l.x1 - x);
+                  const existingHSet = result.horizontalLines.map(l => l.y1 - y);
+                  const ccMinDistance = Math.max(5, medianVerticalSpacing * 0.2);
+
+                  for (const vEdge of ccVerticalEdges) {
+                    const isNew = !existingVSet.some(pos => Math.abs(pos - vEdge) < ccMinDistance);
+                    if (isNew && vEdge > 5 && vEdge < width - 5) {
+                      result.verticalLines.push({
+                        x1: vEdge + x,
+                        y1: y,
+                        x2: vEdge + x,
+                        y2: y + height,
+                        isGridBorder: false,
+                        isVerticalGridLine: true,
+                        detectionMethod: 'connected-component',
+                        confidence: 0.5
+                      });
+                    }
+                  }
+
+                  for (const hEdge of ccHorizontalEdges) {
+                    const isNew = !existingHSet.some(pos => Math.abs(pos - hEdge) < ccMinDistance);
+                    if (isNew && hEdge > 5 && hEdge < height - 5) {
+                      result.horizontalLines.push({
+                        x1: x,
+                        y1: hEdge + y,
+                        x2: x + width,
+                        y2: hEdge + y,
+                        isGridBorder: false,
+                        isHorizontalGridLine: true,
+                        detectionMethod: 'connected-component',
+                        confidence: 0.5
+                      });
+                    }
+                  }
+
+                  const ccVerticalAdded = result.verticalLines.filter(l => l.detectionMethod === 'connected-component').length;
+                  const ccHorizontalAdded = result.horizontalLines.filter(l => l.detectionMethod === 'connected-component').length;
+                  console.log(`[GridProcessing] CC fallback added ${ccVerticalAdded} vertical, ${ccHorizontalAdded} horizontal lines`);
+                }
+
+                // Clean up CC Mats
+                ccCloseKernel.delete();
+                ccClosed.delete();
+                ccInverted.delete();
+                labels.delete();
+                stats.delete();
+                centroids.delete();
+              } catch (ccError) {
+                console.warn('[GridProcessing] Connected component fallback failed:', ccError);
+              }
+            } else {
+              console.log(`[GridProcessing] Skipping CC fallback (detection ratio: cols=${colRatio.toFixed(2)}, rows=${rowRatio.toFixed(2)})`);
+            }
+          }
+
           // Clean up all resources
           gridROI.delete();
           binaryLight.delete();
           verticalLinesMat.delete();
           verticalLineKernel.delete();
-          lines.delete();
+          horizontalLineKernel.delete();
+          horizontalLinesMat.delete();
+          verticalLines.delete();
+          horizontalLines.delete();
           edges.delete();
           verticalKernel.delete();
           verticalEdges.delete();
@@ -1006,182 +1495,27 @@ export function useGridProcessing() {
           console.warn('[GridProcessing] Error in ROI processing:', roiError);
           // Continue without internal line detection
         }
-      }
     }
 
-    // Clean up resources
+    // Clean up resources (only delete Mats that were created)
     try {
-      binary.delete();
-      horizontalKernel.delete();
-      verticalKernel.delete();
-      verticalLinesMat.delete();
-      horizontalLinesMat.delete();
-      verticalLines.delete();
-      horizontalLines.delete();
-      gridStructure.delete();
-      morphedGrid.delete();
-      closeKernel.delete();
-      contours.delete();
-      hierarchy.delete();
+      if (binary) binary.delete();
+      if (horizontalKernel) horizontalKernel.delete();
+      if (verticalKernel) verticalKernel.delete();
+      if (verticalLinesMat) verticalLinesMat.delete();
+      if (horizontalLines) horizontalLines.delete();
+      if (gridStructure) gridStructure.delete();
+      if (morphedGrid) morphedGrid.delete();
+      if (closeKernel) closeKernel.delete();
+      if (contours) contours.delete();
+      if (hierarchy) hierarchy.delete();
+      if (deskewedImage) deskewedImage.delete();
     } catch (cleanupError) {
       console.warn('[GridProcessing] Error during cleanup:', cleanupError);
     }
 
     console.log('[GridProcessing] Grid detection completed successfully');
     return result;
-  };
-
-  /**
-   * Detects the outside border of a grid in an image
-   * @param {ImageData} imageData - The image data to process
-   * @returns {Object} - Information about the detected grid border
-   */
-  const detectGridBorder = (imageData) => {
-    const { width, height, data } = imageData;
-
-    // Store the border points
-    const borderPoints = {
-      top: [],
-      right: [],
-      bottom: [],
-      left: []
-    };
-
-    // Parameters for line detection
-    const blackThreshold = 50; // RGB value below this is considered "black"
-    const minLineLength = Math.min(width, height) * 0.1; // Minimum length for a line to be considered part of the grid
-
-    // Detect horizontal lines (top and bottom borders)
-    for (let y = 0; y < height; y++) {
-      let consecutiveBlackPixels = 0;
-      let startX = -1;
-
-      for (let x = 0; x < width; x++) {
-        const idx = (y * width + x) * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-
-        // Check if this pixel is "black" (dark enough)
-        if (r < blackThreshold && g < blackThreshold && b < blackThreshold) {
-          if (consecutiveBlackPixels === 0) {
-            startX = x;
-          }
-          consecutiveBlackPixels++;
-        } else {
-          // If we found a line of sufficient length
-          if (consecutiveBlackPixels >= minLineLength) {
-            // Determine if this is likely a top or bottom border
-            if (y < height / 2) {
-              borderPoints.top.push({ startX, endX: x - 1, y });
-            } else {
-              borderPoints.bottom.push({ startX, endX: x - 1, y });
-            }
-          }
-          consecutiveBlackPixels = 0;
-          startX = -1;
-        }
-      }
-
-      // Check for line that ends at the edge of the image
-      if (consecutiveBlackPixels >= minLineLength) {
-        if (y < height / 2) {
-          borderPoints.top.push({ startX, endX: width - 1, y });
-        } else {
-          borderPoints.bottom.push({ startX, endX: width - 1, y });
-        }
-      }
-    }
-
-    // Detect vertical lines (left and right borders)
-    for (let x = 0; x < width; x++) {
-      let consecutiveBlackPixels = 0;
-      let startY = -1;
-
-      for (let y = 0; y < height; y++) {
-        const idx = (y * width + x) * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-
-        if (r < blackThreshold && g < blackThreshold && b < blackThreshold) {
-          if (consecutiveBlackPixels === 0) {
-            startY = y;
-          }
-          consecutiveBlackPixels++;
-        } else {
-          if (consecutiveBlackPixels >= minLineLength) {
-            if (x < width / 2) {
-              borderPoints.left.push({ x, startY, endY: y - 1 });
-            } else {
-              borderPoints.right.push({ x, startY, endY: y - 1 });
-            }
-          }
-          consecutiveBlackPixels = 0;
-          startY = -1;
-        }
-      }
-
-      if (consecutiveBlackPixels >= minLineLength) {
-        if (x < width / 2) {
-          borderPoints.left.push({ x, startY, endY: height - 1 });
-        } else {
-          borderPoints.right.push({ x, startY, endY: height - 1 });
-        }
-      }
-    }
-
-    return borderPoints;
-  };
-
-  /**
-   * Highlights the detected grid border with lime green color
-   * @param {ImageData} imageData - The original image data
-   * @param {Object} borderPoints - The detected border points
-   * @returns {ImageData} - New image data with highlighted border
-   */
-  const highlightGridBorder = (imageData, borderPoints) => {
-    // Create a copy of the image data to avoid modifying the original
-    const newImageData = new ImageData(
-      new Uint8ClampedArray(imageData.data),
-      imageData.width,
-      imageData.height
-    );
-
-    const { width, height, data } = newImageData;
-
-    // Lime green color (RGB: 0, 255, 0)
-    const borderColor = {
-      r: 0,
-      g: 255,
-      b: 0
-    };
-
-    // Highlight horizontal lines (top and bottom)
-    for (const line of [...borderPoints.top, ...borderPoints.bottom]) {
-      const { startX, endX, y } = line;
-      for (let x = startX; x <= endX; x++) {
-        const idx = (y * width + x) * 4;
-        data[idx] = borderColor.r;     // R
-        data[idx + 1] = borderColor.g; // G
-        data[idx + 2] = borderColor.b; // B
-        // Alpha channel remains unchanged
-      }
-    }
-
-    // Highlight vertical lines (left and right)
-    for (const line of [...borderPoints.left, ...borderPoints.right]) {
-      const { x, startY, endY } = line;
-      for (let y = startY; y <= endY; y++) {
-        const idx = (y * width + x) * 4;
-        data[idx] = borderColor.r;     // R
-        data[idx + 1] = borderColor.g; // G
-        data[idx + 2] = borderColor.b; // B
-        // Alpha channel remains unchanged
-      }
-    }
-
-    return newImageData;
   };
 
   /**
@@ -1284,78 +1618,97 @@ export function useGridProcessing() {
   };
 
   /**
-   * Extracts individual cells from the grid
+   * Extracts individual cells from the grid using detected line positions.
+   * Uses buildCellGrid for coordinate math, then extracts each cell as an OpenCV ROI.
+   *
    * @param {Object} cv - OpenCV instance
    * @param {cv.Mat} image - Source image
-   * @param {Object} gridResult - Grid detection result
-   * @returns {Array} - Array of cell images and their positions
+   * @param {Object} gridResult - Grid detection result with lines and medianCellWidth/Height
+   * @returns {{ cells: Array, gridDimensions: Object }} Structured cell data
    */
   const extractGridCells = (cv, image, gridResult) => {
-    const cells = [];
+    const emptyResult = { cells: [], gridDimensions: null };
 
-    // If no grid was found, return empty array
     if (!gridResult.gridFound ||
       !gridResult.horizontalLines || gridResult.horizontalLines.length < 2 ||
       !gridResult.verticalLines || gridResult.verticalLines.length < 2) {
-      return cells;
+      return emptyResult;
     }
 
-    // For now, we'll just extract the entire grid as one cell
-    // This can be expanded later to extract individual cells
     try {
-      // Find the grid boundaries from the border lines
-      let minX = image.cols;
-      let minY = image.rows;
-      let maxX = 0;
-      let maxY = 0;
+      // Sort and deduplicate horizontal lines by y-position
+      const hLines = deduplicateLines(
+        gridResult.horizontalLines
+          .map(l => ({ position: l.y1, confidence: l.confidence ?? 1, isGridBorder: l.isGridBorder }))
+          .sort((a, b) => a.position - b.position),
+        Math.max(3, (gridResult.medianCellHeight || 10) * 0.15)
+      );
 
-      // Check horizontal lines
-      for (const line of gridResult.horizontalLines) {
-        if (line.isGridBorder) {
-          minX = Math.min(minX, line.x1, line.x2);
-          maxX = Math.max(maxX, line.x1, line.x2);
-          minY = Math.min(minY, line.y1, line.y2);
-          maxY = Math.max(maxY, line.y1, line.y2);
+      // Sort and deduplicate vertical lines by x-position
+      const vLines = deduplicateLines(
+        gridResult.verticalLines
+          .map(l => ({ position: l.x1, confidence: l.confidence ?? 1, isGridBorder: l.isGridBorder }))
+          .sort((a, b) => a.position - b.position),
+        Math.max(3, (gridResult.medianCellWidth || 10) * 0.15)
+      );
+
+      if (hLines.length < 2 || vLines.length < 2) return emptyResult;
+
+      const medianW = gridResult.medianCellWidth || computeMedianSpacing(vLines.map(l => l.position));
+      const medianH = gridResult.medianCellHeight || computeMedianSpacing(hLines.map(l => l.position));
+
+      if (medianW <= 0 || medianH <= 0) return emptyResult;
+
+      // Use pure function to compute cell coordinates
+      const cellCoords = buildCellGrid(hLines, vLines, medianW, medianH);
+
+      console.log(`[GridProcessing] Extracting ${cellCoords.length} individual cells from ${hLines.length - 1} rows × ${vLines.length - 1} cols grid`);
+
+      // Extract each cell as an OpenCV ROI
+      const cells = [];
+      for (const coord of cellCoords) {
+        // Clamp to image bounds
+        const cx = Math.max(0, Math.min(coord.x, image.cols - 1));
+        const cy = Math.max(0, Math.min(coord.y, image.rows - 1));
+        const cw = Math.min(coord.width, image.cols - cx);
+        const ch = Math.min(coord.height, image.rows - cy);
+
+        if (cw > 0 && ch > 0) {
+          const rect = new cv.Rect(cx, cy, cw, ch);
+          const cellMat = new cv.Mat();
+          image.roi(rect).copyTo(cellMat);
+
+          cells.push({
+            image: cellMat,
+            row: coord.row,
+            col: coord.col,
+            x: cx,
+            y: cy,
+            width: cw,
+            height: ch,
+            confidence: coord.confidence
+          });
         }
       }
 
-      // Check vertical lines
-      for (const line of gridResult.verticalLines) {
-        if (line.isGridBorder) {
-          minX = Math.min(minX, line.x1, line.x2);
-          maxX = Math.max(maxX, line.x1, line.x2);
-          minY = Math.min(minY, line.y1, line.y2);
-          maxY = Math.max(maxY, line.y1, line.y2);
-        }
-      }
+      const gridDimensions = {
+        rows: hLines.length - 1,
+        cols: vLines.length - 1,
+        cellWidth: medianW,
+        cellHeight: medianH
+      };
 
-      // Extract the grid region
-      const width = maxX - minX;
-      const height = maxY - minY;
+      console.log(`[GridProcessing] Extracted ${cells.length} cells (grid: ${gridDimensions.rows}×${gridDimensions.cols}, cell size: ${medianW.toFixed(0)}×${medianH.toFixed(0)}px)`);
 
-      if (width > 0 && height > 0) {
-        const rect = new cv.Rect(minX, minY, width, height);
-        const cell = image.roi(rect);
-
-        cells.push({
-          image: cell,
-          x: minX,
-          y: minY,
-          width: width,
-          height: height
-        });
-      }
+      return { cells, gridDimensions };
     } catch (error) {
       console.error('[GridProcessing] Error extracting grid cells:', error);
+      return emptyResult;
     }
-
-    return cells;
   };
 
   return {
     detectGrid,
-    detectGridBorder,
-    highlightGridBorder,
     drawGridLines,
     extractGridCells,
     cleanup

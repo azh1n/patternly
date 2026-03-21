@@ -121,188 +121,335 @@ export function useChartProcessing() {
         throw new Error(`Invalid image dimensions: ${width}x${height}`);
       }
       
-      // Set reasonable limits for OpenCV processing to prevent memory issues
-      // Increased limits to preserve grid line details in high-resolution images
-      const MAX_DIMENSION = 3000; // Increased from 2000 to preserve more detail
-      const MAX_PIXELS = 8000000; // Increased from 4M to 8M pixels (roughly 2800x2800)
-      
-      let canvasWidth = width;
-      let canvasHeight = height;
-      let needsResize = false;
-      
-      // Check if image is too large for OpenCV processing
+      // Limits for a single OpenCV processing pass
+      const MAX_DIMENSION = 3000;
+      const MAX_PIXELS = 8000000;
+      const TILE_OVERLAP = 80; // pixels of overlap between tiles to avoid splitting grid lines
+
       const totalPixels = width * height;
       const maxDimension = Math.max(width, height);
-      
-      if (totalPixels > MAX_PIXELS || maxDimension > MAX_DIMENSION) {
-        needsResize = true;
-        
-        // Calculate resize ratio to fit within limits
-        const dimensionRatio = MAX_DIMENSION / maxDimension;
-        const pixelRatio = Math.sqrt(MAX_PIXELS / totalPixels);
-        const resizeRatio = Math.min(dimensionRatio, pixelRatio, 1.0); // Never upscale
-        
-        // For grid detection, be less aggressive with resizing
-        // Use a minimum resize ratio to preserve grid details
-        const minResizeRatio = 0.4; // Don't shrink below 40% of original size
-        const finalResizeRatio = Math.max(resizeRatio, minResizeRatio);
-        
-        canvasWidth = Math.floor(width * finalResizeRatio);
-        canvasHeight = Math.floor(height * finalResizeRatio);
-        
-        console.log(`[ChartProcessing] Large image detected (${width}x${height}=${totalPixels} pixels)`);
-        console.log(`[ChartProcessing] Resizing for OpenCV processing: ${canvasWidth}x${canvasHeight} (ratio: ${finalResizeRatio.toFixed(3)})`);
-        console.log(`[ChartProcessing] Minimum ratio applied: ${minResizeRatio} to preserve grid details`);
-      } else {
-        console.log(`[ChartProcessing] Image size acceptable for direct processing: ${width}x${height}`);
-      }
-      
-      // Validate canvas dimensions
-      if (canvasWidth <= 0 || canvasHeight <= 0) {
-        throw new Error(`Invalid canvas dimensions: ${canvasWidth}x${canvasHeight}`);
-      }
-      
-      // Create canvas for processing
-      canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) {
-        throw new Error('Could not get 2D context from canvas');
-      }
-      
-      // Set canvas size
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      
-      // Draw image to canvas - ensure we use the full canvas
-      progressMessage.value = 'Drawing image to canvas...';
-      
-      // Clear canvas first
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-      
-      // Draw with calculated dimensions (may be resized)
-      ctx.drawImage(imageElement, 0, 0, canvasWidth, canvasHeight);
-      progress.value = 30;
-      
-      // Validate canvas has data
-      try {
-        const imageData = ctx.getImageData(0, 0, Math.min(canvasWidth, 10), Math.min(canvasHeight, 10));
-        if (!imageData || !imageData.data || imageData.data.length === 0) {
-          throw new Error('Canvas contains no image data');
+      const needsTiling = totalPixels > MAX_PIXELS || maxDimension > MAX_DIMENSION;
+
+      if (needsTiling) {
+        // ── TILED PROCESSING ──
+        // Split the image into tiles that each fit within the OpenCV limits,
+        // process each tile independently, then merge the grid results.
+        const tilesX = Math.ceil(width / MAX_DIMENSION);
+        const tilesY = Math.ceil(height / MAX_DIMENSION);
+        const tileW = Math.ceil(width / tilesX);
+        const tileH = Math.ceil(height / tilesY);
+        const totalTiles = tilesX * tilesY;
+
+        console.log(`[ChartProcessing] Large image (${width}x${height}=${totalPixels}px), tiling into ${tilesX}x${tilesY} = ${totalTiles} tiles (each ~${tileW}x${tileH})`);
+
+        // Merged result across all tiles
+        gridResult = {
+          horizontalLines: [],
+          verticalLines: [],
+          cells: [],
+          gridFound: false,
+          gridArea: null,
+          medianCellWidth: 0,
+          medianCellHeight: 0
+        };
+
+        let tilesProcessed = 0;
+
+        for (let ty = 0; ty < tilesY; ty++) {
+          for (let tx = 0; tx < tilesX; tx++) {
+            const tileIndex = ty * tilesX + tx + 1;
+            progressMessage.value = `Processing tile ${tileIndex}/${totalTiles}...`;
+            progress.value = 20 + Math.floor((tilesProcessed / totalTiles) * 50);
+
+            // Compute tile bounds with overlap
+            const sx = Math.max(0, tx * tileW - TILE_OVERLAP);
+            const sy = Math.max(0, ty * tileH - TILE_OVERLAP);
+            const ex = Math.min(width, (tx + 1) * tileW + TILE_OVERLAP);
+            const ey = Math.min(height, (ty + 1) * tileH + TILE_OVERLAP);
+            const tw = ex - sx;
+            const th = ey - sy;
+
+            console.log(`[ChartProcessing] Tile ${tileIndex}: (${sx},${sy}) ${tw}x${th}`);
+
+            // Draw tile to a temporary canvas
+            const tileCanvas = document.createElement('canvas');
+            tileCanvas.width = tw;
+            tileCanvas.height = th;
+            const tileCtx = tileCanvas.getContext('2d', { willReadFrequently: true });
+            tileCtx.drawImage(imageElement, sx, sy, tw, th, 0, 0, tw, th);
+
+            // Process this tile through OpenCV
+            let tileSrc = null;
+            let tileGray = null;
+            try {
+              tileSrc = cv.imread(tileCanvas);
+              tileGray = new cv.Mat();
+              cv.cvtColor(tileSrc, tileGray, cv.COLOR_RGBA2GRAY);
+
+              const tileResult = await detectGrid(cv, tileGray.clone(), { assumeFullGrid: true });
+
+              if (tileResult && tileResult.gridFound) {
+                gridResult.gridFound = true;
+
+                // Offset all line positions by the tile origin
+                for (const line of tileResult.horizontalLines) {
+                  gridResult.horizontalLines.push({
+                    ...line,
+                    x1: line.x1 + sx,
+                    x2: line.x2 + sx,
+                    y1: line.y1 + sy,
+                    y2: line.y2 + sy
+                  });
+                }
+                for (const line of tileResult.verticalLines) {
+                  gridResult.verticalLines.push({
+                    ...line,
+                    x1: line.x1 + sx,
+                    x2: line.x2 + sx,
+                    y1: line.y1 + sy,
+                    y2: line.y2 + sy
+                  });
+                }
+
+                // Track median cell size (average across tiles)
+                if (tileResult.medianCellWidth > 0) {
+                  gridResult.medianCellWidth = gridResult.medianCellWidth > 0
+                    ? (gridResult.medianCellWidth + tileResult.medianCellWidth) / 2
+                    : tileResult.medianCellWidth;
+                }
+                if (tileResult.medianCellHeight > 0) {
+                  gridResult.medianCellHeight = gridResult.medianCellHeight > 0
+                    ? (gridResult.medianCellHeight + tileResult.medianCellHeight) / 2
+                    : tileResult.medianCellHeight;
+                }
+
+                // Expand gridArea to encompass all tiles
+                if (tileResult.gridArea) {
+                  const ta = tileResult.gridArea;
+                  const offsetArea = {
+                    x: ta.x + sx,
+                    y: ta.y + sy,
+                    width: ta.width,
+                    height: ta.height
+                  };
+                  if (!gridResult.gridArea) {
+                    gridResult.gridArea = offsetArea;
+                  } else {
+                    const ga = gridResult.gridArea;
+                    const newX = Math.min(ga.x, offsetArea.x);
+                    const newY = Math.min(ga.y, offsetArea.y);
+                    gridResult.gridArea = {
+                      x: newX,
+                      y: newY,
+                      width: Math.max(ga.x + ga.width, offsetArea.x + offsetArea.width) - newX,
+                      height: Math.max(ga.y + ga.height, offsetArea.y + offsetArea.height) - newY
+                    };
+                  }
+                }
+              }
+
+              console.log(`[ChartProcessing] Tile ${tileIndex} done: ${tileResult.gridFound ? 'grid found' : 'no grid'}, ${tileResult.verticalLines?.filter(l => !l.isGridBorder).length || 0} vert, ${tileResult.horizontalLines?.filter(l => !l.isGridBorder).length || 0} horiz`);
+            } catch (tileError) {
+              console.warn(`[ChartProcessing] Tile ${tileIndex} failed:`, tileError);
+            } finally {
+              if (tileGray) tileGray.delete();
+              if (tileSrc) tileSrc.delete();
+              tileCanvas.remove();
+            }
+
+            tilesProcessed++;
+          }
         }
-        console.log('[ChartProcessing] Canvas validation passed');
-      } catch (validationError) {
-        throw new Error(`Canvas validation failed: ${validationError.message}`);
-      }
-      
-      // Convert to OpenCV format
-      try {
-        // Use cv.imread directly - simpler and more reliable
-        console.log('[ChartProcessing] Reading image into OpenCV...');
-        src = cv.imread(canvas);
-        
-        if (!src || src.empty()) {
-          throw new Error('Failed to load image into OpenCV');
+
+        // Deduplicate lines in overlap zones
+        if (gridResult.gridFound) {
+          const dedupeDistance = Math.max(5, (gridResult.medianCellWidth || 10) * 0.3);
+
+          // Deduplicate vertical lines by x-position
+          const vLines = gridResult.verticalLines
+            .filter(l => !l.isGridBorder)
+            .map(l => ({ position: l.x1, confidence: l.confidence || 0.5, original: l }));
+          const vSorted = [...vLines].sort((a, b) => a.position - b.position);
+          const vDeduped = [];
+          for (const line of vSorted) {
+            const last = vDeduped.length > 0 ? vDeduped[vDeduped.length - 1] : null;
+            if (last && line.position - last.position < dedupeDistance) {
+              if (line.confidence > last.confidence) {
+                vDeduped[vDeduped.length - 1] = line;
+              }
+            } else {
+              vDeduped.push(line);
+            }
+          }
+
+          // Deduplicate horizontal lines by y-position
+          const hLines = gridResult.horizontalLines
+            .filter(l => !l.isGridBorder)
+            .map(l => ({ position: l.y1, confidence: l.confidence || 0.5, original: l }));
+          const hSorted = [...hLines].sort((a, b) => a.position - b.position);
+          const hDeduped = [];
+          for (const line of hSorted) {
+            const last = hDeduped.length > 0 ? hDeduped[hDeduped.length - 1] : null;
+            if (last && line.position - last.position < dedupeDistance) {
+              if (line.confidence > last.confidence) {
+                hDeduped[hDeduped.length - 1] = line;
+              }
+            } else {
+              hDeduped.push(line);
+            }
+          }
+
+          // Keep border lines + deduped internal lines
+          const borderV = gridResult.verticalLines.filter(l => l.isGridBorder);
+          const borderH = gridResult.horizontalLines.filter(l => l.isGridBorder);
+          gridResult.verticalLines = [...borderV, ...vDeduped.map(d => d.original)];
+          gridResult.horizontalLines = [...borderH, ...hDeduped.map(d => d.original)];
+
+          const finalV = gridResult.verticalLines.filter(l => !l.isGridBorder).length;
+          const finalH = gridResult.horizontalLines.filter(l => !l.isGridBorder).length;
+          console.log(`[ChartProcessing] After tile merge + dedup: ${finalV} vertical, ${finalH} horizontal lines`);
         }
-        
-        console.log(`[ChartProcessing] Image loaded: ${src.cols}x${src.rows} channels=${src.channels()}`);
-        
-        // Create a grayscale copy for processing
-        progressMessage.value = 'Converting to grayscale...';
-        progress.value = 30;
-        
-        // Create a grayscale copy
-        gray = new cv.Mat();
-        console.log('[ChartProcessing] Converting to grayscale...');
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-        
-        console.log(`[ChartProcessing] Grayscale conversion complete: ${gray.cols}x${gray.rows}`);
-        
-        // Detect grid in the image
-        progressMessage.value = 'Detecting grid structure...';
-        progress.value = 40;
-        
-        // Use the grid processing service to detect grid
-        try {
-          console.log('[ChartProcessing] Starting grid detection...');
-          gridResult = await detectGrid(cv, gray.clone()); // Clone gray to avoid issues with the original being deleted
-          console.log('[ChartProcessing] Grid detection completed:', gridResult);
-        } catch (gridError) {
-          console.warn('[ChartProcessing] Grid detection failed:', gridError);
-          // Continue without grid detection
-          gridResult = null;
-        }
-        
-        // Use the original image for the final output
+
+        // Draw results on a full-size canvas
         progressMessage.value = 'Preparing final image...';
-        progress.value = 50;
-        
-        // Create a copy of the source image for drawing
-        console.log('[ChartProcessing] Creating destination image...');
-        dst = new cv.Mat();
-        src.copyTo(dst);
-        
-        console.log(`[ChartProcessing] Destination image created: ${dst.cols}x${dst.rows}`);
-        
-        // Draw grid lines if we have any
-        if (gridResult && 
-            gridResult.horizontalLines && gridResult.horizontalLines.length > 0 && 
-            gridResult.verticalLines && gridResult.verticalLines.length > 0 && 
-            gridResult.gridArea) {
+        progress.value = 75;
+
+        canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(imageElement, 0, 0, width, height);
+
+        // Draw grid lines onto the full canvas using OpenCV
+        if (gridResult.gridFound && gridResult.gridArea) {
           try {
-            console.log('[ChartProcessing] Drawing grid lines...');
-            // Draw grid lines with thinner lines (1px)
+            src = cv.imread(canvas);
+            dst = new cv.Mat();
+            src.copyTo(dst);
             drawGridLines(cv, dst, gridResult.horizontalLines, gridResult.verticalLines, gridResult.gridArea, 1);
-            console.log('[ChartProcessing] Grid lines drawn successfully');
+            cv.imshow(canvas, dst);
+            console.log('[ChartProcessing] Grid lines drawn on full image');
           } catch (drawError) {
-            console.warn('[ChartProcessing] Error drawing grid lines:', drawError);
-            // Continue without grid visualization
+            console.warn('[ChartProcessing] Error drawing grid lines on full image:', drawError);
+          } finally {
+            if (src) { src.delete(); src = null; }
+            if (dst) { dst.delete(); dst = null; }
           }
-        } else {
-          console.log('[ChartProcessing] No grid found or insufficient grid data, skipping grid drawing');
         }
-        
-        // Convert back to canvas
-        progressMessage.value = 'Finalizing image...';
-        console.log('[ChartProcessing] Converting back to canvas...');
-        cv.imshow(canvas, dst);
-        console.log('[ChartProcessing] Canvas conversion complete');
+
         progress.value = 80;
-        
-        // Clean up OpenCV resources
-        try {
-          console.log('[ChartProcessing] Cleaning up intermediate resources...');
-          if (gray && !gray.isDeleted) {
-            gray.delete();
-            gray = null;
-          }
-          if (dst && !dst.isDeleted) {
-            dst.delete();
-            dst = null;
-          }
-        } catch (cleanupError) {
-          console.warn('[ChartProcessing] Error cleaning up resources:', cleanupError);
+
+      } else {
+        // ── SINGLE-PASS PROCESSING (image fits within limits) ──
+        let canvasWidth = width;
+        let canvasHeight = height;
+        console.log(`[ChartProcessing] Image size acceptable for direct processing: ${width}x${height}`);
+
+        canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+          throw new Error('Could not get 2D context from canvas');
         }
-      } catch (e) {
-        // Handle OpenCV processing errors
-        console.error('[ChartProcessing] Error processing chart:', e);
-        console.error('[ChartProcessing] Error type:', typeof e);
-        console.error('[ChartProcessing] Error details:', e.stack || e.message || e);
-        
-        // Try to clean up any resources that might have been created
+
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        progressMessage.value = 'Drawing image to canvas...';
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.drawImage(imageElement, 0, 0, canvasWidth, canvasHeight);
+        progress.value = 30;
+
+        // Validate canvas has data
         try {
-          if (gray && typeof gray.delete === 'function' && !gray.isDeleted) {
-            gray.delete();
-            gray = null;
+          const imageData = ctx.getImageData(0, 0, Math.min(canvasWidth, 10), Math.min(canvasHeight, 10));
+          if (!imageData || !imageData.data || imageData.data.length === 0) {
+            throw new Error('Canvas contains no image data');
           }
-          if (dst && typeof dst.delete === 'function' && !dst.isDeleted) {
-            dst.delete();
-            dst = null;
-          }
-        } catch (cleanupError) {
-          console.warn('[ChartProcessing] Error during cleanup in catch block:', cleanupError);
+          console.log('[ChartProcessing] Canvas validation passed');
+        } catch (validationError) {
+          throw new Error(`Canvas validation failed: ${validationError.message}`);
         }
-        
-        throw new Error(`Failed to process image: ${e.message || e}`);
+
+        // Convert to OpenCV format
+        try {
+          console.log('[ChartProcessing] Reading image into OpenCV...');
+          src = cv.imread(canvas);
+
+          if (!src || src.empty()) {
+            throw new Error('Failed to load image into OpenCV');
+          }
+
+          console.log(`[ChartProcessing] Image loaded: ${src.cols}x${src.rows} channels=${src.channels()}`);
+
+          progressMessage.value = 'Converting to grayscale...';
+          progress.value = 30;
+
+          gray = new cv.Mat();
+          console.log('[ChartProcessing] Converting to grayscale...');
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+          console.log(`[ChartProcessing] Grayscale conversion complete: ${gray.cols}x${gray.rows}`);
+
+          // Detect grid in the image
+          progressMessage.value = 'Detecting grid structure...';
+          progress.value = 40;
+
+          try {
+            console.log('[ChartProcessing] Starting grid detection...');
+            gridResult = await detectGrid(cv, gray.clone());
+            console.log('[ChartProcessing] Grid detection completed:', gridResult);
+          } catch (gridError) {
+            console.warn('[ChartProcessing] Grid detection failed:', gridError);
+            gridResult = null;
+          }
+
+          progressMessage.value = 'Preparing final image...';
+          progress.value = 50;
+
+          console.log('[ChartProcessing] Creating destination image...');
+          dst = new cv.Mat();
+          src.copyTo(dst);
+
+          console.log(`[ChartProcessing] Destination image created: ${dst.cols}x${dst.rows}`);
+
+          if (gridResult &&
+              gridResult.horizontalLines && gridResult.horizontalLines.length > 0 &&
+              gridResult.verticalLines && gridResult.verticalLines.length > 0 &&
+              gridResult.gridArea) {
+            try {
+              console.log('[ChartProcessing] Drawing grid lines...');
+              drawGridLines(cv, dst, gridResult.horizontalLines, gridResult.verticalLines, gridResult.gridArea, 1);
+              console.log('[ChartProcessing] Grid lines drawn successfully');
+            } catch (drawError) {
+              console.warn('[ChartProcessing] Error drawing grid lines:', drawError);
+            }
+          } else {
+            console.log('[ChartProcessing] No grid found or insufficient grid data, skipping grid drawing');
+          }
+
+          progressMessage.value = 'Finalizing image...';
+          console.log('[ChartProcessing] Converting back to canvas...');
+          cv.imshow(canvas, dst);
+          console.log('[ChartProcessing] Canvas conversion complete');
+          progress.value = 80;
+
+          try {
+            console.log('[ChartProcessing] Cleaning up intermediate resources...');
+            if (gray && !gray.isDeleted) { gray.delete(); gray = null; }
+            if (dst && !dst.isDeleted) { dst.delete(); dst = null; }
+          } catch (cleanupError) {
+            console.warn('[ChartProcessing] Error cleaning up resources:', cleanupError);
+          }
+        } catch (e) {
+          console.error('[ChartProcessing] Error processing chart:', e);
+          try {
+            if (gray && typeof gray.delete === 'function' && !gray.isDeleted) { gray.delete(); gray = null; }
+            if (dst && typeof dst.delete === 'function' && !dst.isDeleted) { dst.delete(); dst = null; }
+          } catch (cleanupError) {
+            console.warn('[ChartProcessing] Error during cleanup in catch block:', cleanupError);
+          }
+          throw new Error(`Failed to process image: ${e.message || e}`);
+        }
       }
       
       // Convert to blob

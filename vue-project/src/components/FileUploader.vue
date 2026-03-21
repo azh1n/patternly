@@ -141,9 +141,10 @@ const zoomState = reactive({
   isPanning: false,
   lastX: 0,
   lastY: 0,
-  maxScale: 10,  // Increased from 4 to 10 for more zoom
-  minScale: 0.2,  // Reduced from 0.5 to 0.2 for more zoom out
-  scaleStep: 0.3,  // Increased step for faster zooming
+  lastPinchDist: 0,
+  maxScale: 10,
+  minScale: 0.2,
+  scaleStep: 0.3,
   originalScale: 1
 });
 
@@ -714,89 +715,116 @@ const resetZoom = () => {
 
 const handleWheel = (e) => {
   e.preventDefault();
-  
-  // Get the position of the mouse relative to the image
-  const rect = e.currentTarget.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  
-  // Calculate the position relative to the image's natural dimensions
-  const xPercent = x / rect.width;
-  const yPercent = y / rect.height;
-  
-  // Store the current scale before updating
-  const oldScale = zoomState.scale;
-  
-  // Determine zoom direction and calculate new scale
-  const delta = -Math.sign(e.deltaY);
-  const scaleFactor = 1 + (delta * zoomState.scaleStep * 0.8); // Increased multiplier for faster zoom
-  let newScale = zoomState.scale * scaleFactor;
-  
-  // Clamp the scale within min/max bounds
-  newScale = Math.max(zoomState.minScale, Math.min(newScale, zoomState.maxScale));
-  
-  // Only update if scale changed
-  if (newScale !== oldScale) {
-    zoomState.scale = newScale;
-    
-    // Calculate the focal point (where the cursor is relative to the image)
-    const focalX = (x - rect.width / 2) / oldScale;
-    const focalY = (y - rect.height / 2) / oldScale;
-    
-    // Calculate the new position to keep the focal point under the cursor
-    zoomState.posX = (x - rect.width / 2) - (focalX * newScale);
-    zoomState.posY = (y - rect.height / 2) - (focalY * newScale);
+
+  if (e.ctrlKey || e.metaKey) {
+    // Ctrl/Cmd + scroll = zoom (pinch-to-zoom on trackpad also sends ctrlKey)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const oldScale = zoomState.scale;
+    const delta = -Math.sign(e.deltaY);
+    const scaleFactor = 1 + (delta * zoomState.scaleStep * 0.8);
+    let newScale = Math.max(zoomState.minScale, Math.min(zoomState.scale * scaleFactor, zoomState.maxScale));
+
+    if (newScale !== oldScale) {
+      zoomState.scale = newScale;
+      const focalX = (x - rect.width / 2) / oldScale;
+      const focalY = (y - rect.height / 2) / oldScale;
+      zoomState.posX = (x - rect.width / 2) - (focalX * newScale);
+      zoomState.posY = (y - rect.height / 2) - (focalY * newScale);
+    }
+  } else {
+    // Regular scroll / 2-finger trackpad = pan
+    zoomState.posX -= e.deltaX;
+    zoomState.posY -= e.deltaY;
   }
 };
 
 const startPan = (e) => {
-  if (zoomState.scale <= 1) return;
-  
-  zoomState.isPanning = true;
   if (e.type === 'mousedown') {
+    if (zoomState.scale <= 1) return;
+    zoomState.isPanning = true;
     zoomState.lastX = e.clientX;
     zoomState.lastY = e.clientY;
-  } else if (e.type === 'touchstart' && e.touches.length === 1) {
-    zoomState.lastX = e.touches[0].clientX;
-    zoomState.lastY = e.touches[0].clientY;
+    e.preventDefault();
+  } else if (e.type === 'touchstart') {
+    if (e.touches.length >= 2) {
+      // Two-finger touch: start panning (and track pinch distance for zoom)
+      zoomState.isPanning = true;
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      zoomState.lastX = midX;
+      zoomState.lastY = midY;
+      zoomState.lastPinchDist = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX,
+        e.touches[1].clientY - e.touches[0].clientY
+      );
+      e.preventDefault();
+    } else if (e.touches.length === 1 && zoomState.scale > 1) {
+      // Single-finger touch: pan only when zoomed in
+      zoomState.isPanning = true;
+      zoomState.lastX = e.touches[0].clientX;
+      zoomState.lastY = e.touches[0].clientY;
+      zoomState.lastPinchDist = 0;
+      e.preventDefault();
+    }
   }
-  
-  // Prevent text selection while panning
-  e.preventDefault();
 };
 
 const handlePan = (e) => {
-  if (!zoomState.isPanning || zoomState.scale <= 1) return;
-  
+  if (!zoomState.isPanning) return;
+
   let clientX, clientY;
-  
+
   if (e.type === 'mousemove') {
+    if (zoomState.scale <= 1) return;
     clientX = e.clientX;
     clientY = e.clientY;
-  } else if (e.type === 'touchmove' && e.touches.length === 1) {
-    clientX = e.touches[0].clientX;
-    clientY = e.touches[0].clientY;
+  } else if (e.type === 'touchmove') {
+    if (e.touches.length >= 2) {
+      // Two-finger: pan using midpoint + pinch-to-zoom
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      clientX = midX;
+      clientY = midY;
+
+      // Pinch-to-zoom
+      const pinchDist = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX,
+        e.touches[1].clientY - e.touches[0].clientY
+      );
+      if (zoomState.lastPinchDist > 0) {
+        const pinchRatio = pinchDist / zoomState.lastPinchDist;
+        const newScale = Math.max(zoomState.minScale, Math.min(zoomState.scale * pinchRatio, zoomState.maxScale));
+        zoomState.scale = newScale;
+      }
+      zoomState.lastPinchDist = pinchDist;
+    } else if (e.touches.length === 1) {
+      if (zoomState.scale <= 1) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      return;
+    }
+    e.preventDefault();
   } else {
     return;
   }
-  
-  // Calculate the change in position
+
   const deltaX = clientX - zoomState.lastX;
   const deltaY = clientY - zoomState.lastY;
-  
-  // Update the position
+
   zoomState.posX += deltaX;
   zoomState.posY += deltaY;
-  
-  // Update the last position
+
   zoomState.lastX = clientX;
   zoomState.lastY = clientY;
-  
-  e.preventDefault();
 };
 
 const stopPan = () => {
   zoomState.isPanning = false;
+  zoomState.lastPinchDist = 0;
 };
 
 // Reset zoom and full screen when file changes
@@ -1161,6 +1189,7 @@ const getMimeTypeFromExtension = (filename) => {
   justify-content: center;
   overflow: hidden;
   position: relative;
+  touch-action: none;
 }
 
 .zoom-container {
