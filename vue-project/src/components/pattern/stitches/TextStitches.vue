@@ -20,7 +20,7 @@
               :style="isRepeatPattern(stitch) ? 
                 {'--repeat-stitch-count': getRepeatStitches(stitch).length} : {}"
             >
-              <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), { 'has-color': getStitchColor(stitch) }]"
+              <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), getStitchLengthClass(stitch), { 'has-color': getStitchColor(stitch) }]"
                 :style="getStitchBoxStyle(stitch)"
               >
                 <template v-if="isRepeatPattern(stitch)">
@@ -71,7 +71,7 @@
               'repeat-pattern': isRepeatPattern(stitch)
             }"
           >
-            <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), { 'has-color': getStitchColor(stitch) }]"
+            <div class="stitch-symbol" :class="[getStitchBoxClass(stitch), getStitchLengthClass(stitch), { 'has-color': getStitchColor(stitch) }]"
               :style="getStitchBoxStyle(stitch)">
               <template v-if="isRepeatPattern(stitch)">
                 <div class="repeat-card preview">
@@ -328,6 +328,14 @@ function processRowStitches(codes, expandRepeated) {
   return expandedStitches;
 }
 
+// Return a size class based on the stitch label length
+function getStitchLengthClass(stitch) {
+  const label = `${getStitchCount(stitch)}${getStitchType(stitch)}`;
+  if (label.length >= 6) return 'stitch-text-sm';
+  if (label.length >= 5) return 'stitch-text-md';
+  return '';
+}
+
 // Check if a stitch is a repeat pattern
 function isRepeatPattern(stitch) {
   return typeof stitch === 'string' && stitch.includes('(') && stitch.includes(')') && stitch.includes('x');
@@ -468,6 +476,19 @@ defineExpose({
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+}
+
+/* Scaled-down font for 5-char stitch labels (e.g. "145ns") */
+.stitch-symbol.stitch-text-md {
+  font-size: 0.75rem;
+}
+
+/* Smallest font tier for 6+ char labels, with overflow clipping */
+.stitch-symbol.stitch-text-sm {
+  font-size: 0.65rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stitch-symbol.has-color {
@@ -970,7 +991,8 @@ defineExpose({
     font-size: 0.875rem;
     font-weight: 600;
   }
-  
+
+
   .stitch-wrapper.preview-stitch.repeat-pattern .stitch-symbol {
     width: auto;
     min-width: 150px;

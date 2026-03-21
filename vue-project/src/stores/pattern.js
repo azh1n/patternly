@@ -59,6 +59,12 @@ export const usePatternStore = defineStore('pattern', {
       }
     },
 
+    // TODO: [Subscription] Enforce 5-pattern limit for free tier.
+    //   - Before saving, check pattern count against patternLimit from useSubscription()
+    //   - If at limit, reject with an error that triggers UpgradeModal in the UI
+    //   - Pro users have unlimited patterns
+    //   - Existing users with >5 patterns keep them but can't add more until upgraded
+    //   See: docs/stories/subscription-tiers.md
     async addPattern(pattern) {
       try {
         const patternsRef = collection(db, 'patterns')

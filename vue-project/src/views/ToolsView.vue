@@ -35,6 +35,11 @@
             </div>
           </div>
           
+          <!-- TODO: [Subscription] Gate Pattern Export behind Pro tier.
+               - Check canExportFormats from useSubscription()
+               - Show ProBadge + lock icon for free users
+               - Show UpgradeModal on click for free users
+               See: docs/stories/subscription-tiers.md -->
           <div class="tool-card disabled">
             <div class="tool-icon">
               <font-awesome-icon icon="file-export" />
@@ -46,6 +51,9 @@
             <div class="coming-soon-tag">Coming Soon</div>
           </div>
           
+          <!-- TODO: [Subscription] Pattern Import — Pro only when built.
+               - Same gating pattern as Pattern Export
+               See: docs/stories/subscription-tiers.md -->
           <div class="tool-card disabled">
             <div class="tool-icon">
               <font-awesome-icon icon="file-import" />
@@ -57,6 +65,9 @@
             <div class="coming-soon-tag">Coming Soon</div>
           </div>
           
+          <!-- TODO: [Subscription] Pattern Analytics — available to ALL tiers (free + pro).
+               - No subscription gate needed here
+               See: docs/stories/subscription-tiers.md -->
           <div class="tool-card disabled">
             <div class="tool-icon">
               <font-awesome-icon icon="chart-bar" />
@@ -68,6 +79,11 @@
             <div class="coming-soon-tag">Coming Soon</div>
           </div>
           
+          <!-- TODO: [Subscription] Gate Bulk Actions behind Pro tier.
+               - Check canBulkAction from useSubscription()
+               - Show ProBadge + lock icon for free users
+               - Show UpgradeModal on click for free users
+               See: docs/stories/subscription-tiers.md -->
           <div class="tool-card disabled">
             <div class="tool-icon">
               <font-awesome-icon icon="archive" />

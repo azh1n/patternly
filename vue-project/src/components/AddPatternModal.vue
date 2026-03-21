@@ -9,6 +9,12 @@
       
       <div class="modal-body">
         <!-- File Upload Section - Only show if experimental features are enabled -->
+        <!-- TODO: [Subscription] Gate file upload behind Pro tier.
+             - Replace experimentalFeatures check with canUploadFiles from useSubscription()
+             - Show ProBadge on upload section for free users
+             - Show UpgradeModal when free user tries to upload
+             - Free users can only input patterns via text (paste/type)
+             See: docs/stories/subscription-tiers.md -->
         <template v-if="experimentalFeatures">
           <div class="upload-section">
             <FileUploadContainer 

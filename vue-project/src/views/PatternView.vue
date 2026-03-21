@@ -184,6 +184,11 @@
           </div>
           
           <!-- Experimental features section - visible only when experimental features are enabled -->
+          <!-- TODO: [Subscription] Gate pattern editing behind Pro tier.
+               - Replace experimentalFeatures check with canEditPatterns from useSubscription()
+               - "Edit Pattern" button (line ~202) should show UpgradeModal for free users
+               - Visualization toggles and raw pattern view can stay available to all tiers
+               See: docs/stories/subscription-tiers.md -->
           <div v-if="experimentalFeatures" class="experimental-features">
             <h3>Experimental Features</h3>
             <div class="feature-section">
@@ -1680,9 +1685,9 @@ const { shootConfetti } = useConfetti();
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
-  
+
   /* Keep the preview stitches at their normal size */
   .visualization-component :deep(.preview-content) .stitch-wrapper .stitch-symbol {
     transform: scale(1);
@@ -1877,24 +1882,6 @@ const { shootConfetti } = useConfetti();
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Add scaling for wider stitch codes */
-.preview-stitch[class*="dc"],
-.preview-stitch[class*="bs"],
-.preview-stitch[class*="inc"],
-.preview-stitch[class*="dec"] {
-  font-size: 0.85rem;
-}
-
-/* Further scale down text for 2-digit numbers */
-.preview-stitch:is([class*="10"][class*="dc"], [class*="11"][class*="dc"], [class*="20"][class*="dc"], [class*="22"][class*="dc"]) {
-  font-size: 0.8rem;
-}
-
-/* Even smaller for 3-digit numbers */
-.preview-stitch:is([class*="30"][class*="dc"]) {
-  font-size: 0.75rem;
 }
 
 /* Style for repeat patterns */

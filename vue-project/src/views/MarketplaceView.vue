@@ -19,6 +19,12 @@
         </div>
         
         <!-- Placeholder content -->
+        <!-- TODO: [Subscription] Gate marketplace sell functionality behind Pro tier.
+             - Import useSubscription() composable
+             - Free users can browse and buy patterns
+             - Only Pro users can list/sell patterns (check canSellOnMarketplace)
+             - Show ProBadge on sell-related UI elements
+             See: docs/stories/subscription-tiers.md -->
         <div class="coming-soon">
           <font-awesome-icon icon="store" size="4x" />
           <h2>Marketplace Coming Soon</h2>

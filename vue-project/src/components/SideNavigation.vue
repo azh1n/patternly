@@ -29,6 +29,7 @@
           <span class="nav-label" v-if="isExpanded">Saved Patterns</span>
         </a>
         
+        <!-- TODO: [Subscription] Add ProBadge next to Pattern Builder label for free users -->
         <a href="/builder" class="nav-item" @click.prevent="navigateTo('/builder')">
           <font-awesome-icon icon="pencil-ruler" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Pattern Builder</span>
@@ -39,6 +40,8 @@
           <span class="nav-label" v-if="isExpanded">Marketplace</span>
         </a>
         
+        <!-- TODO: [Subscription] Tools should be visible to all tiers (remove experimentalFeatures gate).
+             Analytics is free; export and bulk actions show ProBadge for free users. -->
         <a v-if="experimentalFeatures" href="/tools" class="nav-item" @click.prevent="navigateTo('/tools')">
           <font-awesome-icon icon="tools" class="nav-icon" />
           <span class="nav-label" v-if="isExpanded">Tools</span>

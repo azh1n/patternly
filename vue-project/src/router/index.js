@@ -105,6 +105,12 @@ const router = createRouter({
       component: CopyrightPolicyView,
       meta: { requiresAuth: false }
     },
+    // TODO: [Subscription] Add /pricing route here.
+    //   - Public (requiresAuth: false) — serves as marketing page for logged-out visitors
+    //   - Component: PricingView (new file: views/PricingView.vue)
+    //   - Shows Free vs Pro side-by-side feature comparison
+    //   See: docs/stories/subscription-tiers.md
+
     // Refund Policy route temporarily hidden until marketplace is ready
     // {
     //   path: '/refund-policy',

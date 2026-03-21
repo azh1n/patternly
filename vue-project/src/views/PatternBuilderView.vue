@@ -19,6 +19,12 @@
         </div>
         
         <!-- Placeholder content -->
+        <!-- TODO: [Subscription] Gate Pattern Builder behind Pro tier.
+             - Import useSubscription() composable
+             - Check canUseBuilder before rendering builder UI
+             - Show UpgradeModal when free user accesses this page
+             - Replace "coming soon" with builder UI for Pro users (when built)
+             See: docs/stories/subscription-tiers.md -->
         <div class="coming-soon">
           <font-awesome-icon icon="pencil-ruler" size="4x" />
           <h2>Pattern Builder Coming Soon</h2>

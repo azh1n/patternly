@@ -266,6 +266,14 @@
             </div>
           </div>
 
+          <!-- TODO: [Subscription] Add subscription management card here.
+               - Show current plan (Free / Pro) with visual indicator
+               - If Free: show upgrade CTA with feature comparison
+               - If Pro: show billing period, next renewal date, cancel option
+               - Cancel flow: confirm dialog → cancelAtPeriodEnd → access continues until period ends
+               - Link to /pricing page for full comparison
+               See: docs/stories/subscription-tiers.md -->
+
           <!-- Account actions card -->
           <div class="profile-card account-actions-card">
             <div class="card-header">
