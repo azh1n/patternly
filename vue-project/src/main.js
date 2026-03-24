@@ -76,7 +76,14 @@ import {
   faSearchPlus,
   faSearchMinus,
   faCloudArrowUp,
-  faFile
+  faFile,
+  faArrowPointer,
+  faGripLines,
+  faGripLinesVertical,
+  faVectorSquare,
+  faRotateLeft,
+  faCheck,
+  faXmark
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -149,7 +156,14 @@ library.add(
   faSearchPlus,
   faSearchMinus,
   faCloudArrowUp,
-  faFile
+  faFile,
+  faArrowPointer,
+  faGripLines,
+  faGripLinesVertical,
+  faVectorSquare,
+  faRotateLeft,
+  faCheck,
+  faXmark
 )
 
 const app = createApp(App)

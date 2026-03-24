@@ -51,9 +51,48 @@
       <div v-if="isChartProcessed" class="chart-container">
         <div class="chart-preview" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan" @mouseup="stopPan" @mouseleave="stopPan" @touchstart="startPan" @touchmove="handlePan" @touchend="stopPan">
           <div class="zoom-container" :style="zoomTransform">
-            <img :src="previewUrl" :alt="previewAlt" ref="imageRef" />
+            <div class="image-overlay-wrapper">
+              <img :src="previewUrl" :alt="previewAlt" ref="imageRef" />
+              <GridLineEditor
+                v-if="showGridEditor && gridResult"
+                ref="gridEditorRef"
+                :gridResult="gridResult"
+                :imageWidth="gridImageWidth"
+                :imageHeight="gridImageHeight"
+                @confirm="onGridConfirm"
+                @reset="onGridReset"
+              />
+            </div>
           </div>
           <div class="zoom-controls">
+            <!-- Grid editor tools (only when editor is active) -->
+            <template v-if="showGridEditor && gridEditorRef">
+              <button @click="gridEditorRef.onConfirm()" aria-label="Confirm grid" class="zoom-button confirm-grid-btn" title="Confirm grid lines">
+                <font-awesome-icon :icon="['fas', 'check']" />
+              </button>
+              <div class="toolbar-divider"></div>
+              <button @click="gridEditorRef.setActiveTool('select')" aria-label="Select" class="zoom-button" :class="{ 'active': gridEditorRef.activeTool === 'select' }" title="Select & move lines">
+                <font-awesome-icon :icon="['fas', 'arrow-pointer']" />
+              </button>
+              <button @click="gridEditorRef.setActiveTool('addHorizontal')" aria-label="Add horizontal line" class="zoom-button" :class="{ 'active': gridEditorRef.activeTool === 'addHorizontal' }" title="Add horizontal line">
+                <font-awesome-icon :icon="['fas', 'grip-lines']" />
+              </button>
+              <button @click="gridEditorRef.setActiveTool('addVertical')" aria-label="Add vertical line" class="zoom-button" :class="{ 'active': gridEditorRef.activeTool === 'addVertical' }" title="Add vertical line">
+                <font-awesome-icon :icon="['fas', 'grip-lines-vertical']" />
+              </button>
+              <button @click="gridEditorRef.setActiveTool('addBorder')" aria-label="Draw grid border" class="zoom-button" :class="{ 'active': gridEditorRef.activeTool === 'addBorder' }" title="Draw grid border">
+                <font-awesome-icon :icon="['fas', 'vector-square']" />
+              </button>
+              <div class="toolbar-divider"></div>
+              <button @click="gridEditorRef.onDeleteSelected()" aria-label="Delete selected line" class="zoom-button" :class="{ 'disabled': !gridEditorRef.selectedLineId }" title="Delete selected line">
+                <font-awesome-icon :icon="['fas', 'xmark']" />
+              </button>
+              <button @click="gridEditorRef.onReset()" aria-label="Reset lines" class="zoom-button" title="Reset to auto-detected lines">
+                <font-awesome-icon :icon="['fas', 'rotate-left']" />
+              </button>
+              <div class="toolbar-divider"></div>
+            </template>
+            <!-- Zoom controls -->
             <button @click="zoomIn" aria-label="Zoom in" class="zoom-button" :class="{ 'disabled': zoomState.scale >= zoomState.maxScale }">
               <span class="icon">+</span>
             </button>
@@ -69,7 +108,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Regular Image Preview -->
       <button v-else-if="isFullScreen" @click="toggleFullScreen" class="fullscreen-close" aria-label="Exit full screen">
         <font-awesome-icon :icon="['fas', 'times']" />
@@ -205,6 +244,7 @@ import { useUserSettings } from '@/services/userSettings';
 import { useImageProcessing } from '@/services/imageProcessingService';
 import { useChartProcessing } from '@/services/chartProcessingService';
 import ImageProcessingProgress from './ImageProcessingProgress.vue';
+import GridLineEditor from './GridLineEditor.vue';
 
 const props = defineProps({
   file: {
@@ -228,12 +268,13 @@ const {
   processImage 
 } = useImageProcessing();
 
-const { 
-  progress: chartProgress, 
-  progressMessage: chartProgressMessage, 
-  isProcessing: chartProcessing, 
-  error: chartError, 
-  processChart 
+const {
+  progress: chartProgress,
+  progressMessage: chartProgressMessage,
+  isProcessing: chartProcessing,
+  error: chartError,
+  processChart,
+  confirmGridLines
 } = useChartProcessing();
 
 const previewUrl = ref('');
@@ -249,6 +290,14 @@ const isChartProcessed = ref(false); // Track if a chart has been processed
 const gridCells = ref([]); // Store detected grid cells
 const cellImages = ref([]); // Store extracted cell images
 const processingError = ref(null);
+
+// Grid line editor state
+const gridResult = ref(null);
+const showGridEditor = ref(false);
+const sourceImageElement = ref(null);
+const gridImageWidth = ref(0);
+const gridImageHeight = ref(0);
+const gridEditorRef = ref(null);
 
 // Update state based on processing services
 watchEffect(() => {
@@ -281,10 +330,62 @@ const clearPreview = () => {
   previewUrl.value = '';
   processingError.value = null;
   fileName.value = '';
-  isChartProcessed.value = false; // Reset chart processed state
+  isChartProcessed.value = false;
+  // Clean up editor state
+  showGridEditor.value = false;
+  gridResult.value = null;
+  if (sourceImageElement.value?.src) {
+    URL.revokeObjectURL(sourceImageElement.value.src);
+  }
+  sourceImageElement.value = null;
+};
+
+// Grid line editor handlers
+const onGridConfirm = async (editedGridResult) => {
+  if (!sourceImageElement.value) return;
+
+  isProcessing.value = true;
+  progressMessage.value = 'Extracting grid cells...';
+
+  try {
+    const result = await confirmGridLines(sourceImageElement.value, editedGridResult);
+    if (result.success) {
+      // Replace preview with the image that has lines drawn
+      URL.revokeObjectURL(previewUrl.value);
+      previewUrl.value = URL.createObjectURL(result.blob);
+      gridCells.value = result.gridCells || [];
+      cellImages.value = result.cellImages || [];
+      showGridEditor.value = false;
+
+      emit('processing-complete', {
+        blob: result.blob,
+        gridCells: gridCells.value,
+        cellImages: cellImages.value
+      });
+    } else {
+      processingError.value = result.error || 'Failed to extract cells';
+      emit('error', processingError.value);
+    }
+  } catch (err) {
+    console.error('[FileUploader] Error confirming grid lines:', err);
+    processingError.value = 'Failed to process grid lines';
+    emit('error', processingError.value);
+  } finally {
+    isProcessing.value = false;
+    // Clean up source image reference
+    if (sourceImageElement.value?.src) {
+      URL.revokeObjectURL(sourceImageElement.value.src);
+    }
+    sourceImageElement.value = null;
+  }
+};
+
+const onGridReset = () => {
+  // GridLineEditor handles internal reset; nothing needed here
 };
 
 const processFile = async (file) => {
+  console.log('[FileUploader] processFile called with:', file?.name, file?.type);
   if (!file) {
     clearPreview();
     return;
@@ -296,6 +397,7 @@ const processFile = async (file) => {
   isProcessing.value = true;
   fileType.value = file.type || getMimeTypeFromExtension(file.name);
   fileName.value = file.name;
+  console.log('[FileUploader] fileType:', fileType.value, 'isImage:', isImage.value);
   
   // Emit processing start event
   emit('processing-start', file);
@@ -342,60 +444,57 @@ const processFile = async (file) => {
         console.log(`[FileUploader] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
         
         const result = await processChart(img);
-        
+        console.log('[FileUploader] processChart returned:', JSON.stringify({ success: result.success, hasBlob: !!result.blob, hasGridResult: !!result.gridResult, gridFound: result.gridResult?.gridFound, imageWidth: result.imageWidth }));
+
         if (!result.success) {
           console.warn('[FileUploader] Chart processing failed, falling back to original image');
-          // Fall back to showing original image
           previewUrl.value = URL.createObjectURL(file);
-          isChartProcessed.value = false; // Ensure we use regular image display
+          isChartProcessed.value = false;
           processingError.value = `Chart processing failed: ${result.error || 'Unknown error'}. Showing original image.`;
           emit('error', processingError.value);
           return;
         }
-        
+
         if (!result.blob) {
           console.warn('[FileUploader] No processed image blob received, falling back to original');
-          // Fall back to showing original image
           previewUrl.value = URL.createObjectURL(file);
-          isChartProcessed.value = false; // Ensure we use regular image display
+          isChartProcessed.value = false;
           processingError.value = 'No processed image received. Showing original image.';
           emit('error', processingError.value);
           return;
         }
-        
+
         console.log('[FileUploader] Chart processing completed successfully');
-        
-        // Store grid detection results if available
-        if (result.gridCells && result.gridCells.length > 0) {
-          gridCells.value = result.gridCells;
-          progressMessage.value = `Detected ${result.gridCells.length} grid cells`;
-          console.log(`[FileUploader] Grid cells detected: ${result.gridCells.length}`);
-        }
-        
-        // Store cell images if available
-        if (result.cellImages && result.cellImages.length > 0) {
-          cellImages.value = result.cellImages;
-          console.log(`[FileUploader] Cell images extracted: ${result.cellImages.length}`);
-        }
-        
-        // Create object URL from processed image blob
+
+        // Show clean image (no lines burned in) and open the grid editor
         const processedUrl = URL.createObjectURL(result.blob);
         previewUrl.value = processedUrl;
-        isChartProcessed.value = true; // Mark chart as processed
-        
-        console.log('[FileUploader] Image processing complete, preview URL created');
-        
-        emit('processing-complete', {
-          blob: result.blob,
-          gridCells: gridCells.value,
-          cellImages: cellImages.value
-        });
-        
-        // Clean up the temporary image URL
-        URL.revokeObjectURL(img.src);
+        isChartProcessed.value = true;
+
+        if (result.gridResult && result.gridResult.gridFound) {
+          // Grid detected — show editor overlay for user to review/edit lines
+          gridResult.value = result.gridResult;
+          gridImageWidth.value = result.imageWidth;
+          gridImageHeight.value = result.imageHeight;
+          sourceImageElement.value = img; // Keep alive for confirmGridLines
+          showGridEditor.value = true;
+          console.log('[FileUploader] Grid detected, showing editor overlay');
+          // Enter fullscreen for the grid editor
+          if (!isFullScreen.value) toggleFullScreen();
+          // Do NOT emit processing-complete yet — wait for user to confirm grid lines
+        } else {
+          // No grid found — proceed without editor
+          console.log('[FileUploader] No grid detected, proceeding without editor');
+          URL.revokeObjectURL(img.src);
+          emit('processing-complete', {
+            blob: result.blob,
+            gridCells: [],
+            cellImages: []
+          });
+        }
         
       } catch (err) {
-        console.error('Error processing image:', err);
+        console.error('[FileUploader] Error processing image:', err, err?.stack);
         // Fall back to regular image preview
         previewUrl.value = URL.createObjectURL(file);
         isChartProcessed.value = false; // Ensure we use regular image display
@@ -573,36 +672,42 @@ const processFile = async (file) => {
         // Start chart processing
         
         const result = await processChart(img);
-        
+        console.log('[FileUploader] PDF processChart returned:', { success: result.success, hasBlob: !!result.blob, hasGridResult: !!result.gridResult, gridFound: result.gridResult?.gridFound });
+
         if (!result.success) {
           throw new Error(result.error || 'Failed to process image');
         }
-        
+
         if (!result.blob) {
           throw new Error('No processed image data received');
         }
-        
-        // Store grid detection results if available
-        if (result.gridCells && result.gridCells.length > 0) {
-          gridCells.value = result.gridCells;
-          progressMessage.value = `Detected ${result.gridCells.length} grid cells`;
-        }
-        
-        // Store cell images if available
-        if (result.cellImages && result.cellImages.length > 0) {
-          cellImages.value = result.cellImages;
-        }
-        
-        // Create object URL from processed image blob
+
+        // Show clean image (no lines burned in) and open the grid editor
         const processedUrl = URL.createObjectURL(result.blob);
-        // Created URL for processed image
         previewUrl.value = processedUrl;
-        isChartProcessed.value = true; // Mark chart as processed
-        emit('processing-complete', {
-          blob: result.blob,
-          gridCells: gridCells.value,
-          cellImages: cellImages.value
-        });
+        isChartProcessed.value = true;
+
+        if (result.gridResult && result.gridResult.gridFound) {
+          // Grid detected — show editor overlay for user to review/edit lines
+          gridResult.value = result.gridResult;
+          gridImageWidth.value = result.imageWidth;
+          gridImageHeight.value = result.imageHeight;
+          sourceImageElement.value = img; // Keep alive for confirmGridLines
+          showGridEditor.value = true;
+          console.log('[FileUploader] PDF grid detected, showing editor overlay');
+          // Enter fullscreen for the grid editor
+          if (!isFullScreen.value) toggleFullScreen();
+          // Do NOT emit processing-complete yet — wait for user to confirm grid lines
+        } else {
+          // No grid found — proceed without editor
+          console.log('[FileUploader] PDF no grid detected, proceeding without editor');
+          URL.revokeObjectURL(img.src);
+          emit('processing-complete', {
+            blob: result.blob,
+            gridCells: [],
+            cellImages: []
+          });
+        }
         
       } catch (err) {
         console.error('Error processing PDF:', err);
@@ -1200,6 +1305,12 @@ const getMimeTypeFromExtension = (filename) => {
   height: 100%;
 }
 
+.image-overlay-wrapper {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
 .image-preview img {
   max-width: none;  /* Allow image to expand beyond container */
   max-height: none; /* Allow image to expand beyond container */
@@ -1303,6 +1414,36 @@ const getMimeTypeFromExtension = (filename) => {
   background: var(--button-disabled-bg-dark, #2d3748);
   color: var(--button-disabled-text-dark, #6b7280);
   border-color: var(--button-disabled-border-dark, #4a5568);
+}
+
+.zoom-button.active {
+  background: var(--accent-color, #4488ff);
+  color: white;
+  border-color: var(--accent-color, #4488ff);
+}
+
+:root.dark .zoom-button.active {
+  background: var(--accent-color, #4488ff);
+  color: white;
+  border-color: var(--accent-color, #4488ff);
+}
+
+.zoom-controls .toolbar-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border-color, #d0d0d0);
+  margin: 2px 0;
+}
+
+.confirm-grid-btn {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #22c55e !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+.confirm-grid-btn:hover {
+  background: rgba(34, 197, 94, 0.4) !important;
+  color: white !important;
 }
 
 .zoom-button:hover:not(.disabled) {

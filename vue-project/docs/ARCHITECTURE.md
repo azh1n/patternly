@@ -1,5 +1,7 @@
 # Patternly - Architecture Document
 
+**Last updated:** 2026-03-24
+
 A crochet pattern management and visualization platform built with Vue 3 and Firebase.
 
 **Repository:** `azh1n.github.io`
@@ -19,7 +21,7 @@ A crochet pattern management and visualization platform built with Vue 3 and Fir
 | Image Processing | OpenCV.js (dynamic), Roboflow (ML stitch classification) |
 | 3D Rendering | Three.js |
 | PDF | pdfjs-dist, pdf-lib |
-| Icons | Font Awesome 6 (70+ icons registered in main.js) |
+| Icons | Font Awesome 6 (67 icons registered in main.js) |
 | Testing | Vitest, @testing-library/vue, @vue/test-utils |
 
 ---
@@ -60,11 +62,15 @@ azh1n.github.io/
         │   └── imageProcessingService.js # Image preprocessing utils
         │
         ├── composables/
-        │   ├── useConfetti.js    # canvas-confetti celebration animation
-        │   └── useAdControl.js   # Route-aware ad display logic
+        │   ├── useConfetti.js       # canvas-confetti celebration animation
+        │   ├── useAdControl.js      # Route-aware ad display logic
+        │   ├── useStitchHelpers.js  # Stitch parsing, expansion, color resolution
+        │   └── useColorMode.js      # WCAG contrast text, stitch box styling
         │
         ├── utils/
-        │   └── shapeDetection.js # Circular vs rectangular pattern detection
+        │   ├── patternShapeDetector.js # Circular vs rectangular pattern detection
+        │   ├── patternParser.js        # Text pattern → structured row/stitch data
+        │   └── gridAnalysis.js         # Pure grid math (peaks, spacing, interpolation, dedup)
         │
         ├── views/               # 14 page components
         │   ├── DashboardView.vue
@@ -82,7 +88,7 @@ azh1n.github.io/
         │   ├── HomeView.vue
         │   └── PatternUploadDemo.vue
         │
-        ├── components/          # 24 reusable components
+        ├── components/          # 34 reusable components
         │   ├── SideNavigation.vue
         │   ├── AppFooter.vue
         │   ├── AdBanner.vue
@@ -98,7 +104,7 @@ azh1n.github.io/
         │   ├── AddPatternModal.vue
         │   ├── ImageProcessingProgress.vue
         │   ├── ContentPlaceholder.vue
-        │   ├── GridOverlay.vue          # New (untracked)
+        │   ├── FirebaseTest.vue
         │   │
         │   ├── pattern/                 # Pattern display components
         │   │   ├── PatternPreviewSection.vue
@@ -142,7 +148,7 @@ azh1n.github.io/
 ```
 main.js
   ├── Import global CSS (main.css, stitch-colors.css)
-  ├── Register 70+ FontAwesome icons
+  ├── Register 67 FontAwesome icons
   ├── createApp(App)
   ├── Install Pinia store
   ├── Install Vue Router
@@ -221,17 +227,31 @@ User uploads image/PDF
         ▼
   chartProcessingService.js (orchestrator)
         │
-        ├── Load OpenCV.js dynamically
+        ├── Load OpenCV.js dynamically (10s timeout)
         ├── Preprocess image (imageProcessingService.js)
         │
-        ▼
-  gridProcessingService.js
+        ├── If image > 8M pixels or > 3000px dimension:
+        │   ├── Split into tiles (80px overlap)
+        │   ├── Process each tile via detectGrid({ assumeFullGrid: true })
+        │   ├── Offset line positions by tile origin
+        │   └── Deduplicate lines in overlap zones
         │
-        ├── Detect horizontal lines (OpenCV edge detection)
-        ├── Detect vertical lines
-        ├── Compute grid cell boundaries
+        └── Else: single-pass via detectGrid()
+                │
+                ▼
+  gridProcessingService.js — detectGridSync()
         │
-        ▼
+        ├── Border detection: adaptive threshold → morph open → contour scoring
+        ├── Deskew if rectangular (rectangularity > 0.7) and rotated > 0.5°
+        ├── Step 1: HoughLinesP → black/dark lines
+        ├── Step 2: Per-column pixel scan → light gray lines + adaptive Canny
+        ├── Step 3: Per-column pixel scan → medium gray vertical lines
+        ├── Step 3b: Per-row pixel scan → medium gray horizontal lines
+        ├── Step 4: Projection profiles → regularity enforcement → interpolation
+        ├── Step 5: Connected component fallback (if < 70% expected lines)
+        └── extractGridCells() → cells with row/col/confidence
+                │
+                ▼
   Roboflow API (external)
         │
         ├── Classify each cell → stitch type
@@ -240,7 +260,7 @@ User uploads image/PDF
   Structured pattern data
         │
         ├── Rows & columns with stitch types
-        ├── Shape detection (circular vs rectangular)
+        ├── Shape detection (patternShapeDetector.js)
         │
         ▼
   Multiple visualization modes
@@ -252,7 +272,9 @@ User uploads image/PDF
         └── 3D preview (Crochet3DView.vue, Three.js)
 ```
 
-**Timeouts:** Grid processing has a 10-second limit.
+**Timeouts:** OpenCV loading has a 10-second limit.
+
+**Pure utility functions** (`utils/gridAnalysis.js`): `findPeaks`, `computeMedianSpacing`, `interpolateMissingLines`, `scoreLineConfidence`, `computeDeskewAngle`, `filterComponentsByArea`, `buildCellGrid`, `deduplicateLines` — 46 unit tests.
 
 ---
 

@@ -320,23 +320,7 @@ export function useChartProcessing() {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(imageElement, 0, 0, width, height);
 
-        // Draw grid lines onto the full canvas using OpenCV
-        if (gridResult.gridFound && gridResult.gridArea) {
-          try {
-            src = cv.imread(canvas);
-            dst = new cv.Mat();
-            src.copyTo(dst);
-            drawGridLines(cv, dst, gridResult.horizontalLines, gridResult.verticalLines, gridResult.gridArea, 1);
-            cv.imshow(canvas, dst);
-            console.log('[ChartProcessing] Grid lines drawn on full image');
-          } catch (drawError) {
-            console.warn('[ChartProcessing] Error drawing grid lines on full image:', drawError);
-          } finally {
-            if (src) { src.delete(); src = null; }
-            if (dst) { dst.delete(); dst = null; }
-          }
-        }
-
+        // Clean image on canvas (no lines drawn) — editor overlay handles visualization
         progress.value = 80;
 
       } else {
@@ -412,25 +396,9 @@ export function useChartProcessing() {
 
           console.log(`[ChartProcessing] Destination image created: ${dst.cols}x${dst.rows}`);
 
-          if (gridResult &&
-              gridResult.horizontalLines && gridResult.horizontalLines.length > 0 &&
-              gridResult.verticalLines && gridResult.verticalLines.length > 0 &&
-              gridResult.gridArea) {
-            try {
-              console.log('[ChartProcessing] Drawing grid lines...');
-              drawGridLines(cv, dst, gridResult.horizontalLines, gridResult.verticalLines, gridResult.gridArea, 1);
-              console.log('[ChartProcessing] Grid lines drawn successfully');
-            } catch (drawError) {
-              console.warn('[ChartProcessing] Error drawing grid lines:', drawError);
-            }
-          } else {
-            console.log('[ChartProcessing] No grid found or insufficient grid data, skipping grid drawing');
-          }
+          // Clean image stays on canvas (no lines drawn) — editor overlay handles visualization
 
           progressMessage.value = 'Finalizing image...';
-          console.log('[ChartProcessing] Converting back to canvas...');
-          cv.imshow(canvas, dst);
-          console.log('[ChartProcessing] Canvas conversion complete');
           progress.value = 80;
 
           try {
@@ -455,58 +423,50 @@ export function useChartProcessing() {
       // Convert to blob
   
       progressMessage.value = 'Creating result image...';
+      console.log('[ChartProcessing] About to call canvas.toBlob(). Canvas:', canvas?.width, 'x', canvas?.height, 'context:', !!canvas?.getContext('2d'));
       const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(blob => {
-          if (!blob) return reject(new Error('Failed to create blob'));
-          resolve(blob);
-        }, 'image/png', 0.9);
+        try {
+          canvas.toBlob(blob => {
+            console.log('[ChartProcessing] toBlob callback fired, blob:', !!blob, blob?.size);
+            if (!blob) return reject(new Error('Failed to create blob'));
+            resolve(blob);
+          }, 'image/png', 0.9);
+          console.log('[ChartProcessing] toBlob() called (async, waiting for callback)');
+        } catch (toBlobError) {
+          console.error('[ChartProcessing] toBlob() threw:', toBlobError);
+          reject(toBlobError);
+        }
       });
       
       progress.value = 100;
       progressMessage.value = 'Complete';
-  
-      // Processing complete
-      progress.value = 95;
-      
-      // Extract grid cells if grid was detected
-      let gridCells = [];
-      let cellImages = [];
-      
-      if (gridResult && gridResult.cells && gridResult.cells.length > 0) {
-        progressMessage.value = 'Extracting grid cells...';
-        gridCells = gridResult.cells;
-        
-        try {
-          // Extract each cell as a separate image
-          cellImages = extractGridCells(cv, src, gridResult.cells);
-        } catch (extractError) {
-          console.warn('[ChartProcessing] Error extracting grid cells:', extractError);
-          // Continue without cell extraction
-          cellImages = [];
-        }
-      }
-      
-      // Return the processed image with the expected structure
+      console.log('[ChartProcessing] About to return result. gridResult:', !!gridResult, 'gridFound:', gridResult?.gridFound, 'blob size:', blob?.size);
+
+      // Return clean image + grid detection result (cell extraction deferred to confirmGridLines)
       isProcessing.value = false;
       return {
         success: true,
         blob: blob,
-        gridCells: gridCells,
-        cellImages: cellImages
+        gridResult: gridResult || null,
+        imageWidth: width,
+        imageHeight: height
       };
-      
+
     } catch (err) {
-      console.error('[ChartProcessing] Error:', err);
+      console.error('[ChartProcessing] CATCH block error:', err, err?.stack);
       error.value = err.message;
       return {
         success: false,
         error: err.message,
         blob: null,
-        gridCells: [],
-        cellImages: []
+        gridResult: null,
+        imageWidth: 0,
+        imageHeight: 0
       };
     } finally {
+      console.log('[ChartProcessing] FINALLY block running');
       cleanup();
+      console.log('[ChartProcessing] FINALLY cleanup done');
       isProcessing.value = false;
     }
   };
@@ -585,12 +545,123 @@ export function useChartProcessing() {
     }
   };
   
+  // Stage 2: Confirm grid lines and extract cells
+  // Called after the user has reviewed/edited lines in the GridLineEditor
+  const confirmGridLines = async (imageElement, editedGridResult) => {
+    isProcessing.value = true;
+    progress.value = 0;
+    error.value = null;
+    progressMessage.value = 'Preparing to extract cells...';
+
+    let canvas = null;
+    let src = null;
+    let dst = null;
+
+    try {
+      // Ensure OpenCV is loaded (should be cached from processChart)
+      if (!window.cv || !window.cv.Mat) {
+        progressMessage.value = 'Loading OpenCV...';
+        await loadOpenCVScript();
+        await waitForOpenCVInitialization();
+      }
+
+      if (!window.cv || !window.cv.Mat) {
+        throw new Error('Failed to load OpenCV');
+      }
+
+      const cv = window.cv;
+      const width = imageElement.naturalWidth || imageElement.width;
+      const height = imageElement.naturalHeight || imageElement.height;
+
+      progress.value = 20;
+      progressMessage.value = 'Reading image...';
+
+      // Read clean image into OpenCV
+      canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(imageElement, 0, 0, width, height);
+
+      src = cv.imread(canvas);
+      if (!src || src.empty()) {
+        throw new Error('Failed to load image into OpenCV');
+      }
+
+      progress.value = 40;
+      progressMessage.value = 'Drawing grid lines...';
+
+      // Draw lines on a copy for the visual result
+      dst = new cv.Mat();
+      src.copyTo(dst);
+
+      if (editedGridResult.horizontalLines?.length > 0 &&
+          editedGridResult.verticalLines?.length > 0) {
+        drawGridLines(cv, dst, editedGridResult.horizontalLines, editedGridResult.verticalLines, editedGridResult.gridArea, 1);
+      }
+
+      cv.imshow(canvas, dst);
+
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('Failed to create blob')), 'image/png', 0.9);
+      });
+
+      progress.value = 60;
+      progressMessage.value = 'Extracting grid cells...';
+
+      // Extract cells from the CLEAN source image (not the one with lines drawn)
+      let gridCells = [];
+      let cellImages = [];
+      let gridDimensions = null;
+
+      try {
+        const extractResult = extractGridCells(cv, src, editedGridResult);
+        if (extractResult && extractResult.cells) {
+          gridCells = extractResult.cells;
+          cellImages = extractResult.cells;
+          gridDimensions = extractResult.gridDimensions;
+          console.log(`[ChartProcessing] Extracted ${gridCells.length} cells`);
+        }
+      } catch (extractError) {
+        console.warn('[ChartProcessing] Error extracting grid cells:', extractError);
+      }
+
+      progress.value = 100;
+      progressMessage.value = 'Complete';
+      isProcessing.value = false;
+
+      return {
+        success: true,
+        blob,
+        gridCells,
+        cellImages,
+        gridDimensions
+      };
+    } catch (err) {
+      console.error('[ChartProcessing] confirmGridLines error:', err);
+      error.value = err.message;
+      isProcessing.value = false;
+      return {
+        success: false,
+        error: err.message,
+        blob: null,
+        gridCells: [],
+        cellImages: []
+      };
+    } finally {
+      if (src && typeof src.delete === 'function') src.delete();
+      if (dst && typeof dst.delete === 'function') dst.delete();
+      if (canvas && canvas.remove) canvas.remove();
+    }
+  };
+
   return {
     progress,
     progressMessage,
     error,
     isProcessing,
-    processChart
+    processChart,
+    confirmGridLines
   };
 }
 
