@@ -110,14 +110,20 @@ Tiling works (splits correctly, processes each tile, merges results), but detect
 - **Tile boundary artifacts.** Grid lines near tile edges get clipped by the morphological kernels. The 80px overlap helps but may not be enough for the 10% kernel sizes. Consider reducing kernel sizes for tile mode, or increasing overlap.
 - **CC fallback over-triggers on tiles.** Because each tile has fewer expected lines than a full image, the 70% threshold triggers more easily, adding noisy CC-derived lines.
 
-#### 2. Charts that don't fill the page
+#### 2. Charts that don't fill the page — Multi-Scale Border Detection
 
 The initial morphological kernel sizes (10% of full image dimensions) assume the grid spans most of the image. Charts that occupy only part of the page (e.g., CupofCoffeeWallHangingChart.pdf where the grid is ~40% of the page) have their grid lines erased by the morphological open, causing contour detection to fail entirely.
 
-Options:
-- Reduce initial kernel sizes (3-5% instead of 10%)
-- Multi-scale: try 10%, if no grid found retry at 5%, then 3%
-- Skip the initial morph for border detection and use adaptive threshold + contour analysis directly
+**Approach: Multi-scale retry with full-image fallback.**
+
+Refactor the border detection block (adaptive threshold → morph open → contour scoring → deskew) into a standalone function that accepts a kernel scale parameter. Call it in sequence with progressively smaller scales:
+
+1. **10% kernels** (existing behavior) — works for charts that fill the page
+2. **5% kernels** — catches charts that occupy ~40-60% of the page
+3. **3% kernels** — catches smaller charts or charts with thin grid lines
+4. **Full-image fallback** — if all scales fail, treat the entire image as the grid ROI (same as `assumeFullGrid`) and let Steps 1-5 find internal lines. The interactive editor is the safety net.
+
+Stop at the first scale that finds a grid contour passing the existing scoring threshold (area > 5% of image, best rectangularity/aspect score). This is purely additive — charts that already work hit the 10% path on the first try with no change in behavior. The extra morph passes only run on failure cases.
 
 #### 3. Gray pixel range adaptivity
 
@@ -232,7 +238,7 @@ User reviews/edits lines in interactive overlay
 
 ### Detection Quality (Independent)
 - [ ] Cross-tile regularity enforcement (global spacing from best tile)
-- [ ] Charts that don't fill the page (smaller morph kernels or multi-scale detection)
+- [x] Charts that don't fill the page (multi-scale morph + contour clustering fallback)
 - [ ] Adaptive gray pixel ranges based on image histogram
 - [ ] Detection accuracy benchmarked against diverse test set
 - [ ] Tile boundary artifacts reduced (kernel size adjustment or larger overlap)
