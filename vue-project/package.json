@@ -21,6 +21,7 @@
     "file-saver": "^2.0.5",
     "file-type": "^18.0.0",
     "firebase": "^10.8.0",
+    "onnxruntime-web": "^1.24.3",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.2.133",
     "pinia": "^2.1.7",

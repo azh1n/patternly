@@ -283,7 +283,6 @@ onMounted(async () => {
   try {
     const result = await getRedirectResult(getAuth())
     if (result) {
-      console.log('Redirect result:', result)
       const redirectPath = localStorage.getItem('redirectAfterAuth')
       if (redirectPath) {
         localStorage.removeItem('redirectAfterAuth')

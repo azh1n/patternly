@@ -140,7 +140,6 @@ export function useChartProcessing() {
         const tileH = Math.ceil(height / tilesY);
         const totalTiles = tilesX * tilesY;
 
-        console.log(`[ChartProcessing] Large image (${width}x${height}=${totalPixels}px), tiling into ${tilesX}x${tilesY} = ${totalTiles} tiles (each ~${tileW}x${tileH})`);
 
         // Merged result across all tiles
         gridResult = {
@@ -169,7 +168,6 @@ export function useChartProcessing() {
             const tw = ex - sx;
             const th = ey - sy;
 
-            console.log(`[ChartProcessing] Tile ${tileIndex}: (${sx},${sy}) ${tw}x${th}`);
 
             // Draw tile to a temporary canvas
             const tileCanvas = document.createElement('canvas');
@@ -248,7 +246,6 @@ export function useChartProcessing() {
                 }
               }
 
-              console.log(`[ChartProcessing] Tile ${tileIndex} done: ${tileResult.gridFound ? 'grid found' : 'no grid'}, ${tileResult.verticalLines?.filter(l => !l.isGridBorder).length || 0} vert, ${tileResult.horizontalLines?.filter(l => !l.isGridBorder).length || 0} horiz`);
             } catch (tileError) {
               console.warn(`[ChartProcessing] Tile ${tileIndex} failed:`, tileError);
             } finally {
@@ -307,7 +304,6 @@ export function useChartProcessing() {
 
           const finalV = gridResult.verticalLines.filter(l => !l.isGridBorder).length;
           const finalH = gridResult.horizontalLines.filter(l => !l.isGridBorder).length;
-          console.log(`[ChartProcessing] After tile merge + dedup: ${finalV} vertical, ${finalH} horizontal lines`);
         }
 
         // Draw results on a full-size canvas
@@ -327,7 +323,6 @@ export function useChartProcessing() {
         // ── SINGLE-PASS PROCESSING (image fits within limits) ──
         let canvasWidth = width;
         let canvasHeight = height;
-        console.log(`[ChartProcessing] Image size acceptable for direct processing: ${width}x${height}`);
 
         canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -349,39 +344,32 @@ export function useChartProcessing() {
           if (!imageData || !imageData.data || imageData.data.length === 0) {
             throw new Error('Canvas contains no image data');
           }
-          console.log('[ChartProcessing] Canvas validation passed');
         } catch (validationError) {
           throw new Error(`Canvas validation failed: ${validationError.message}`);
         }
 
         // Convert to OpenCV format
         try {
-          console.log('[ChartProcessing] Reading image into OpenCV...');
           src = cv.imread(canvas);
 
           if (!src || src.empty()) {
             throw new Error('Failed to load image into OpenCV');
           }
 
-          console.log(`[ChartProcessing] Image loaded: ${src.cols}x${src.rows} channels=${src.channels()}`);
 
           progressMessage.value = 'Converting to grayscale...';
           progress.value = 30;
 
           gray = new cv.Mat();
-          console.log('[ChartProcessing] Converting to grayscale...');
           cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
 
-          console.log(`[ChartProcessing] Grayscale conversion complete: ${gray.cols}x${gray.rows}`);
 
           // Detect grid in the image
           progressMessage.value = 'Detecting grid structure...';
           progress.value = 40;
 
           try {
-            console.log('[ChartProcessing] Starting grid detection...');
             gridResult = await detectGrid(cv, gray.clone());
-            console.log('[ChartProcessing] Grid detection completed:', gridResult);
           } catch (gridError) {
             console.warn('[ChartProcessing] Grid detection failed:', gridError);
             gridResult = null;
@@ -390,11 +378,9 @@ export function useChartProcessing() {
           progressMessage.value = 'Preparing final image...';
           progress.value = 50;
 
-          console.log('[ChartProcessing] Creating destination image...');
           dst = new cv.Mat();
           src.copyTo(dst);
 
-          console.log(`[ChartProcessing] Destination image created: ${dst.cols}x${dst.rows}`);
 
           // Clean image stays on canvas (no lines drawn) — editor overlay handles visualization
 
@@ -402,7 +388,6 @@ export function useChartProcessing() {
           progress.value = 80;
 
           try {
-            console.log('[ChartProcessing] Cleaning up intermediate resources...');
             if (gray && !gray.isDeleted) { gray.delete(); gray = null; }
             if (dst && !dst.isDeleted) { dst.delete(); dst = null; }
           } catch (cleanupError) {
@@ -423,15 +408,12 @@ export function useChartProcessing() {
       // Convert to blob
   
       progressMessage.value = 'Creating result image...';
-      console.log('[ChartProcessing] About to call canvas.toBlob(). Canvas:', canvas?.width, 'x', canvas?.height, 'context:', !!canvas?.getContext('2d'));
       const blob = await new Promise((resolve, reject) => {
         try {
           canvas.toBlob(blob => {
-            console.log('[ChartProcessing] toBlob callback fired, blob:', !!blob, blob?.size);
             if (!blob) return reject(new Error('Failed to create blob'));
             resolve(blob);
           }, 'image/png', 0.9);
-          console.log('[ChartProcessing] toBlob() called (async, waiting for callback)');
         } catch (toBlobError) {
           console.error('[ChartProcessing] toBlob() threw:', toBlobError);
           reject(toBlobError);
@@ -440,7 +422,6 @@ export function useChartProcessing() {
       
       progress.value = 100;
       progressMessage.value = 'Complete';
-      console.log('[ChartProcessing] About to return result. gridResult:', !!gridResult, 'gridFound:', gridResult?.gridFound, 'blob size:', blob?.size);
 
       // Return clean image + grid detection result (cell extraction deferred to confirmGridLines)
       isProcessing.value = false;
@@ -464,9 +445,7 @@ export function useChartProcessing() {
         imageHeight: 0
       };
     } finally {
-      console.log('[ChartProcessing] FINALLY block running');
       cleanup();
-      console.log('[ChartProcessing] FINALLY cleanup done');
       isProcessing.value = false;
     }
   };
@@ -618,9 +597,25 @@ export function useChartProcessing() {
         const extractResult = extractGridCells(cv, src, editedGridResult);
         if (extractResult && extractResult.cells) {
           gridCells = extractResult.cells;
-          cellImages = extractResult.cells;
           gridDimensions = extractResult.gridDimensions;
-          console.log(`[ChartProcessing] Extracted ${gridCells.length} cells`);
+
+          // Convert cv.Mat cells to plain RGBA pixel data for classification
+          cellImages = gridCells.map(cell => {
+            const mat = cell.image;
+            const rgba = new cv.Mat();
+            if (mat.channels() === 1) {
+              cv.cvtColor(mat, rgba, cv.COLOR_GRAY2RGBA);
+            } else if (mat.channels() === 3) {
+              cv.cvtColor(mat, rgba, cv.COLOR_BGR2RGBA);
+            } else {
+              mat.copyTo(rgba);
+            }
+            const data = new Uint8ClampedArray(rgba.data);
+            const result = { width: rgba.cols, height: rgba.rows, data };
+            rgba.delete();
+            return result;
+          });
+
         }
       } catch (extractError) {
         console.warn('[ChartProcessing] Error extracting grid cells:', extractError);
@@ -680,14 +675,12 @@ function loadOpenCVScript() {
     }
     
     isLoadingOpenCV = true;
-    console.log('[ChartProcessing] Loading OpenCV script...');
     
     const script = document.createElement('script');
     script.src = 'https://docs.opencv.org/4.5.5/opencv.js';
     script.async = true;
     
     script.onload = () => {
-      console.log('[ChartProcessing] OpenCV script loaded');
       resolve();
       
       if (openCVLoadedCallback) {
@@ -715,26 +708,22 @@ function waitForOpenCVInitialization() {
       return;
     }
     
-    console.log('[ChartProcessing] Setting up OpenCV initialization listener');
     
     // Set up initialization handler
     if (window.cv) {
       window.cv.onRuntimeInitialized = () => {
-        console.log('[ChartProcessing] OpenCV initialized via cv.onRuntimeInitialized');
         resolve();
       };
     } else {
       // Fallback to Module
       window.Module = window.Module || {};
       window.Module.onRuntimeInitialized = () => {
-        console.log('[ChartProcessing] OpenCV initialized via Module.onRuntimeInitialized');
         resolve();
       };
     }
     
     // Safety timeout - only used if initialization gets stuck
     const timeoutId = setTimeout(() => {
-      console.log('[ChartProcessing] OpenCV initialization timed out, resolving anyway');
       resolve();
     }, 10000);
     

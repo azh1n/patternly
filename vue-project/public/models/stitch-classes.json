@@ -1,0 +1,58 @@
+{
+  "0": {
+    "datasetName": "chain",
+    "stitchType": "ch"
+  },
+  "1": {
+    "datasetName": "dc",
+    "stitchType": "dc"
+  },
+  "2": {
+    "datasetName": "dc-dec",
+    "stitchType": "dcdec"
+  },
+  "3": {
+    "datasetName": "dc-inc",
+    "stitchType": "dcinc"
+  },
+  "4": {
+    "datasetName": "dtr",
+    "stitchType": "dtr"
+  },
+  "5": {
+    "datasetName": "front-post-dc",
+    "stitchType": "fpdc"
+  },
+  "6": {
+    "datasetName": "hdc",
+    "stitchType": "hdc"
+  },
+  "7": {
+    "datasetName": "hdc-dec",
+    "stitchType": "hdcdec"
+  },
+  "8": {
+    "datasetName": "hdc-inc",
+    "stitchType": "hdcinc"
+  },
+  "9": {
+    "datasetName": "sc",
+    "stitchType": "sc"
+  },
+  "10": {
+    "datasetName": "sc-dec",
+    "stitchType": "scdec"
+  },
+  "11": {
+    "datasetName": "sc-inc",
+    "stitchType": "scinc"
+  },
+  "12": {
+    "datasetName": "slip-stitch",
+    "stitchType": "sl"
+  },
+  "13": {
+    "datasetName": "tr",
+    "stitchType": "tr"
+  }
+}

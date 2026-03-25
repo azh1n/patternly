@@ -100,14 +100,12 @@ const processingConfidence = computed(() => {
 
 // Event handlers
 const onFileChange = (file) => {
-  console.log('File changed:', file);
   if (!file) {
     processingResult.value = null;
   }
 };
 
 const onProcessingComplete = (result) => {
-  console.log('Processing complete:', result);
   processingResult.value = result;
   error.value = '';
   
@@ -131,7 +129,6 @@ const savePattern = () => {
     // Here you would typically save the pattern to your database
     // For now, we'll just show an alert
     alert('Pattern saved successfully!');
-    console.log('Saving pattern:', processingResult.value);
   }
 };
 

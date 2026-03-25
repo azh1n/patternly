@@ -48,8 +48,21 @@
       <button v-if="isFullScreen" @click="toggleFullScreen" class="fullscreen-close" aria-label="Exit full screen">
         <font-awesome-icon :icon="['fas', 'times']" />
       </button>
+      <!-- Stitch confirmation (shown after classification, replaces chart view) -->
+      <div v-if="isChartProcessed && showStitchConfirmation && pendingConfirmationData" class="direction-selector-container">
+        <StitchConfirmation
+          :predictions="pendingConfirmationData.predictions"
+          :cellImages="pendingConfirmationData.cellImages"
+          :gridCells="pendingConfirmationData.gridCells"
+          :gridDimensions="pendingConfirmationData.gridDimensions"
+          :startCorner="pendingConfirmationData.startCorner"
+          :rowDirection="pendingConfirmationData.rowDirection"
+          @confirm="onStitchConfirm"
+        />
+      </div>
+
       <!-- Direction selector (shown after grid confirmation, replaces chart view) -->
-      <div v-if="isChartProcessed && showDirectionSelector" class="direction-selector-container">
+      <div v-else-if="isChartProcessed && showDirectionSelector" class="direction-selector-container">
         <ChartDirectionSelector @confirm="onDirectionConfirm" />
       </div>
 
@@ -251,6 +264,8 @@ import { useChartProcessing } from '@/services/chartProcessingService';
 import ImageProcessingProgress from './ImageProcessingProgress.vue';
 import GridLineEditor from './GridLineEditor.vue';
 import ChartDirectionSelector from './ChartDirectionSelector.vue';
+import { useStitchClassification } from '@/services/stitchClassificationService';
+import StitchConfirmation from './StitchConfirmation.vue';
 
 const props = defineProps({
   file: {
@@ -283,6 +298,8 @@ const {
   confirmGridLines
 } = useChartProcessing();
 
+const { classifyCells, isModelLoaded, isClassifying } = useStitchClassification();
+
 const previewUrl = ref('');
 const fileType = ref('');
 const fileName = ref('');
@@ -308,6 +325,10 @@ const gridEditorRef = ref(null);
 // Direction selector state
 const showDirectionSelector = ref(false);
 const pendingCellResult = ref(null);
+
+// Stitch confirmation state
+const showStitchConfirmation = ref(false);
+const pendingConfirmationData = ref(null);
 
 // Update state based on processing services
 watchEffect(() => {
@@ -344,7 +365,9 @@ const clearPreview = () => {
   // Clean up editor state
   showGridEditor.value = false;
   showDirectionSelector.value = false;
+  showStitchConfirmation.value = false;
   pendingCellResult.value = null;
+  pendingConfirmationData.value = null;
   gridResult.value = null;
   if (sourceImageElement.value?.src) {
     URL.revokeObjectURL(sourceImageElement.value.src);
@@ -397,15 +420,58 @@ const onGridConfirm = async (editedGridResult) => {
   }
 };
 
-const onDirectionConfirm = (directionData) => {
+const onDirectionConfirm = async (directionData) => {
   showDirectionSelector.value = false;
 
-  emit('processing-complete', {
+  const result = {
     ...pendingCellResult.value,
     startCorner: directionData.startCorner,
-    rowDirection: directionData.rowDirection
+    rowDirection: directionData.rowDirection,
+  };
+
+  // Run stitch classification if we have cell images
+  if (result.cellImages && result.cellImages.length > 0) {
+    isProcessing.value = true;
+    progressMessage.value = 'Loading classification model...';
+    progress.value = 0;
+
+    try {
+      const predictions = await classifyCells(result.cellImages, (completed, total) => {
+        progress.value = Math.round((completed / total) * 100);
+        progressMessage.value = `Classifying stitches... ${completed}/${total}`;
+      });
+
+      result.predictions = predictions;
+    } catch (err) {
+      console.error('[FileUploader] Classification failed:', err);
+      // Non-fatal — emit without predictions, user can classify manually
+      result.predictions = null;
+      result.classificationError = err.message;
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
+  // Show stitch confirmation UI if we have predictions
+  if (result.predictions && result.predictions.length > 0) {
+    pendingConfirmationData.value = result;
+    showStitchConfirmation.value = true;
+  } else {
+    // No predictions — emit directly (user can still get the raw data)
+    emit('processing-complete', result);
+    pendingCellResult.value = null;
+  }
+};
+
+const onStitchConfirm = (confirmedData) => {
+  showStitchConfirmation.value = false;
+
+  emit('processing-complete', {
+    ...pendingConfirmationData.value,
+    patternRows: confirmedData.patternRows,
   });
 
+  pendingConfirmationData.value = null;
   pendingCellResult.value = null;
 };
 
@@ -414,7 +480,6 @@ const onGridReset = () => {
 };
 
 const processFile = async (file) => {
-  console.log('[FileUploader] processFile called with:', file?.name, file?.type);
   if (!file) {
     clearPreview();
     return;
@@ -426,7 +491,7 @@ const processFile = async (file) => {
   isProcessing.value = true;
   fileType.value = file.type || getMimeTypeFromExtension(file.name);
   fileName.value = file.name;
-  console.log('[FileUploader] fileType:', fileType.value, 'isImage:', isImage.value);
+
   
   // Emit processing start event
   emit('processing-start', file);
@@ -470,10 +535,10 @@ const processFile = async (file) => {
         
         // Process the image with chart processing (includes grid detection)
         progressMessage.value = 'Processing chart...';
-        console.log(`[FileUploader] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
+
         
         const result = await processChart(img);
-        console.log('[FileUploader] processChart returned:', JSON.stringify({ success: result.success, hasBlob: !!result.blob, hasGridResult: !!result.gridResult, gridFound: result.gridResult?.gridFound, imageWidth: result.imageWidth }));
+
 
         if (!result.success) {
           console.warn('[FileUploader] Chart processing failed, falling back to original image');
@@ -493,7 +558,7 @@ const processFile = async (file) => {
           return;
         }
 
-        console.log('[FileUploader] Chart processing completed successfully');
+
 
         // Show clean image (no lines burned in) and open the grid editor
         const processedUrl = URL.createObjectURL(result.blob);
@@ -507,13 +572,13 @@ const processFile = async (file) => {
           gridImageHeight.value = result.imageHeight;
           sourceImageElement.value = img; // Keep alive for confirmGridLines
           showGridEditor.value = true;
-          console.log('[FileUploader] Grid detected, showing editor overlay');
+
           // Enter fullscreen for the grid editor
           if (!isFullScreen.value) toggleFullScreen();
           // Do NOT emit processing-complete yet — wait for user to confirm grid lines
         } else {
           // No grid found — proceed without editor
-          console.log('[FileUploader] No grid detected, proceeding without editor');
+
           URL.revokeObjectURL(img.src);
           emit('processing-complete', {
             blob: result.blob,
@@ -701,7 +766,7 @@ const processFile = async (file) => {
         // Start chart processing
         
         const result = await processChart(img);
-        console.log('[FileUploader] PDF processChart returned:', { success: result.success, hasBlob: !!result.blob, hasGridResult: !!result.gridResult, gridFound: result.gridResult?.gridFound });
+
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to process image');
@@ -723,13 +788,13 @@ const processFile = async (file) => {
           gridImageHeight.value = result.imageHeight;
           sourceImageElement.value = img; // Keep alive for confirmGridLines
           showGridEditor.value = true;
-          console.log('[FileUploader] PDF grid detected, showing editor overlay');
+
           // Enter fullscreen for the grid editor
           if (!isFullScreen.value) toggleFullScreen();
           // Do NOT emit processing-complete yet — wait for user to confirm grid lines
         } else {
           // No grid found — proceed without editor
-          console.log('[FileUploader] PDF no grid detected, proceeding without editor');
+
           URL.revokeObjectURL(img.src);
           emit('processing-complete', {
             blob: result.blob,

@@ -19,13 +19,11 @@ const error = ref('')
 
 onMounted(async () => {
   try {
-    console.log('Starting auth callback handling...')
     const auth = getAuth()
     
     // Wait for auth state to be initialized
     await new Promise((resolve) => {
       const unsubscribe = onAuthStateChanged(auth, (user) => {
-        console.log('Auth state changed:', user)
         unsubscribe()
         resolve()
       })
@@ -33,17 +31,14 @@ onMounted(async () => {
 
     // Get the redirect result
     const result = await getRedirectResult(auth)
-    console.log('Redirect result:', result)
     
     // Get the stored redirect path or default to home
     const redirectPath = localStorage.getItem('redirectAfterAuth') || '/'
     localStorage.removeItem('redirectAfterAuth') // Clean up
     
     if (result || auth.currentUser) {
-      console.log('User authenticated, redirecting to:', redirectPath)
       router.push(redirectPath)
     } else {
-      console.log('No user found, redirecting to login')
       router.push('/login')
     }
   } catch (error) {
