@@ -7,7 +7,8 @@ import {
   computeDeskewAngle,
   filterComponentsByArea,
   buildCellGrid,
-  deduplicateLines
+  deduplicateLines,
+  assemblePatternRows
 } from '../gridAnalysis'
 
 describe('gridAnalysis', () => {
@@ -320,6 +321,114 @@ describe('gridAnalysis', () => {
       const result = deduplicateLines(lines, 5)
       expect(result.length).toBe(1)
       expect(result[0].position).toBe(50) // first one kept
+    })
+  })
+
+  describe('assemblePatternRows', () => {
+    // 3 rows × 4 cols grid. Physical layout (image coords):
+    //   row 0: A B C D  (top of image)
+    //   row 1: E F G H
+    //   row 2: I J K L  (bottom of image)
+    const cells = [
+      { row: 0, col: 0, id: 'A' }, { row: 0, col: 1, id: 'B' }, { row: 0, col: 2, id: 'C' }, { row: 0, col: 3, id: 'D' },
+      { row: 1, col: 0, id: 'E' }, { row: 1, col: 1, id: 'F' }, { row: 1, col: 2, id: 'G' }, { row: 1, col: 3, id: 'H' },
+      { row: 2, col: 0, id: 'I' }, { row: 2, col: 1, id: 'J' }, { row: 2, col: 2, id: 'K' }, { row: 2, col: 3, id: 'L' },
+    ]
+    const dims = { rows: 3, cols: 4 }
+
+    // Helper to extract ids from assembled rows
+    const ids = (rows) => rows.map(r => r.map(c => c.id))
+
+    it('bottom-right + alternating: Row 1 is bottom, reads R→L, Row 2 reads L→R', () => {
+      const result = assemblePatternRows(cells, dims, 'bottom-right', 'alternating')
+      expect(ids(result)).toEqual([
+        ['L', 'K', 'J', 'I'],  // Row 1: bottom row, right-to-left
+        ['E', 'F', 'G', 'H'],  // Row 2: middle row, left-to-right
+        ['D', 'C', 'B', 'A'],  // Row 3: top row, right-to-left
+      ])
+    })
+
+    it('bottom-left + alternating: Row 1 is bottom, reads L→R, Row 2 reads R→L', () => {
+      const result = assemblePatternRows(cells, dims, 'bottom-left', 'alternating')
+      expect(ids(result)).toEqual([
+        ['I', 'J', 'K', 'L'],  // Row 1: bottom row, left-to-right
+        ['H', 'G', 'F', 'E'],  // Row 2: middle row, right-to-left
+        ['A', 'B', 'C', 'D'],  // Row 3: top row, left-to-right
+      ])
+    })
+
+    it('top-right + alternating: Row 1 is top, reads R→L, Row 2 reads L→R', () => {
+      const result = assemblePatternRows(cells, dims, 'top-right', 'alternating')
+      expect(ids(result)).toEqual([
+        ['D', 'C', 'B', 'A'],  // Row 1: top row, right-to-left
+        ['E', 'F', 'G', 'H'],  // Row 2: middle row, left-to-right
+        ['L', 'K', 'J', 'I'],  // Row 3: bottom row, right-to-left
+      ])
+    })
+
+    it('top-left + alternating: Row 1 is top, reads L→R, Row 2 reads R→L', () => {
+      const result = assemblePatternRows(cells, dims, 'top-left', 'alternating')
+      expect(ids(result)).toEqual([
+        ['A', 'B', 'C', 'D'],  // Row 1: top row, left-to-right
+        ['H', 'G', 'F', 'E'],  // Row 2: middle row, right-to-left
+        ['I', 'J', 'K', 'L'],  // Row 3: bottom row, left-to-right
+      ])
+    })
+
+    it('bottom-right + same: all rows read R→L', () => {
+      const result = assemblePatternRows(cells, dims, 'bottom-right', 'same')
+      expect(ids(result)).toEqual([
+        ['L', 'K', 'J', 'I'],
+        ['H', 'G', 'F', 'E'],
+        ['D', 'C', 'B', 'A'],
+      ])
+    })
+
+    it('bottom-left + same: all rows read L→R', () => {
+      const result = assemblePatternRows(cells, dims, 'bottom-left', 'same')
+      expect(ids(result)).toEqual([
+        ['I', 'J', 'K', 'L'],
+        ['E', 'F', 'G', 'H'],
+        ['A', 'B', 'C', 'D'],
+      ])
+    })
+
+    it('top-right + same: all rows read R→L', () => {
+      const result = assemblePatternRows(cells, dims, 'top-right', 'same')
+      expect(ids(result)).toEqual([
+        ['D', 'C', 'B', 'A'],
+        ['H', 'G', 'F', 'E'],
+        ['L', 'K', 'J', 'I'],
+      ])
+    })
+
+    it('top-left + same: all rows read L→R', () => {
+      const result = assemblePatternRows(cells, dims, 'top-left', 'same')
+      expect(ids(result)).toEqual([
+        ['A', 'B', 'C', 'D'],
+        ['E', 'F', 'G', 'H'],
+        ['I', 'J', 'K', 'L'],
+      ])
+    })
+
+    it('returns empty for empty cells', () => {
+      expect(assemblePatternRows([], dims, 'bottom-right', 'alternating')).toEqual([])
+    })
+
+    it('returns empty for null/missing gridDimensions', () => {
+      expect(assemblePatternRows(cells, null, 'bottom-right', 'alternating')).toEqual([])
+      expect(assemblePatternRows(cells, {}, 'bottom-right', 'alternating')).toEqual([])
+    })
+
+    it('preserves extra cell properties (pixel data, confidence, etc.)', () => {
+      const richCells = [
+        { row: 0, col: 0, id: 'X', confidence: 0.9, imageData: 'blob1' },
+        { row: 0, col: 1, id: 'Y', confidence: 0.8, imageData: 'blob2' },
+      ]
+      const result = assemblePatternRows(richCells, { rows: 1, cols: 2 }, 'top-left', 'same')
+      expect(result[0][0].confidence).toBe(0.9)
+      expect(result[0][0].imageData).toBe('blob1')
+      expect(result[0][1].imageData).toBe('blob2')
     })
   })
 })

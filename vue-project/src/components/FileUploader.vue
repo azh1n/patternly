@@ -48,7 +48,12 @@
       <button v-if="isFullScreen" @click="toggleFullScreen" class="fullscreen-close" aria-label="Exit full screen">
         <font-awesome-icon :icon="['fas', 'times']" />
       </button>
-      <div v-if="isChartProcessed" class="chart-container">
+      <!-- Direction selector (shown after grid confirmation, replaces chart view) -->
+      <div v-if="isChartProcessed && showDirectionSelector" class="direction-selector-container">
+        <ChartDirectionSelector @confirm="onDirectionConfirm" />
+      </div>
+
+      <div v-else-if="isChartProcessed" class="chart-container">
         <div class="chart-preview" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan" @mouseup="stopPan" @mouseleave="stopPan" @touchstart="startPan" @touchmove="handlePan" @touchend="stopPan">
           <div class="zoom-container" :style="zoomTransform">
             <div class="image-overlay-wrapper">
@@ -245,6 +250,7 @@ import { useImageProcessing } from '@/services/imageProcessingService';
 import { useChartProcessing } from '@/services/chartProcessingService';
 import ImageProcessingProgress from './ImageProcessingProgress.vue';
 import GridLineEditor from './GridLineEditor.vue';
+import ChartDirectionSelector from './ChartDirectionSelector.vue';
 
 const props = defineProps({
   file: {
@@ -299,6 +305,10 @@ const gridImageWidth = ref(0);
 const gridImageHeight = ref(0);
 const gridEditorRef = ref(null);
 
+// Direction selector state
+const showDirectionSelector = ref(false);
+const pendingCellResult = ref(null);
+
 // Update state based on processing services
 watchEffect(() => {
   if (chartProcessing.value || imageProcessing.value) {
@@ -333,6 +343,8 @@ const clearPreview = () => {
   isChartProcessed.value = false;
   // Clean up editor state
   showGridEditor.value = false;
+  showDirectionSelector.value = false;
+  pendingCellResult.value = null;
   gridResult.value = null;
   if (sourceImageElement.value?.src) {
     URL.revokeObjectURL(sourceImageElement.value.src);
@@ -357,11 +369,16 @@ const onGridConfirm = async (editedGridResult) => {
       cellImages.value = result.cellImages || [];
       showGridEditor.value = false;
 
-      emit('processing-complete', {
+      // Store result and show direction selector instead of emitting immediately
+      pendingCellResult.value = {
         blob: result.blob,
         gridCells: gridCells.value,
-        cellImages: cellImages.value
-      });
+        cellImages: cellImages.value,
+        gridDimensions: result.gridDimensions || null
+      };
+      showDirectionSelector.value = true;
+      // Exit fullscreen since direction selector replaces the chart view
+      if (isFullScreen.value) toggleFullScreen();
     } else {
       processingError.value = result.error || 'Failed to extract cells';
       emit('error', processingError.value);
@@ -378,6 +395,18 @@ const onGridConfirm = async (editedGridResult) => {
     }
     sourceImageElement.value = null;
   }
+};
+
+const onDirectionConfirm = (directionData) => {
+  showDirectionSelector.value = false;
+
+  emit('processing-complete', {
+    ...pendingCellResult.value,
+    startCorner: directionData.startCorner,
+    rowDirection: directionData.rowDirection
+  });
+
+  pendingCellResult.value = null;
 };
 
 const onGridReset = () => {
@@ -1234,6 +1263,14 @@ const getMimeTypeFromExtension = (filename) => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.direction-selector-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
 }
 
 .chart-preview {

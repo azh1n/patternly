@@ -207,6 +207,67 @@ export function buildCellGrid(hLines, vLines, medianW, medianH) {
  * @param {number} minDistance - Minimum pixel distance between lines
  * @returns {{ position: number, confidence: number }[]} Deduplicated array
  */
+/**
+ * Reorders extracted grid cells into pattern rows based on the user's
+ * starting corner and row direction selection.
+ *
+ * @param {{ row: number, col: number, [key: string]: any }[]} cells - Cells from extractGridCells (image coords: row 0 = top, col 0 = left)
+ * @param {{ rows: number, cols: number }} gridDimensions - Grid size
+ * @param {'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'} startCorner
+ * @param {'alternating' | 'same'} rowDirection
+ * @returns {{ row: number, col: number, [key: string]: any }[][]} Array of pattern rows, each an ordered array of cells
+ */
+export function assemblePatternRows(cells, gridDimensions, startCorner, rowDirection) {
+  if (!cells || cells.length === 0 || !gridDimensions) return [];
+
+  const { rows, cols } = gridDimensions;
+  if (!rows || !cols) return [];
+
+  // Group cells by physical row
+  const rowMap = new Map();
+  for (const cell of cells) {
+    if (!rowMap.has(cell.row)) rowMap.set(cell.row, []);
+    rowMap.get(cell.row).push(cell);
+  }
+
+  // Sort cells within each row by column
+  for (const rowCells of rowMap.values()) {
+    rowCells.sort((a, b) => a.col - b.col);
+  }
+
+  // Get physical row indices sorted
+  const physicalRows = [...rowMap.keys()].sort((a, b) => a - b);
+
+  // Determine row order based on starting corner
+  const startFromBottom = startCorner.startsWith('bottom');
+  const startFromRight = startCorner.endsWith('right');
+
+  // Reverse row order if starting from bottom
+  const orderedRowIndices = startFromBottom ? [...physicalRows].reverse() : [...physicalRows];
+
+  // Build pattern rows
+  const patternRows = [];
+  for (let i = 0; i < orderedRowIndices.length; i++) {
+    const physicalRowIdx = orderedRowIndices[i];
+    const rowCells = rowMap.get(physicalRowIdx);
+    if (!rowCells) continue;
+
+    // Determine if this row reads right-to-left
+    let reverseColumns;
+    if (rowDirection === 'same') {
+      reverseColumns = startFromRight;
+    } else {
+      // Alternating: odd pattern rows (0, 2, 4...) follow start direction, even (1, 3, 5...) flip
+      reverseColumns = i % 2 === 0 ? startFromRight : !startFromRight;
+    }
+
+    const orderedCells = reverseColumns ? [...rowCells].reverse() : [...rowCells];
+    patternRows.push(orderedCells);
+  }
+
+  return patternRows;
+}
+
 export function deduplicateLines(lines, minDistance) {
   if (!lines || lines.length === 0) return [];
 
